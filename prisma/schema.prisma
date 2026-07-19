@@ -1,0 +1,100 @@
+// ================================================================
+// EngeServ Inspector - Schema do banco de dados (Sprint 1)
+//
+// Regra do PROJECT_RULES.md: "Todo documento devera ser gerado a
+// partir do banco de dados". Este schema e o coracao do sistema.
+//
+// Nesta etapa (Sprint 1 - Estrutura base) modelamos apenas:
+//   - Usuarios e papeis (Autenticacao / Usuarios)
+//   - Esqueleto de Clientes e Equipamentos (cadastro basico)
+//
+// Os modulos de Inspecoes, Medicoes, Fotos, Calculos NR13 e Laudos
+// serao adicionados nas proximas sprints (ver docs/ROADMAP.md).
+// ================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Local (dev): sqlite. Producao (Vercel): trocar para postgresql.
+  // Veja docs/ARCHITECTURE.md -> secao "Banco de dados em producao".
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN_MASTER
+  GESTOR
+  FUNCIONARIO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdById  String?
+  createdBy    User?    @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers User[]   @relation("UserCreatedBy")
+
+  clients Client[] @relation("ClientResponsible")
+
+  @@map("users")
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  companyName  String
+  cnpj         String?
+  address      String?
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  responsibleId String?
+  responsible   User?   @relation("ClientResponsible", fields: [responsibleId], references: [id])
+
+  equipments Equipment[]
+
+  @@map("clients")
+}
+
+enum EquipmentType {
+  CALDEIRA
+  VASO_DE_PRESSAO
+  SILO
+  TANQUE
+  TUBULACAO
+  COMPRESSOR
+  TROCADOR_DE_CALOR
+  REATOR
+  OUTRO
+}
+
+model Equipment {
+  id         String        @id @default(cuid())
+  tag        String // identificacao/TAG do equipamento no cliente
+  type       EquipmentType
+  description String?
+  manufacturer String?
+  manufactureYear Int?
+  // Dados de projeto basicos (o motor de calculo NR13 usara isso na Sprint 4)
+  designPressureBar Float?
+  originalThicknessMm Float?
+  minThicknessMm      Float? // limite de seguranca (> 2,5 mm conforme regra de negocio)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@map("equipments")
+}
