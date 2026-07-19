@@ -17,9 +17,7 @@ generator client {
 }
 
 datasource db {
-  // Local (dev): sqlite. Producao (Vercel): trocar para postgresql.
-  // Veja docs/ARCHITECTURE.md -> secao "Banco de dados em producao".
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
