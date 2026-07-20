@@ -127,16 +127,24 @@ serão adicionados nas Sprints 3 a 5, conforme `ROADMAP.md`.
 
   Isso está detalhado passo a passo no `README.md`.
 
-## Próximos módulos (visão arquitetural)
+## Arquitetura de armazenamento de fotos (Sprint 3)
 
-- **Motor de Cálculo NR-13** (Sprint 4): módulo puro (`src/lib/nr13/*`),
-  sem dependência de UI, com funções testáveis isoladamente — recebe dados
-  de projeto + medições, devolve espessura mínima, taxa de corrosão, vida
-  útil, coeficiente de segurança etc.
-- **Gerador de Laudo** (Sprint 5): usa React PDF ou biblioteca equivalente
-  para PDF, e `docx` (mesma lib usada nos outros documentos do projeto)
-  para Word — ambos consumindo os mesmos dados do banco, nunca duplicando
-  lógica de formatação de números/datas.
-- **Gestão de Validades** (Sprint 6): computada a partir da data de emissão
-  + validade padrão do tipo de laudo, sem campo solto — sempre derivada do
-  banco.
+A partir da Sprint 3, o sistema passa a lidar com upload de imagens (fotos de inspeção).
+Como a Vercel roda em serverless functions com sistema de arquivos efêmero, **não é possível
+salvar arquivos no disco local do projeto**. A solução adotada:
+
+- **Vercel Blob** (https://vercel.com/docs/storage/vercel-blob) — armazenamento de objetos
+  nativo da Vercel, com CDN global, URLs públicas/assinadas, e SDK simples.
+- Cada foto de inspeção vira um registro no banco (`InspectionPhoto`) que guarda **apenas
+  a URL do blob** e metadados (categoria, legenda, ordem). O arquivo físico **nunca** fica
+  no repositório nem no filesystem da função.
+- Configuração: variável de ambiente `BLOB_READ_WRITE_TOKEN` (token com permissão
+  read/write do store Vercel Blob). O token é criado no painel da Vercel → Storage →
+  Blob → Create Store → Copy Token.
+
+Fluxo de upload:
+1. Frontend solicita URL de upload assinada via `/api/inspections/[id]/photos/upload-url`
+2. Frontend faz PUT direto para a URL do Blob (client-side, sem passar pelo backend)
+3. Frontend confirma criação do registro `InspectionPhoto` no banco com a URL retornada
+
+Isso remove carga do backend, escala automaticamente, e mantém o custo previsível.
