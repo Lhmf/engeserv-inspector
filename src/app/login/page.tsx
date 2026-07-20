@@ -87,9 +87,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Não tem conta? <Link href="/cadastrar" className="text-brand hover:underline font-medium">Cadastrar</Link>
-        </p>
+        
       </div>
     </main>
   );
