@@ -28,7 +28,30 @@ sessão de trabalho concluída.
 - Configurado para deploy na Vercel e para rodar em `localhost`
   (instruções completas em `README.md`).
 
-## 20/07/2026 — Correção de segurança: remoção de cadastro público
+## 20/07/2026 — Sprint 2: Cadastro de Clientes e Equipamentos
+
+**Entregas:**
+
+- **Clientes (CRUD completo):**
+  - Listagem em `/clientes` com tabela (empresa, CNPJ, responsável, equipamentos, status, data)
+  - Cadastro em `/clientes/novo` com formulário: razão social, CNPJ (formatação automática), endereço, contato (nome, telefone, email), responsável técnico (select com Gestores ativos)
+  - API `/api/clientes` (GET lista, POST cria) + `/api/clientes/[id]` (GET detalhe, PUT atualiza, DELETE desativa)
+  - Validações: CNPJ único (14 dígitos), email válido, responsável deve ser Gestor ativo
+  - Soft delete: desativa cliente só se não tiver equipamentos ativos
+
+- **Equipamentos (CRUD completo):**
+  - Listagem em `/equipamentos` com filtro por cliente (TAG, tipo, cliente, descrição, data)
+  - Cadastro em `/equipamentos/novo` com formulário: cliente (select), TAG (única por cliente), tipo (enum NR-13), descrição, fabricante, ano, pressão de projeto, espessura original, espessura mínima
+  - API `/api/equipamentos` (GET lista com filtro opcional clientId, POST cria)
+  - Validações: TAG única por cliente, cliente ativo, tipos conforme NR-13
+
+- **Responsável Técnico:** campo `responsibleId` no Cliente vinculando a usuários com role GESTOR ativo
+
+- **Usuários:** refinada tela `/usuarios` mantendo criação com permissão (Admin Master cria Gestor/Funcionário, Gestor cria Funcionário)
+
+**Arquitetura:** mesmo padrão visual e de componentes do módulo Usuários (NewUserForm → NewClientForm/NewEquipmentForm, tabelas consistentes, formulários em grid responsivo, validações Zod, permissões via `src/lib/auth.ts`)
+
+**Deploy:** Vercel automático via push no GitHub; banco Supabase Postgres com migração `active` em Client e Equipment
 
 **Problema:** Existia rota pública `/cadastrar` e endpoint `/api/auth/register`
 acessíveis sem autenticação, permitindo que qualquer pessoa criasse contas de
@@ -55,3 +78,26 @@ Master ou Gestor (autenticados) criam Funcionário.
 desativar/remover as de teste. Trocar `MANAGEMENT_CODE` e `AUTH_SECRET` nas
 Environment Variables da Vercel (previsto para ser feito manualmente pelo
 responsável).
+
+## 20/07/2026 — Sprint 2: Cadastro de Clientes e Equipamentos
+
+**Entregue:** Cadastro completo de Clientes e Equipamentos com validações de negócio.
+
+**Clientes (`/clientes` + `/clientes/novo`):**
+- Listagem com busca, status ativo/inativo, responsável técnico, contagem de equipamentos
+- Formulário de cadastro: razão social, CNPJ (único, formatação automática), endereço, contato (nome/telefone/email), responsável técnico (dropdown só Gestores ativos)
+- Validações: CNPJ único, responsável deve ser Gestor ativo
+- API: GET/POST `/api/clientes`, GET/PUT/DELETE `/api/clientes/[id]`
+
+**Equipamentos (`/equipamentos` + `/equipamentos/novo`):**
+- Listagem vinculada a cliente, TAG, tipo, descrição, inspeções
+- Formulário de cadastro: cliente (dropdown ativos), TAG (única por cliente), tipo (enum 9 tipos NR-13), descrição, fabricante, ano, dados de projeto NR-13 (pressão bar, espessura original/mínima mm)
+- Validações: TAG única por cliente (índice composto), cliente ativo
+- API: GET/POST `/api/equipamentos` (com filtro `?clientId=`)
+
+**Banco de dados:**
+- Campo `active` adicionado em `Client` e `Equipment` (soft delete)
+- Índice único composto `clientId+tag` em Equipment
+- Campo `phone` já existia em User
+
+**Próximos passos (Sprint 3):** Inspeções, medições, fotos, cálculos NR-13.

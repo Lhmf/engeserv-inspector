@@ -19,10 +19,10 @@ registre a data em `CHANGELOG.md`.
 
 ## Sprint 2 — Cadastro
 
-- [ ] Cadastro completo de Clientes (formulário + listagem + edição)
-- [ ] Cadastro completo de Equipamentos (vinculado a um cliente)
-- [ ] Cadastro de Responsáveis Técnicos
-- [ ] Refinar tela de Usuários (edição, desativação)
+- [x] Cadastro completo de Clientes (formulário + listagem + edição)
+- [x] Cadastro completo de Equipamentos (vinculado a um cliente)
+- [x] Cadastro de Responsáveis Técnicos
+- [x] Refinar tela de Usuários (edição, desativação)
 
 ## Sprint 3 — Inspeções
 

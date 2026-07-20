@@ -20,11 +20,11 @@ Backlog de curto prazo. Itens concluídos migram para `CHANGELOG.md`.
 
 ## Próximos (peça ao Hermes um de cada vez, começando pelo primeiro)
 
-- [ ] Formulário de cadastro de Cliente (criar/editar/listar)
-- [ ] Formulário de cadastro de Equipamento (criar/editar/listar,
+- [x] Formulário de cadastro de Cliente (criar/editar/listar)
+- [x] Formulário de cadastro de Equipamento (criar/editar/listar,
       vinculado a um Cliente)
-- [ ] Tela de edição/desativação de usuário
-- [ ] Cadastro de Responsável Técnico (pode nascer como campo dentro de
+- [x] Tela de edição/desativação de usuário
+- [x] Cadastro de Responsável Técnico (pode nascer como campo dentro de
       Usuários ou entidade própria — decidir na Sprint 2)
 - [ ] Upload de fotos categorizadas (Sprint 3)
 - [ ] Mapa de pontos de medição por ultrassom (Sprint 3)
