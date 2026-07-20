@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function LoginPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Nao foi possivel entrar. Tente novamente.");
+      setError(data.error ?? "Não foi possível entrar. Tente novamente.");
       return;
     }
 
@@ -39,7 +40,7 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <h1 className="text-xl font-bold text-navy">EngeServ Inspector</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Plataforma de gestao de inspecoes NR-13
+            Plataforma de gestão de inspeções NR-13
           </p>
         </div>
 
@@ -57,7 +58,12 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Senha</label>
+            <div className="flex justify-between mb-1">
+              <label className="text-sm font-medium text-slate-700">Senha</label>
+              <Link href="/esqueci-senha" className="text-sm text-brand hover:underline">
+                Esqueci minha senha
+              </Link>
+            </div>
             <input
               type="password"
               required
@@ -81,9 +87,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Acesso exclusivo da equipe EngeServ. Contas de Gestor sao criadas pelo
-          Administrador Master; contas de Funcionario, pelo Gestor.
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Não tem conta? <Link href="/cadastrar" className="text-brand hover:underline font-medium">Cadastrar</Link>
         </p>
       </div>
     </main>
