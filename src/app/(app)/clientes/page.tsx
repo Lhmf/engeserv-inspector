@@ -6,9 +6,14 @@ export default async function ClientesPage() {
   const session = await getSession();
 
   const clientes = await prisma.client.findMany({
-    include: {
+    select: {
+      id: true,
+      companyName: true,
+      cnpj: true,
       responsible: { select: { id: true, name: true, email: true } },
       _count: { select: { equipments: true } },
+      createdAt: true,
+      active: true,
     },
     orderBy: { createdAt: "desc" },
   });
