@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
-const equipmentSchema = z.object({
+const createEquipmentSchema = z.object({
   clientId: z.string().cuid("Cliente inválido."),
   tag: z.string().min(1, "TAG é obrigatória."),
   type: z.enum([
@@ -19,25 +19,19 @@ const equipmentSchema = z.object({
   ]),
   description: z.string().optional(),
   manufacturer: z.string().optional(),
-  manufactureYear: z.number().int().min(1900).max(2100).optional(),
+  manufactureYear: z.number().int().positive().optional(),
   designPressureBar: z.number().positive().optional(),
   originalThicknessMm: z.number().positive().optional(),
   minThicknessMm: z.number().positive().optional(),
 });
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const clientId = searchParams.get("clientId");
-
-  const where = clientId ? { clientId } : {};
-
   const equipamentos = await prisma.equipment.findMany({
-    where,
     include: {
       client: { select: { id: true, companyName: true } },
     },
@@ -54,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const parsed = equipmentSchema.safeParse(body);
+  const parsed = createEquipmentSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -71,15 +65,18 @@ export async function POST(req: NextRequest) {
     select: { id: true, active: true },
   });
   if (!client || !client.active) {
-    return NextResponse.json({ error: "Cliente não encontrado ou inativo." }, { status: 404 });
+    return NextResponse.json({ error: "Cliente inválido ou inativo." }, { status: 400 });
   }
 
-  // Verifica TAG duplicada no mesmo cliente
-  const existing = await prisma.equipment.findFirst({
-    where: { clientId, tag },
+  // Verifica TAG única no mesmo cliente
+  const existing = await prisma.equipment.findUnique({
+    where: { clientId_tag: { clientId, tag } },
   });
   if (existing) {
-    return NextResponse.json({ error: "Já existe equipamento com esta TAG para este cliente." }, { status: 409 });
+    return NextResponse.json(
+      { error: "Já existe equipamento com esta TAG neste cliente." },
+      { status: 409 }
+    );
   }
 
   const equipamento = await prisma.equipment.create({

@@ -90,11 +90,13 @@ model Equipment {
   designPressureBar Float?
   originalThicknessMm Float?
   minThicknessMm      Float? // limite de seguranca (> 2,5 mm conforme regra de negocio)
+  active       Boolean  @default(true)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 
+  @@unique([clientId, tag])
   @@map("equipments")
 }

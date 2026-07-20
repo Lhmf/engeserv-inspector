@@ -22,7 +22,6 @@ export async function GET(req: NextRequest) {
   const clientes = await prisma.client.findMany({
     include: {
       responsible: { select: { id: true, name: true, email: true } },
-      _count: { select: { equipments: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   // Verifica CNPJ duplicado
   if (cnpj) {
-    const existing = await prisma.client.findUnique({ where: { cnpj } });
+    const existing = await prisma.client.findFirst({ where: { cnpj } });
     if (existing) {
       return NextResponse.json({ error: "Já existe cliente com este CNPJ." }, { status: 409 });
     }
@@ -79,7 +78,6 @@ export async function POST(req: NextRequest) {
     },
     include: {
       responsible: { select: { id: true, name: true, email: true } },
-      _count: { select: { equipments: true } },
     },
   });
 

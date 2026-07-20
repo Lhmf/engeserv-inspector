@@ -31,7 +31,6 @@ export async function GET(
     include: {
       responsible: { select: { id: true, name: true, email: true } },
       equipments: {
-        include: { _count: { select: { inspections: true } } },
         orderBy: { createdAt: "desc" },
       },
     },

@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
+import NewClientForm from "./NewClientForm";
 
 export default async function ClientesPage() {
   const session = await getSession();
@@ -25,12 +25,12 @@ export default async function ClientesPage() {
           <h1 className="text-xl font-bold text-slate-800">Clientes</h1>
           <p className="text-sm text-slate-500">Cadastro e gestão de clientes</p>
         </div>
-        <Link
+        <a
           href="/clientes/novo"
           className="rounded-md bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand"
         >
           Novo cliente
-        </Link>
+        </a>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -79,9 +79,12 @@ export default async function ClientesPage() {
         {clientes.length === 0 && (
           <div className="px-4 py-8 text-center text-slate-500">
             Nenhum cliente cadastrado.
-            <Link href="/clientes/novo" className="ml-2 text-brand hover:underline">
+            <a
+              href="/clientes/novo"
+              className="ml-2 text-brand hover:underline"
+            >
               Cadastrar o primeiro
-            </Link>
+            </a>
           </div>
         )}
       </div>
