@@ -20,17 +20,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "SEED_ADMIN_PASSWORD não definido" }, { status: 500 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return NextResponse.json({ message: "Admin Master já existe", user: { id: existing.id, email: existing.email, role: existing.role } });
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const admin = await prisma.user.upsert({
+      where: { email },
+      create: {
+        name,
+        email,
+        passwordHash,
+        role: "ADMIN_MASTER",
+        active: true,
+      },
+      update: {
+        passwordHash,
+        name,
+        role: "ADMIN_MASTER",
+        active: true,
+      },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+
+    return NextResponse.json({ user: admin, message: "Administrador Master sincronizado com sucesso" });
+  } catch (error) {
+    console.error("[SEED_ADMIN_ERROR]", error);
+    return NextResponse.json({ error: "Erro ao sincronizar admin" }, { status: 500 });
   }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const admin = await prisma.user.create({
-    data: { name, email, passwordHash, role: "ADMIN_MASTER" },
-    select: { id: true, name: true, email: true, role: true },
-  });
-
-  return NextResponse.json({ message: "Admin Master criado", user: admin }, { status: 201 });
 }
