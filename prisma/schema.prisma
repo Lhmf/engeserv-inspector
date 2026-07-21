@@ -1,15 +1,7 @@
 // ================================================================
 // EngeServ Inspector - Schema do banco de dados (Sprint 1)
-//
 // Regra do PROJECT_RULES.md: "Todo documento devera ser gerado a
 // partir do banco de dados". Este schema e o coracao do sistema.
-//
-// Nesta etapa (Sprint 1 - Estrutura base) modelamos apenas:
-//   - Usuarios e papeis (Autenticacao / Usuarios)
-// ================================================================
-// EngeServ Inspector - Schema do banco de dados (Sprint 1-3)
-// ...
-// Sprint 3: Inspecoes, Medicoes, Fotos
 // ================================================================
 
 generator client {
@@ -44,6 +36,18 @@ enum PhotoCategory {
   SOLDA
   TRINCA
   REPARO
+}
+
+enum EquipmentType {
+  CALDEIRA
+  VASO_DE_PRESSAO
+  SILO
+  TANQUE
+  TUBULACAO
+  COMPRESSOR
+  TROCADOR_DE_CALOR
+  REATOR
+  OUTRO
 }
 
 model User {
@@ -90,18 +94,6 @@ model Client {
   @@map("clients")
 }
 
-enum EquipmentType {
-  CALDEIRA
-  VASO_DE_PRESSAO
-  SILO
-  TANQUE
-  TUBULACAO
-  COMPRESSOR
-  TROCADOR_DE_CALOR
-  REATOR
-  OUTRO
-}
-
 model Equipment {
   id         String        @id @default(cuid())
   tag        String // identificacao/TAG do equipamento no cliente
@@ -111,11 +103,31 @@ model Equipment {
   manufactureYear Int?
   // Dados de projeto basicos (o motor de calculo NR13 usara isso na Sprint 4)
   designPressureBar Float?
-  originalThicknessMm Float?
+  originalThicknessMm Float? // espessura nominal do CASCO (nao dos tampos)
   minThicknessMm      Float? // limite de seguranca (> 2,5 mm conforme regra de negocio)
+  // --- Novos campos (Sprint 3 - modelagem de dados para laudo) ---
+  serialNumber String?
+  designCode String?              // ex: "ASME SEC.VIII div.I/2021"
+  designTempC Float?
+  operatingPressureBar Float?     // pressao de operacao - DIFERENTE da PMTA
+  operatingTempC Float?
+  mawpBar Float?                  // PMTA - pressao maxima de trabalho admissivel
+  hydroTestPressureBar Float?     // PTH
+  headType String?                // ex: "Semieliptico", "Semiesferico", "Torisferico"
+  headMaterial String?            // ex: "SA-36"
+  bodyMaterial String?            // material do corpo/casco
+  headNominalThicknessMm Float?   // DIFERENTE de originalThicknessMm (que e do casco)
+  volumeLiters Float?
+  jointEfficiency Float?          // eficiencia de solda, ex: 0.7
+  fluidType String?               // ex: "Ar Comprimido"
+  fluidClass String?              // Classe do fluido (A/B/C/D) - manual por enquanto
+  riskGroup Int?                  // Grupo de potencial de risco - manual por enquanto
+  nr13Category String?            // Categoria (I a V) - manual por enquanto
+  // ----------------------------------------------------------------
+
   active       Boolean  @default(true)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
@@ -124,6 +136,19 @@ model Equipment {
 
   @@unique([clientId, tag])
   @@map("equipments")
+}
+
+model TextTemplate {
+  id        String   @id @default(cuid())
+  code      String   @unique // ex: "REC_12_1", "REC_12_2" ...
+  title     String   // ex: "12.1 - Inspecao visual anual"
+  content   String   // texto completo da recomendacao
+  category  String?  // ex: "RECOMENDACAO" | "AVISO" | "CONCLUSAO" | "AVISO_REPARO"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("text_templates")
 }
 
 model Inspection {
