@@ -2,7 +2,12 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+export function LogoutButton({ className = "", children }: LogoutButtonProps) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -14,9 +19,12 @@ export function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+      className={`
+        rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100
+        ${className}
+      `}
     >
-      Sair
+      {children || "Sair"}
     </button>
   );
 }
