@@ -4,13 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
 const clientSchema = z.object({
-  companyName: z.string().min(2, "Razão social é obrigatória."),
+  companyName: z.string().min(2, "Razão social é obrigatória.").optional().or(z.literal("")),
+  name: z.string().min(2, "Razão social é obrigatória.").optional().or(z.literal("")),
   cnpj: z.string().optional(),
   address: z.string().optional(),
   contactName: z.string().optional(),
   contactPhone: z.string().optional(),
   contactEmail: z.string().email("Email inválido.").optional().or(z.literal("")),
   responsibleId: z.string().cuid("Responsável inválido.").optional(),
+}).refine((data) => (data.companyName && data.companyName.length >= 2) || (data.name && data.name.length >= 2), {
+  message: "Razão social é obrigatória.",
+  path: ["companyName"],
 });
 
 export async function GET(req: NextRequest) {
@@ -45,7 +49,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { companyName, cnpj, address, contactName, contactPhone, contactEmail, responsibleId } = parsed.data;
+  const { companyName, name, cnpj, address, contactName, contactPhone, contactEmail, responsibleId } = parsed.data;
+  const finalCompanyName = companyName || name || "";
 
   // Verifica CNPJ duplicado
   if (cnpj) {
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const cliente = await prisma.client.create({
     data: {
-      companyName,
+      companyName: finalCompanyName,
       cnpj,
       address,
       contactName,

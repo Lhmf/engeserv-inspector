@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { createSession } from "@/lib/auth";
+import { createSession, type Role } from "@/lib/auth";
 
 const loginSchema = z.object({
   email: z.string().email("Informe um email valido."),
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role: user.role as Role,
   });
 
   return NextResponse.json({

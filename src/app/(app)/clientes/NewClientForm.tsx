@@ -41,18 +41,18 @@ export default function NewClientForm() {
     setLoading(true);
 
     try {
+      const payload: Record<string, any> = { name };
+      if (cnpj) payload.cnpj = cnpj;
+      if (address) payload.address = address;
+      if (contactName) payload.contactName = contactName;
+      if (contactPhone) payload.contactPhone = contactPhone;
+      if (contactEmail) payload.contactEmail = contactEmail;
+      if (responsibleId) payload.responsibleId = responsibleId;
+
       const res = await fetch("/api/clientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          cnpj: cnpj || undefined,
-          address: address || undefined,
-          contactName: contactName || undefined,
-          contactPhone: contactPhone || undefined,
-          contactEmail: contactEmail || undefined,
-          responsibleId: responsibleId || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -240,4 +240,20 @@ export default function NewClientForm() {
       </form>
     </div>
   );
+}
+
+function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 14) {
+    return digits
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  }
+  return digits.slice(0, 14)
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
 }

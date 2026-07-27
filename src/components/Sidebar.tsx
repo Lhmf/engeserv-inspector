@@ -46,7 +46,7 @@ const STATUS_CONFIG = {
   REJEITADA: { label: "Rejeitada", icon: XCircle, color: "bg-rose-500", text: "text-rose-700", bg: "bg-rose-50" },
 };
 
-export function Sidebar({ role, collapsed = false, onToggle }: { role: "ADMIN_MASTER" | "GESTOR" | "FUNCIONARIO"; collapsed?: boolean; onToggle?: () => void }) {
+export function Sidebar({ role, collapsed = false, onToggle, userName, userEmail }: { role: "ADMIN_MASTER" | "GESTOR" | "FUNCIONARIO"; collapsed?: boolean; onToggle?: () => void; userName?: string; userEmail?: string }) {
   const items = NAV_ITEMS.filter((item) => !item.rolesAllowed || item.rolesAllowed.includes(role));
 
   return (
@@ -113,7 +113,7 @@ export function Sidebar({ role, collapsed = false, onToggle }: { role: "ADMIN_MA
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-300 truncate">Usuário Demo</p>
+            <p className="text-xs font-medium text-slate-300 truncate">{userName || "Usuário"}</p>
             <p className="text-[10px] text-slate-500 truncate">{role}</p>
           </div>
         </div>

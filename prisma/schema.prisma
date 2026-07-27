@@ -55,7 +55,7 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
-  role         Role
+  role         Role     @default(FUNCIONARIO)
   active       Boolean  @default(true)
   phone        String?  // WhatsApp do usuário
   createdAt    DateTime @default(now())
@@ -95,14 +95,14 @@ model Client {
 }
 
 model Equipment {
-  id         String        @id @default(cuid())
+  id         String   @id @default(cuid())
   tag        String // identificacao/TAG do equipamento no cliente
   type       EquipmentType
   description String?
   manufacturer String?
   manufactureYear Int?
   // Dados de projeto basicos (o motor de calculo NR13 usara isso na Sprint 4)
-  designPressureBar Float?
+  designPressureBar Float? // pressao de projeto (bar)
   originalThicknessMm Float? // espessura nominal do CASCO (nao dos tampos)
   minThicknessMm      Float? // limite de seguranca (> 2,5 mm conforme regra de negocio)
   // --- Novos campos (Sprint 3 - modelagem de dados para laudo) ---
@@ -123,6 +123,7 @@ model Equipment {
   fluidClass String?              // Classe do fluido (A/B/C/D) - manual por enquanto
   riskGroup Int?                  // Grupo de potencial de risco - manual por enquanto
   nr13Category String?            // Categoria (I a V) - manual por enquanto
+  periodicityMonths Int?                // Periodicidade de inspecao em meses (manual)
   // ----------------------------------------------------------------
 
   active       Boolean  @default(true)
@@ -207,5 +208,6 @@ model InspectionMeasurement {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@unique([inspectionId, point])
   @@map("inspection_measurements")
 }
