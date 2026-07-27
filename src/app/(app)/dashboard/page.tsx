@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./DashboardClient";
-import { calcularProximaData, getValidadeStatus } from "@/lib/validades";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,6 @@ export default async function DashboardPage() {
     inspections,
     criticalEquipmentsRaw,
     upcomingInspections,
-    upcomingValidadesRaw,
     recentActivitiesRaw,
   ] = await Promise.all([
     prisma.client.count({ where: { active: true } }),
@@ -54,20 +52,6 @@ export default async function DashboardPage() {
       },
       orderBy: { startedAt: "asc" },
       take: 5,
-    }),
-    prisma.equipment.findMany({
-      where: { active: true, periodicityMonths: { not: null } },
-      include: {
-        client: { select: { companyName: true } },
-        inspections: {
-          where: { status: "APROVADA" },
-          orderBy: { approvedAt: "desc" },
-          take: 1,
-          select: { approvedAt: true },
-        },
-      },
-      orderBy: { tag: "asc" },
-      take: 10,
     }),
     prisma.$queryRaw<Array<{ id: string; action: string; entity: string; entityName: string; userName: string; createdAt: Date }>>`
       SELECT 
@@ -190,27 +174,6 @@ export default async function DashboardPage() {
     value: e._count,
   }));
 
-  // Validades: próximos vencimentos
-  const upcomingValidades = upcomingValidadesRaw
-    .map((eq) => {
-      const lastApprovedAt = eq.inspections[0]?.approvedAt ?? null;
-      const nextDueDate = calcularProximaData(lastApprovedAt, eq.periodicityMonths);
-      return {
-        tag: eq.tag,
-        clientName: eq.client.companyName,
-        nextDueDate,
-        status: getValidadeStatus(nextDueDate),
-        equipmentId: eq.id,
-      };
-    })
-    .filter((v) => v.status === "PROXIMO" || v.status === "VENCIDO")
-    .sort((a, b) => {
-      if (!a.nextDueDate) return 1;
-      if (!b.nextDueDate) return -1;
-      return a.nextDueDate.getTime() - b.nextDueDate.getTime();
-    })
-    .slice(0, 5);
-
   // Pass all data to client component
   return (
     <DashboardClient
@@ -225,7 +188,6 @@ export default async function DashboardPage() {
       inspections={inspections}
       criticalEquipments={criticalEquipments}
       upcomingInspections={upcomingInspections}
-      upcomingValidades={upcomingValidades}
       activities={activities}
       statusData={statusData}
       monthlyData={monthlyData}

@@ -80,13 +80,6 @@ interface DashboardClientProps {
     };
     inspector: { name: string };
   }>;
-  upcomingValidades: Array<{
-    tag: string;
-    clientName: string;
-    nextDueDate: Date | null;
-    status: "VENCIDO" | "PROXIMO" | "OK" | "SEM_DATA";
-    equipmentId: string;
-  }>;
   activities: Array<{
     id: string;
     action: string;

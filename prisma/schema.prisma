@@ -123,7 +123,6 @@ model Equipment {
   fluidClass String?              // Classe do fluido (A/B/C/D) - manual por enquanto
   riskGroup Int?                  // Grupo de potencial de risco - manual por enquanto
   nr13Category String?            // Categoria (I a V) - manual por enquanto
-  periodicityMonths Int?                // Periodicidade de inspecao em meses (manual)
   // ----------------------------------------------------------------
 
   active       Boolean  @default(true)
