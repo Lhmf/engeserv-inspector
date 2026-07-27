@@ -14,6 +14,7 @@ export interface ValidadeInfo {
   equipmentId: string;
   equipmentTag: string;
   equipmentType: string;
+  clientId?: string;
   clientName: string;
   lastApprovedAt: Date | null;
   periodicityMonths: number | null;

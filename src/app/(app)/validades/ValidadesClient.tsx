@@ -65,6 +65,7 @@ export function ValidadesClient({
       const nextDueDate = calcularProximaData(v.lastApprovedAt, v.periodicityMonths);
       return {
         ...v,
+        clientId: v.clientId,
         nextDueDate,
         status: getValidadeStatus(nextDueDate),
       };

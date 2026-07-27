@@ -12,8 +12,8 @@ export default async function DashboardPage() {
     inspections,
     criticalEquipmentsRaw,
     upcomingInspections,
-    recentActivitiesRaw,
     upcomingValidadesRaw,
+    recentActivitiesRaw,
   ] = await Promise.all([
     prisma.client.count({ where: { active: true } }),
     prisma.equipment.count({ where: { active: true } }),
