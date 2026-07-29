@@ -32,7 +32,13 @@ causando perda de dados reais de clientes (clientes, equipamentos, inspeções, 
 - ALTERADO: `src/app/api/admin/seed/route.ts` (sem fallback hardcoded)
 - ALTERADO: `src/middleware.ts` (remove `/api/admin/migrate` dos paths públicos)
 
+**Rotação do MANAGEMENT_CODE (29/07/2026 — mesma sessão):**
+- O valor antigo `LHMF1218ENGSERV2026` estava no histórico público do GitHub (`.env.example`).
+- Removido da Vercel (Production) e substituído por novo valor gerado com `openssl rand -hex 24`.
+- Apenas o ambiente Production continha a variável (Preview/Development não).
+- Novo valor testado: código antigo → 403, código novo → 200.
+- `AUTH_SECRET` não foi rotacionado (não há evidência de vazamento; decisão separada).
+
 **Próximos passos (recomendação):**
-- Rotacionar o MANAGEMENT_CODE na Vercel e nos ambientes.
 - Migrações futuras devem ser executadas via `npx prisma migrate deploy` localmente
   por uma pessoa responsável, nunca via HTTP endpoint público.
