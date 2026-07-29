@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-const MANAGEMENT_CODE = process.env.MANAGEMENT_CODE ?? "LHMF1218ENGSERV2026";
+const MANAGEMENT_CODE = process.env.MANAGEMENT_CODE;
 
 export async function POST(req: NextRequest) {
+  if (!MANAGEMENT_CODE) {
+    return NextResponse.json({ error: "MANAGEMENT_CODE não configurado no servidor." }, { status: 500 });
+  }
+
   const authHeader = req.headers.get("authorization");
   const providedCode = authHeader?.replace("Bearer ", "");
 

@@ -10,36 +10,44 @@ const loginSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null);
-  const parsed = loginSchema.safeParse(body);
+  try {
+    const body = await req.json().catch(() => null);
+    const parsed = loginSchema.safeParse(body);
 
-  if (!parsed.success) {
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Dados invalidos." },
+        { status: 400 }
+      );
+    }
+
+    const { email, password } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.active) {
+      return NextResponse.json({ error: "Credenciais invalidas." }, { status: 401 });
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) {
+      return NextResponse.json({ error: "Credenciais invalidas." }, { status: 401 });
+    }
+
+    await createSession({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as Role,
+    });
+
+    return NextResponse.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (err: any) {
+    console.error("[LOGIN_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Dados invalidos." },
-      { status: 400 }
+      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
+      { status: 500 }
     );
   }
-
-  const { email, password } = parsed.data;
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.active) {
-    return NextResponse.json({ error: "Credenciais invalidas." }, { status: 401 });
-  }
-
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatches) {
-    return NextResponse.json({ error: "Credenciais invalidas." }, { status: 401 });
-  }
-
-  await createSession({
-    userId: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role as Role,
-  });
-
-  return NextResponse.json({
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
-  });
 }

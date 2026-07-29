@@ -6,7 +6,7 @@ import { COOKIE } from "@/lib/auth";
 // equipamentos etc. Roda no Edge Runtime, por isso usa jose
 // diretamente (nao pode importar Prisma aqui).
 
-const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed"];
+const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
