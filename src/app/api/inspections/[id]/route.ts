@@ -5,6 +5,9 @@ import { getSession } from "@/lib/auth";
 import { canApproveInspection } from "@/lib/auth";
 
 const updateInspectionSchema = z.object({
+  type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
+  notes: z.string().optional().nullable(),
+  recommendations: z.array(z.string()).optional(),
   status: z.enum(["EM_ANDAMENTO", "AGUARDANDO_APROVACAO", "APROVADA", "REJEITADA"]).optional(),
   rejectionReason: z.string().optional(),
   completedAt: z.string().datetime().optional(),
@@ -67,7 +70,7 @@ export async function PUT(
     );
   }
 
-  const { status, rejectionReason, completedAt } = parsed.data;
+  const { type, status, notes, recommendations, rejectionReason, completedAt } = parsed.data;
 
   const existing = await prisma.inspection.findUnique({
     where: { id },
@@ -102,7 +105,10 @@ export async function PUT(
   }
 
   const updateData: any = {};
+  if (type) updateData.type = type;
   if (status) updateData.status = status;
+  if (notes !== undefined) updateData.notes = notes;
+  if (recommendations !== undefined) updateData.recommendations = recommendations;
   if (rejectionReason) updateData.rejectionReason = rejectionReason;
   if (completedAt) updateData.completedAt = new Date(completedAt);
 

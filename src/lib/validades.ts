@@ -65,6 +65,7 @@ export function buildValidadeInfo(params: {
   equipmentId: string;
   equipmentTag: string;
   equipmentType: string;
+  clientId?: string;
   clientName: string;
   lastApprovedAt: Date | null;
   periodicityMonths: number | null;
@@ -72,6 +73,7 @@ export function buildValidadeInfo(params: {
   const nextDueDate = calcularProximaData(params.lastApprovedAt, params.periodicityMonths);
   return {
     ...params,
+    clientId: params.clientId,
     lastApprovedAt: params.lastApprovedAt,
     periodicityMonths: params.periodicityMonths,
     nextDueDate,

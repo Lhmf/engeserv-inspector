@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { put } from "@vercel/blob";
+import { getStorage } from "@/modules/storage";
+
+const VALID_CATEGORIES = [
+  "PLACA", "CORROSAO", "VALVULA", "MANOMETRO",
+  "ULTRASSOM", "VISTA_GERAL", "SOLDA", "TRINCA", "REPARO"
+];
 
 export async function GET(
   req: NextRequest,
@@ -45,51 +50,42 @@ export async function POST(
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
   }
 
-  if (!category) {
-    return NextResponse.json({ error: "Categoria é obrigatória." }, { status: 400 });
-  }
-
-  // Validate category
-  const validCategories = [
-    "PLACA", "CORROSAO", "VALVULA", "MANOMETRO", 
-    "ULTRASSOM", "VISTA_GERAL", "SOLDA", "TRINCA", "REPARO"
-  ];
-  if (!validCategories.includes(category)) {
+  if (!category || !VALID_CATEGORIES.includes(category)) {
     return NextResponse.json({ error: "Categoria inválida." }, { status: 400 });
   }
 
-  // Check inspection exists and user has permission
   const inspection = await prisma.inspection.findUnique({
     where: { id },
-    select: { id: true, status: true, inspectorId: true },
+    select: { id: true, inspectorId: true },
   });
 
   if (!inspection) {
     return NextResponse.json({ error: "Inspeção não encontrada." }, { status: 404 });
   }
 
-  // Only inspector or gestor/admin can add photos
-  const canAddPhoto = inspection.inspectorId === session.userId || 
+  const canAddPhoto = inspection.inspectorId === session.userId ||
     session.role === "GESTOR" || session.role === "ADMIN_MASTER";
-  
+
   if (!canAddPhoto) {
     return NextResponse.json({ error: "Sem permissão para adicionar fotos." }, { status: 403 });
   }
 
-  // Upload to Vercel Blob
+  const storage = process.env.BLOB_READ_WRITE_TOKEN ? await getStorage() : null;
   const createdPhotos = [];
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
 
-    // Check if process.env.BLOB_READ_WRITE_TOKEN is available, otherwise use placeholder
-    let url;
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const filename = `inspections/${id}/${category.toLowerCase()}-${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-      const blob = await put(filename, file, { access: 'public' });
-      url = blob.url;
+    let url: string;
+    if (storage) {
+      // Upload to cloud storage
+      const ext = file.name.split('.').pop() || 'jpg';
+      const pathname = `inspections/${id}/${category.toLowerCase()}-${Date.now()}-${i}.${ext}`;
+      const result = await storage.upload(file, pathname);
+      url = result.url;
     } else {
-      url = `https://images.unsplash.com/photo-${Date.now()}-${i}?w=800`;
+      // Fallback placeholder (dev environment without storage configured)
+      url = `https://placehold.co/800x600/1e293b/ffffff?text=${category}+${i}`;
     }
 
     const photo = await prisma.inspectionPhoto.create({

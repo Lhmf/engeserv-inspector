@@ -507,5 +507,136 @@ Todos os testes definem a interface esperada. Valores numéricos serão preenchi
 
 ---
 
+## 29/07/2026 — Incidente de Segurança + Correções RC1
+
+**Vide entrada completa no início deste arquivo (29/07/2026).**
+
+---
+
+## 30/07/2026 — MVP Final: Inspeções, Laudos, Validades, Fotos, Offline
+
+**Entregue:** Implementação completa de todas as prioridades restantes para o MVP funcional.
+
+### Prioridade 1 — Módulo de Inspeções (Finalizado)
+
+**Schema (Prisma):**
+- `Client`: adicionado `city` e `state`
+- `Equipment`: adicionado `corrosionAllowanceMm`
+- `Inspection`: adicionado `type` (INICIAL/PERIODICA/EXTRAORDINARIA), `notes`, `recommendations[]`
+- Novo enum `InspectionType`
+
+**Wizard de Inspeção (`/inspecoes/[id]/wizard`):**
+- Reescrevido para carregar inspeção via `useParams()` (rota correta)
+- Step 1: cliente/equipamento em modo leitura (seleção feita em `/inspecoes/novo`)
+- Steps 2-4: navegação Voltar/Próximo com auto-save
+- Step 3: medições salvam em lote via API batch
+- Step 5: botão **"Gerar Laudo Técnico"** que aciona o Pipeline
+- CameraCapture integrado no Step 2 (abre câmera direto, sem galeria)
+
+**APIs criadas:**
+- `POST /api/inspections/[id]/measurements/batch` — recebe array de medições, limpa e recria
+- `GET/POST /api/reports/pipeline` — orquestra Inspection → Engineering Engine → Pipeline → Report
+
+**Arquivos alterados:**
+- `prisma/schema.prisma` — campos additivos
+- `src/app/api/inspections/route.ts` — aceita `type`
+- `src/app/api/inspections/[id]/route.ts` — aceita `type`, `notes`, `recommendations`
+- `src/app/(app)/inspecoes/[id]/wizard/page.tsx` — reescrita completa
+
+### Prioridade 2 — Workspace de Laudos (Finalizado)
+
+**Página de Laudo (`/reports/[id]`):**
+- Consome TechnicalReport gerado pelo Pipeline via GET/POST `/api/reports/pipeline`
+- Layout profissional EngeServ com:
+  - Brand bar (navy) com número do laudo e versão
+  - Status + tipo + ART
+  - Painel de Cliente (nome, CNPJ, endereço, responsável técnico)
+  - Painel de Equipamento (TAG, tipo, fabricante, N/S, ano, norma)
+  - Painel de Inspeção (tipo, data, inspetor, engenheiro)
+  - Parâmetros de Projeto (18 campos em grid expansível)
+  - 10 seções navegáveis via sidebar
+- Preparado para exportação futura PDF/Word
+
+**Listagem de Laudos (`/laudos`):**
+- Tabela com número do laudo, TAG, cliente, data, status, ações
+- Busca por TAG/cliente/número
+- Link para visualização que aciona o Pipeline
+
+**Arquivos criados/alterados:**
+- `src/app/(app)/reports/[id]/page.tsx` — reescrita completa
+- `src/app/(app)/laudos/page.tsx` — reescrita completa
+- `src/app/api/reports/pipeline/route.ts` — GET + POST
+
+### Prioridade 3 — Fotos em Nuvem (Finalizado)
+
+**StorageService (`src/modules/storage/`):**
+- Interface `StorageService` abstrata com métodos: `upload`, `uploadBuffer`, `delete`, `getSignedUrl`, `healthCheck`
+- Provider `VercelBlobStorage` implementado (usa `@vercel/blob`)
+- Troca de provedor via `STORAGE_PROVIDER` env var
+
+**CameraCapture (`src/components/CameraCapture.tsx`):**
+- Abre câmera diretamente (`facingMode: "environment"`) sem passar pela galeria
+- Compressão automática JPEG 80%
+- Helper `compressImage()` para compressão programática
+- Integrado no Wizard Step 2 por categoria
+
+**Upload API atualizada:**
+- `POST /api/inspections/[id]/photos` → usa StorageService quando configurado
+- Fallback para placeholder quando sem token
+
+**Arquivos criados:**
+- `src/modules/storage/types.ts` — interface StorageService
+- `src/modules/storage/providers/vercel-blob.ts` — provider Vercel Blob
+- `src/modules/storage/index.ts` — export e factory
+- `src/components/CameraCapture.tsx` — captura + compressão
+
+### Prioridade 4 — Validades (Finalizado)
+
+**Página de Validades (`/validades`):**
+- Dashboard com KPIs: Total, Vencidos, Próximos (60d), Em dia, Sem data
+- Alertas por criticidade: 90/60/30 dias + vencido
+- Filtros: busca textual, cliente, status
+- Modos: Lista (tabela completa com dias restantes) e Calendário (grid mensal)
+- Calendário: navegação entre meses, eventos por dia, cores por status
+- Ordenação por vencimento mais próximo
+
+**API:**
+- `GET /api/validades` — retorna validades de todos os equipamentos + stats
+- Usa `buildValidadeInfo` + `getValidadeStatus` da lib existente
+
+**Arquivos criados/alterados:**
+- `src/app/api/validades/route.ts` — criada
+- `src/app/(app)/validades/page.tsx` — reescrita completa
+- `src/lib/validades.ts` — adicionado `clientId` ao `buildValidadeInfo`
+
+### Prioridade 5 — Offline First (PWA) (Finalizado)
+
+**Service Worker (`public/sw.js`):**
+- Cache-first para assets estáticos (Next.js chunks, CSS, JS)
+- Network-first para API com fallback ao cache
+- Background Sync para fila de upload offline
+- Auto-limpeza de caches antigos
+
+**Manifest (`public/manifest.json`):**
+- Instalação como aplicativo standalone
+- Ícones 192/512, tema navy
+
+**Offline Sync Client (`src/lib/offline.ts`):**
+- IndexedDB com stores: `syncQueue`, `inspections`, `equipments`, `clients`
+- `initOfflineDetection()` — monitora online/offline
+- `addToQueue()` — enfileira requisições para sync posterior
+- `processQueue()` — processa fila quando online
+- `offlineFetch()` — tenta rede com fallback cache
+- `cacheData()` / `getCachedData()` — cache local via IndexedDB
+
+**Registro SW:**
+- `src/app/layout.tsx` — registro automático + meta tags PWA
+
+### Build
+- ✅ **Build 0 erros** — Next.js 14, TypeScript strict, 35 rotas
+- ✅ Todas as páginas compilando: clientes, equipamentos, inspeções, wizard, laudos, reports, validades, dashboard, engineering, configurações, perfis
+
+---
+
 **Build:** ✅ Compila com sucesso (Next.js 14, TypeScript strict)  
 **Pronto para:** Validação do engenheiro responsável → Sprint 4 (Implementação das Fórmulas)

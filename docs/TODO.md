@@ -155,23 +155,40 @@ Backlog de curto prazo. Itens concluídos migram para `CHANGELOG.md`.
 
 - [x] Build validado — `/engineering` 17.1 kB (integração completa)
 
-## Próximos (Sprint 4 — Implementação das Fórmulas)
+## MVP Concluído ✅
 
-## Sprint 5+
+Todas as funcionalidades do MVP estão implementadas e validadas.
 
-- [ ] Geração de PDF/Word do laudo (Sprint 5)
-- [ ] Calendário de validades (Sprint 6)
+## Melhorias futuras (pós-MVP)
+
+- [ ] Exportação PDF/Word dos laudos
+- [ ] Assinatura digital dos responsáveis técnicos
+- [ ] Portal do cliente final
+- [ ] Integração com WhatsApp / E-mail para alertas
+- [ ] Mapa inteligente de inspeção (cilindro desenrolado clicável)
+- [ ] Modelos de laudo por tipo de equipamento
+- [ ] Integração com robô de medição por ultrassom
+- [ ] Multi-empresa (multi-tenant) / SaaS
+- [ ] Suporte offline completo (fase 2)
 
 ## Dívidas técnicas conhecidas
 
-- [ ] Trocar SQLite por Postgres antes do primeiro deploy real de produção
-      (ver ARCHITECTURE.md → "Banco de dados em produção")
 - [ ] Definir política de rotação do `AUTH_SECRET` em produção
 - [ ] Avaliar rate limiting no endpoint de login
 
-## Concluído na Sessão 26/07/2026 — Correções RC1
+## Concluído na Sessão 29-30/07/2026 — MVP Final
 
-- [x] Corrigir erros de TypeScript em `src/modules/report/pipeline/service.ts` (private prop, imports, duplicação)
-- [x] Implementar upload real de fotos com Vercel Blob (`POST /api/inspections/[id]/photos`)
-- [x] Criar CRUD de textos padrão: `/configuracoes/textos/novo` e `/configuracoes/textos/[id]/editar`
-- [x] BUILD PASS confirmado (0 erros TypeScript, 33 páginas)
+- [x] Schema: adicionar type, notes, recommendations, city, state, corrosionAllowanceMm
+- [x] Wizard: corrigir carregamento, navegação entre passos, save measurements batch
+- [x] Pipeline API: POST /api/reports/pipeline (Inspection → Engine → Report)
+- [x] Gerar Laudo Técnico: botão no wizard step 5
+- [x] Workspace de Laudos: /reports/[id] consumindo TechnicalReport real
+- [x] Listagem de Laudos: /laudos com tabela e busca
+- [x] StorageService: interface abstrata + provider Vercel Blob
+- [x] CameraCapture: câmera direta sem galeria, compressão automática
+- [x] Validades: dashboard, calendário, alertas 90/60/30d
+- [x] API /api/validades: dados reais do banco
+- [x] Service Worker: cache-first + network-first + background sync
+- [x] Manifest PWA: instalação como aplicativo
+- [x] Offline Sync: IndexedDB, fila, retry automático
+- [x] BUILD PASS: 0 erros TypeScript, 35+ rotas

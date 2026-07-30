@@ -79,6 +79,8 @@ model Client {
   companyName  String
   cnpj         String?
   address      String?
+  city         String?
+  state        String?
   contactName  String?
   contactPhone String?
   contactEmail String?
@@ -119,6 +121,7 @@ model Equipment {
   headNominalThicknessMm Float?   // DIFERENTE de originalThicknessMm (que e do casco)
   volumeLiters Float?
   jointEfficiency Float?          // eficiencia de solda, ex: 0.7
+  corrosionAllowanceMm Float?     // sobrespessura de corrosao
   fluidType String?               // ex: "Ar Comprimido"
   fluidClass String?              // Classe do fluido (A/B/C/D) - manual por enquanto
   riskGroup Int?                  // Grupo de potencial de risco - manual por enquanto
@@ -151,6 +154,12 @@ model TextTemplate {
   @@map("text_templates")
 }
 
+enum InspectionType {
+  INICIAL
+  PERIODICA
+  EXTRAORDINARIA
+}
+
 model Inspection {
   id          String   @id @default(cuid())
   equipmentId String
@@ -158,6 +167,10 @@ model Inspection {
 
   inspectorId String
   inspector   User @relation("InspectionInspector", fields: [inspectorId], references: [id])
+
+  type        InspectionType @default(PERIODICA)
+  notes       String?
+  recommendations String[] @default([])
 
   status      InspectionStatus @default(EM_ANDAMENTO)
   startedAt   DateTime @default(now())

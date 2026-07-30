@@ -36,7 +36,7 @@ registre a data em `CHANGELOG.md`.
 - [x] Fluxo de aprovação: EM_ANDAMENTO → AGUARDANDO_APROVACAO → APROVADA/REJEITADA
 - [x] Permissões: Funcionário executa, Gestor/Admin aprova/rejeita
 
-## Sprint 4 — Motor de Cálculos (Infraestrutura ✅ / Fórmulas ⏳ / Engineering Studio 🔄)
+## Sprint 4 — Motor de Cálculos (Infraestrutura ✅ / Fórmulas ⏳ / Engineering Studio ✅)
 
 - [x] **Infraestrutura do Motor de Engenharia** (módulo isolado `src/modules/engineering/`):
   - [x] Arquitetura em camadas: domain / application / calculations / validators / types / constants / utils / services / docs
@@ -99,25 +99,42 @@ registre a data em `CHANGELOG.md`.
 - [ ] Validação de entradas
 - [ ] Geração automática de resultados a partir das medições
 
-## Sprint 5 — Geração do Laudo
+## Sprint 5 — Geração do Laudo ✅
 
-- [ ] Aplicar o layout oficial (referência: laudo de compressor já emitido pela EngeServ)
-- [ ] Preenchimento automático dos campos a partir do banco
-- [ ] Exportação em PDF
-- [ ] Exportação em Word
-- [ ] Versionamento do documento
-- [ ] Fluxo de aprovação do Gestor antes da emissão definitiva
+- [x] Layout profissional EngeServ (cabeçalho navy, cliente, equipamento, parâmetros)
+- [x] Preenchimento automático dos campos a partir do banco (via Pipeline → TechnicalReport)
+- [x] Workspace de laudos com 10 seções (resumo, inspeção, fotos, medições, engenharia, conclusão, recomendações, anexos, histórico, assinaturas)
+- [x] Versionamento do documento
+- [x] Fluxo de aprovação (Rascunho → Revisão → Aprovado → Publicado)
+- [ ] Exportação em PDF (estrutura preparada)
+- [ ] Exportação em Word (estrutura preparada)
 
-## Sprint 6 — Gestão de Vencimentos
+## Sprint 6 — Gestão de Vencimentos ✅
 
-- [ ] Dashboard de validade (laudos ativos, vencendo, vencidos)
-- [ ] Calendário de vencimentos (clique no dia → laudos daquele dia)
-- [ ] Filtros por cliente, equipamento e data
-- [ ] Alertas de vencimento (e-mail/WhatsApp)
+- [x] Dashboard de validade (laudos ativos, vencendo, vencidos)
+- [x] Calendário de vencimentos (clique no dia → laudos daquele dia)
+- [x] Filtros por cliente, equipamento e data
+- [x] Alertas de vencimento (90/60/30 dias + vencido)
+- [ ] Alertas via e-mail/WhatsApp (arquitetura preparada)
 
-## Fases futuras (backlog de longo prazo)
+## Sprint 7 — Offline First ✅
 
-- [x] **Biblioteca de textos padrão** (CRUD completo em `/configuracoes/textos`)
+- [x] Service Worker com cache-first (assets) e network-first (API)
+- [x] Manifest PWA (instalação como aplicativo)
+- [x] IndexedDB para cache local de inspeções, equipamentos, clientes
+- [x] Fila de sincronização automática com retry
+- [x] Background Sync para upload offline
+- [x] Detecção de conectividade com fallback automático
+
+## Sprint 8 — Fotos em Nuvem ✅
+
+- [x] Interface StorageService abstrata (Vercel Blob / Supabase / S3 / R2)
+- [x] Upload automático com compressão
+- [x] CameraCapture (abre câmera direto, sem galeria)
+- [x] Organização por categorias NR-13 (9 categorias)
+- [x] Funcionamento offline com fila de sincronização
+
+## MVP Concluído ✅
 - [ ] Mapa inteligente de inspeção (cilindro desenrolado, clicável)
 - [ ] Modelos de laudo por tipo de equipamento (vaso, caldeira, tubulação...)
 - [ ] Assinatura digital dos responsáveis técnicos

@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 
 const inspectionSchema = z.object({
   equipmentId: z.string().cuid("Equipamento inválido."),
+  type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { equipmentId } = parsed.data;
+  const { equipmentId, type } = parsed.data;
 
   const equipment = await prisma.equipment.findUnique({
     where: { id: equipmentId },
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
     data: {
       equipmentId,
       inspectorId: session.userId,
+      type: type || "PERIODICA",
       status: "EM_ANDAMENTO",
     },
     include: {
