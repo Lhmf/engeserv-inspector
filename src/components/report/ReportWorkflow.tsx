@@ -176,16 +176,16 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
                             <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={() => onAction(`complete-${workflowSteps[index].id}`)}
-                                className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                                className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 active:scale-95"
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <CheckCircle2 className="w-4 h-4" />
                                 Concluir
                               </button>
                               <button
                                 onClick={() => onAction(`skip-${workflowSteps[index].id}`)}
-                                className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
+                                className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 active:scale-95"
                               >
-                                <RotateCcw className="w-3.5 h-3.5" />
+                                <RotateCcw className="w-4 h-4" />
                                 Pular
                               </button>
                             </div>

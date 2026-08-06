@@ -178,7 +178,7 @@ export function Attachments({ photos, documents = [] }: AttachmentsProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1">
+                    <button className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 active:scale-95">
                       <Download className="w-4 h-4" />
                       Baixar
                     </button>

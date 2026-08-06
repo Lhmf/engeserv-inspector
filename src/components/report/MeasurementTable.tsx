@@ -2,7 +2,7 @@
 
 import { MeasurementPoint } from "@/modules/engineering/types";
 import { Ruler, Minimize2, Maximize2, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Search, Filter, Download } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 
 interface MeasurementTableProps {
   measurements: MeasurementPoint[];
@@ -16,7 +16,7 @@ interface MeasurementTableProps {
   };
 }
 
-export function MeasurementTable({ measurements, stats }: MeasurementTableProps) {
+export const MeasurementTable = memo(function MeasurementTable({ measurements, stats }: MeasurementTableProps) {
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [filter, setFilter] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -46,12 +46,12 @@ export function MeasurementTable({ measurements, stats }: MeasurementTableProps)
     return result;
   }, [measurements, filter, sortConfig]);
 
-  const handleSort = (key: keyof MeasurementPoint) => {
+  const handleSort = useCallback((key: keyof MeasurementPoint) => {
     setSortConfig(current => ({
       key,
       direction: current?.key === key && current.direction === "asc" ? "desc" : "asc",
     }));
-  };
+  }, []);
 
   const getStatusConfig = (thicknessMm: number, minThicknessMm?: number) => {
     if (minThicknessMm && thicknessMm <= minThicknessMm) {
@@ -76,18 +76,18 @@ export function MeasurementTable({ measurements, stats }: MeasurementTableProps)
               <p className="text-sm text-slate-500">Resultados das medições ultrassônicas</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Filtrar por ponto ou nota..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
+                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent"
               />
             </div>
-            <button className="px-4 py-2 border border-slate-200 rounded-lg text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors">
+            <button className="px-4 py-2 border border-slate-200 rounded-lg text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
               <Download className="w-4 h-4" />
               Exportar CSV
             </button>
@@ -115,18 +115,60 @@ export function MeasurementTable({ measurements, stats }: MeasurementTableProps)
             <p className="text-xs text-slate-500">Máxima (mm)</p>
           </div>
           <div className="bg-white rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold {stats.belowMinCount > 0 ? 'text-rose-600' : 'text-emerald-600'}">{stats.belowMinCount}</p>
+            <p className={`text-2xl font-bold ${stats.belowMinCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>{stats.belowMinCount}</p>
             <p className="text-xs text-slate-500">Abaixo do Mínimo</p>
           </div>
           <div className="bg-white rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold {stats.belowMinPercentage > 0 ? 'text-rose-600' : 'text-emerald-600'}">{stats.belowMinPercentage.toFixed(1)}%</p>
+            <p className={`text-2xl font-bold ${stats.belowMinPercentage > 0 ? "text-rose-600" : "text-emerald-600"}`}>{stats.belowMinPercentage.toFixed(1)}%</p>
             <p className="text-xs text-slate-500">% Abaixo do Mínimo</p>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Mobile cards (< md) */}
+      <div className="grid gap-3 p-4 md:hidden">
+        {sortedAndFilteredMeasurements.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 px-4 py-12 text-center text-slate-500">
+            <Ruler className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+            <p className="text-lg font-medium text-slate-600 mb-2">Nenhuma medição encontrada</p>
+            <p className="text-sm">Tente ajustar os filtros ou verifique se há medições cadastradas.</p>
+          </div>
+        ) : (
+          sortedAndFilteredMeasurements.map((measurement) => {
+            const statusConfig = getStatusConfig(measurement.thicknessMm, stats?.minThicknessMm || 0);
+            return (
+              <div key={measurement.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm font-semibold text-slate-800">{measurement.point}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {measurement.angleDeg !== undefined ? `${measurement.angleDeg}°` : "Ângulo: —"}
+                    </p>
+                  </div>
+                  <span className={`inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.badge}`}>
+                    {statusConfig.icon}
+                    <span>{statusConfig.label}</span>
+                  </span>
+                </div>
+                <div className={`mt-3 rounded-lg px-4 py-3 text-center ${measurement.thicknessMm < 6 ? "bg-rose-50" : measurement.thicknessMm < 7 ? "bg-amber-50" : "bg-slate-50"}`}>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Espessura</p>
+                  <p className={`font-mono text-2xl font-bold ${measurement.thicknessMm < 6 ? "text-rose-600" : measurement.thicknessMm < 7 ? "text-amber-600" : "text-slate-800"}`}>
+                    {measurement.thicknessMm.toFixed(1)} mm
+                  </p>
+                </div>
+                {measurement.notes && (
+                  <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
+                    {measurement.notes}
+                  </p>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop table (md+) */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
@@ -205,7 +247,7 @@ export function MeasurementTable({ measurements, stats }: MeasurementTableProps)
                           e.stopPropagation();
                           setExpandedRow(expandedRow === measurement.id ? null : measurement.id);
                         }}
-                        className="p-1 rounded hover:bg-slate-100 transition-colors"
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg transition-colors hover:bg-slate-100 active:scale-95"
                         aria-label={expandedRow === measurement.id ? "Recolher" : "Expandir"}
                       >
                         {expandedRow === measurement.id ? (
@@ -263,10 +305,10 @@ export function MeasurementTable({ measurements, stats }: MeasurementTableProps)
           Mostrando {sortedAndFilteredMeasurements.length} de {stats.count} medições
         </p>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1 border border-slate-200 rounded text-sm hover:bg-slate-50 disabled:opacity-50">Anterior</button>
-          <button className="px-3 py-1 border border-slate-200 rounded text-sm hover:bg-slate-50 disabled:opacity-50">Próximo</button>
+          <button className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-4 py-2 text-sm transition-colors hover:bg-slate-50 disabled:opacity-50 active:scale-95">Anterior</button>
+          <button className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-4 py-2 text-sm transition-colors hover:bg-slate-50 disabled:opacity-50 active:scale-95">Próximo</button>
         </div>
       </div>
     </section>
   );
-}
+});

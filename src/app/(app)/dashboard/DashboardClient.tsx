@@ -1,10 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { StatCard } from "@/components/StatCard";
-import { BarChartComponent } from "@/components/Charts/BarChart";
-import { LineChartComponent } from "@/components/Charts/LineChart";
-import { PieChartComponent } from "@/components/Charts/PieChart";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+
+// Charts são pesados (recharts ~100kB+). Lazy-load no cliente para
+// acelerar o carregamento inicial do dashboard (RC3 — performance).
+const BarChartComponent = dynamic(
+  () => import("@/components/Charts/BarChart").then((m) => m.BarChartComponent),
+  { ssr: false, loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-slate-100" /> }
+);
+const LineChartComponent = dynamic(
+  () => import("@/components/Charts/LineChart").then((m) => m.LineChartComponent),
+  { ssr: false, loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-slate-100" /> }
+);
+const PieChartComponent = dynamic(
+  () => import("@/components/Charts/PieChart").then((m) => m.PieChartComponent),
+  { ssr: false, loading: () => <div className="h-64 w-full animate-pulse rounded-lg bg-slate-100" /> }
+);
+import { memo } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -95,7 +109,7 @@ interface DashboardClientProps {
   equipmentTypeData: Array<{ name: string; value: number }>;
 }
 
-export function DashboardClient({
+export const DashboardClient = memo(function DashboardClient({
   clientCount,
   equipmentCount,
   userCount,
@@ -174,7 +188,7 @@ export function DashboardClient({
       </div>
 
       {/* Gráficos Principais */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6 min-w-0">
         {/* Inspeções por Status - Pie Chart */}
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -306,7 +320,43 @@ export function DashboardClient({
             </h2>
             <span className="text-xs text-slate-500">{criticalEquipments.length} equipamentos</span>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Mobile cards (< md) */}
+          <div className="grid gap-3 p-4 md:hidden">
+            {criticalEquipments.map((eq) => (
+              <div key={eq.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm font-semibold text-slate-800">{eq.tag}</p>
+                    <p className="mt-0.5 truncate text-sm text-slate-600">{eq.client.companyName}</p>
+                  </div>
+                  <Badge variant={eq.status === "CRITICO" ? "danger" : "warning"} dot>
+                    {eq.status}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Esp. Atual</p>
+                    <p className="text-sm font-medium text-slate-700">{eq.currentThickness.toFixed(2)} mm</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Esp. Mínima</p>
+                    <p className="text-sm font-medium text-slate-700">{eq.minThicknessMm?.toFixed(2) ?? "—"} mm</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">Margem</p>
+                    <p className={cn("text-sm font-medium", eq.status === "CRITICO" ? "text-rose-600" : "text-amber-600")}>
+                      {eq.marginPercent.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">{getEquipmentTypeLabel(eq.type)}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table (md+) */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
@@ -322,8 +372,8 @@ export function DashboardClient({
               <tbody className="divide-y divide-slate-100">
                 {criticalEquipments.map((eq) => (
                   <tr key={eq.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-slate-800">{eq.tag}</td>
-                    <td className="px-5 py-4 text-slate-600">{eq.client.companyName}</td>
+                    <td className="px-5 py-4 font-medium text-slate-800 whitespace-nowrap">{eq.tag}</td>
+                    <td className="px-5 py-4 text-slate-600"><span className="block max-w-[200px] truncate">{eq.client.companyName}</span></td>
                     <td className="px-5 py-4 text-slate-600">{getEquipmentTypeLabel(eq.type)}</td>
                     <td className="px-5 py-4 text-slate-600 font-medium">{eq.currentThickness.toFixed(2)}</td>
                     <td className="px-5 py-4 text-slate-600">{eq.minThicknessMm?.toFixed(2) ?? "—"}</td>
@@ -333,8 +383,8 @@ export function DashboardClient({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <Badge 
-                        variant={eq.status === "CRITICO" ? "danger" : "warning"} 
+                      <Badge
+                        variant={eq.status === "CRITICO" ? "danger" : "warning"}
                         dot
                       >
                         {eq.status}
@@ -356,11 +406,39 @@ export function DashboardClient({
               <Calendar className="w-5 h-5 text-purple-500" />
               Próximas Inspeções
             </h2>
-            <Link href="/inspecoes" className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
+            <Link href="/inspecoes" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 -mr-2 text-sm font-medium text-purple-600 hover:text-purple-700">
               Ver todas <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Mobile cards (< md) */}
+          <div className="grid gap-3 p-4 md:hidden">
+            {upcomingInspections.map((insp) => (
+              <div key={insp.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm font-semibold text-slate-800">{insp.equipment.tag}</p>
+                    <p className="mt-0.5 truncate text-sm text-slate-600">{insp.equipment.client.companyName}</p>
+                  </div>
+                  {(() => {
+                    const { bg, text, border } = getStatusColor(insp.status);
+                    return (
+                      <Badge variant="outline" className={cn(bg, text, border, "flex-shrink-0")}>
+                        {insp.status.replace("_", " ")}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                  <span className="truncate text-slate-500">Inspetor: {insp.inspector.name}</span>
+                  <span className="ml-2 whitespace-nowrap text-slate-700">{formatDate(insp.startedAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table (md+) */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
@@ -374,10 +452,10 @@ export function DashboardClient({
               <tbody className="divide-y divide-slate-100">
                 {upcomingInspections.map((insp) => (
                   <tr key={insp.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4 font-medium text-slate-800">{insp.equipment.tag}</td>
-                    <td className="px-5 py-4 text-slate-600">{insp.equipment.client.companyName}</td>
-                    <td className="px-5 py-4 text-slate-600">{insp.inspector.name}</td>
-                    <td className="px-5 py-4 text-slate-600">{formatDate(insp.startedAt)}</td>
+                    <td className="px-5 py-4 font-medium text-slate-800 whitespace-nowrap">{insp.equipment.tag}</td>
+                    <td className="px-5 py-4 text-slate-600"><span className="block max-w-[200px] truncate">{insp.equipment.client.companyName}</span></td>
+                    <td className="px-5 py-4 text-slate-600"><span className="block max-w-[140px] truncate">{insp.inspector.name}</span></td>
+                    <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{formatDate(insp.startedAt)}</td>
                     <td className="px-5 py-4">
                       {(() => {
                         const { bg, text, border } = getStatusColor(insp.status);
@@ -400,11 +478,47 @@ export function DashboardClient({
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-800">Inspeções Recentes</h2>
-          <Link href="/inspecoes" className="text-sm text-navy hover:text-brand font-medium flex items-center gap-1">
+          <Link href="/inspecoes" className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 -mr-2 text-sm font-medium text-navy hover:text-brand">
             Ver todas <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="overflow-x-auto">
+
+        {/* Mobile cards (< md) */}
+        <div className="grid gap-3 p-4 md:hidden">
+          {inspections.slice(0, 5).map((insp) => (
+            <div key={insp.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-semibold text-slate-800">{insp.equipment.tag}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">
+                    <span className="block max-w-[220px] truncate">{insp.equipment.client.companyName}</span>
+                  </p>
+                  <p className="text-xs text-slate-400">{getEquipmentTypeLabel(insp.equipment.type)}</p>
+                </div>
+                {(() => {
+                  const { bg, text, border } = getStatusColor(insp.status);
+                  return (
+                    <Badge variant="outline" className={cn(bg, text, border, "flex-shrink-0")}>
+                      {insp.status.replace("_", " ")}
+                    </Badge>
+                  );
+                })()}
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                <span className="truncate text-slate-500">{insp.inspector.name}</span>
+                <span className="ml-2 whitespace-nowrap text-slate-700">
+                  {formatDate(insp.startedAt)} · <span className="font-medium">{insp.measurements.length}</span> pts
+                </span>
+              </div>
+            </div>
+          ))}
+          {inspections.length === 0 && (
+            <div className="px-4 py-8 text-center text-slate-500">Nenhuma inspeção encontrada</div>
+          )}
+        </div>
+
+        {/* Desktop table (md+) */}
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
@@ -419,13 +533,13 @@ export function DashboardClient({
             <tbody className="divide-y divide-slate-100">
               {inspections.slice(0, 5).map((insp) => (
                 <tr key={insp.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-4 font-medium text-slate-800">{insp.equipment.tag}</td>
+                  <td className="px-5 py-4 font-medium text-slate-800 whitespace-nowrap">{insp.equipment.tag}</td>
                   <td className="px-5 py-4 text-slate-600">
-                    <div>{insp.equipment.client.companyName}</div>
+                    <div className="max-w-[180px] truncate">{insp.equipment.client.companyName}</div>
                     <div className="text-xs text-slate-400">{getEquipmentTypeLabel(insp.equipment.type)}</div>
                   </td>
-                  <td className="px-5 py-4 text-slate-600">{insp.inspector.name}</td>
-                  <td className="px-5 py-4 text-slate-600">{formatDate(insp.startedAt)}</td>
+                  <td className="px-5 py-4 text-slate-600"><span className="block max-w-[140px] truncate">{insp.inspector.name}</span></td>
+                  <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{formatDate(insp.startedAt)}</td>
                   <td className="px-5 py-4">
                     {(() => {
                       const { bg, text, border } = getStatusColor(insp.status);
@@ -497,28 +611,28 @@ export function DashboardClient({
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-800 mb-4">Ações Rápidas</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Link href="/inspecoes/novo" className="group p-4 rounded-lg border border-slate-200 hover:border-navy hover:bg-navy/5 transition-all">
+          <Link href="/inspecoes/novo" className="group p-4 rounded-lg border border-slate-200 transition-all hover:border-navy hover:bg-navy/5 active:scale-[0.97] active:bg-slate-100">
             <div className="p-2 bg-blue-100 rounded-lg w-10 h-10 flex items-center justify-center mb-3 group-hover:bg-blue-500 group-hover:text-white transition-colors">
               <ClipboardCheck className="w-5 h-5 text-blue-600 group-hover:text-white" />
             </div>
             <p className="font-medium text-slate-800">Nova Inspeção</p>
             <p className="text-xs text-slate-500 mt-1">Iniciar inspeção de campo</p>
           </Link>
-          <Link href="/equipamentos/novo" className="group p-4 rounded-lg border border-slate-200 hover:border-emerald hover:bg-emerald/5 transition-all">
+          <Link href="/equipamentos/novo" className="group p-4 rounded-lg border border-slate-200 transition-all hover:border-emerald hover:bg-emerald/5 active:scale-[0.97] active:bg-slate-100">
             <div className="p-2 bg-emerald-100 rounded-lg w-10 h-10 flex items-center justify-center mb-3 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
               <Box className="w-5 h-5 text-emerald-600 group-hover:text-white" />
             </div>
             <p className="font-medium text-slate-800">Novo Equipamento</p>
             <p className="text-xs text-slate-500 mt-1">Cadastrar ativo</p>
           </Link>
-          <Link href="/clientes/novo" className="group p-4 rounded-lg border border-slate-200 hover:border-amber hover:bg-amber/5 transition-all">
+          <Link href="/clientes/novo" className="group p-4 rounded-lg border border-slate-200 transition-all hover:border-amber hover:bg-amber/5 active:scale-[0.97] active:bg-slate-100">
             <div className="p-2 bg-amber-100 rounded-lg w-10 h-10 flex items-center justify-center mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
               <Building2 className="w-5 h-5 text-amber-600 group-hover:text-white" />
             </div>
             <p className="font-medium text-slate-800">Novo Cliente</p>
             <p className="text-xs text-slate-500 mt-1">Cadastrar cliente</p>
           </Link>
-          <Link href="/configuracoes/textos/novo" className="group p-4 rounded-lg border border-slate-200 hover:border-purple hover:bg-purple/5 transition-all">
+          <Link href="/configuracoes/textos/novo" className="group p-4 rounded-lg border border-slate-200 transition-all hover:border-purple hover:bg-purple/5 active:scale-[0.97] active:bg-slate-100">
             <div className="p-2 bg-purple-100 rounded-lg w-10 h-10 flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors">
               <FileText className="w-5 h-5 text-purple-600 group-hover:text-white" />
             </div>
@@ -529,4 +643,4 @@ export function DashboardClient({
       </div>
     </div>
   );
-}
+});

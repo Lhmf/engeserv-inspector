@@ -2,20 +2,50 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { TechnicalReport } from "@/modules/report/types";
-import { ReportHeader } from "@/components/report/ReportHeader";
 import { ReportSidebar } from "@/components/report/ReportSidebar";
 import { ReportWorkflow } from "@/components/report/ReportWorkflow";
-import { ExecutiveSummary } from "@/components/report/ExecutiveSummary";
-import { InspectionDataCard } from "@/components/report/InspectionDataCard";
-import { MeasurementTable } from "@/components/report/MeasurementTable";
-import { EngineeringAnalysisCard } from "@/components/report/EngineeringAnalysisCard";
-import { TechnicalConclusion } from "@/components/report/TechnicalConclusion";
-import { Recommendations } from "@/components/report/Recommendations";
-import { Attachments } from "@/components/report/Attachments";
-import { HistoryTimeline } from "@/components/report/HistoryTimeline";
-import { SignaturePanel } from "@/components/report/SignaturePanel";
+
+// Seções do laudo: lazy-load sob demanda (RC4 — performance). Cada seção
+// só é carregada quando a aba correspondente é ativa.
+const ExecutiveSummary = dynamic(
+  () => import("@/components/report/ExecutiveSummary").then((m) => m.ExecutiveSummary),
+  { loading: () => <SectionSkeleton /> }
+);
+const InspectionDataCard = dynamic(
+  () => import("@/components/report/InspectionDataCard").then((m) => m.InspectionDataCard),
+  { loading: () => <SectionSkeleton /> }
+);
+const MeasurementTable = dynamic(
+  () => import("@/components/report/MeasurementTable").then((m) => m.MeasurementTable),
+  { loading: () => <SectionSkeleton /> }
+);
+const EngineeringAnalysisCard = dynamic(
+  () => import("@/components/report/EngineeringAnalysisCard").then((m) => m.EngineeringAnalysisCard),
+  { loading: () => <SectionSkeleton /> }
+);
+const TechnicalConclusion = dynamic(
+  () => import("@/components/report/TechnicalConclusion").then((m) => m.TechnicalConclusion),
+  { loading: () => <SectionSkeleton /> }
+);
+const Recommendations = dynamic(
+  () => import("@/components/report/Recommendations").then((m) => m.Recommendations),
+  { loading: () => <SectionSkeleton /> }
+);
+const Attachments = dynamic(
+  () => import("@/components/report/Attachments").then((m) => m.Attachments),
+  { loading: () => <SectionSkeleton /> }
+);
+const HistoryTimeline = dynamic(
+  () => import("@/components/report/HistoryTimeline").then((m) => m.HistoryTimeline),
+  { loading: () => <SectionSkeleton /> }
+);
+const SignaturePanel = dynamic(
+  () => import("@/components/report/SignaturePanel").then((m) => m.SignaturePanel),
+  { loading: () => <SectionSkeleton /> }
+);
 import {
   FileText,
   ClipboardList,
@@ -189,8 +219,9 @@ export default function ReportPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside
-          className={`fixed lg:sticky top-0 h-screen w-80 bg-white border-r border-slate-200 z-50 transform transition-transform duration-300 lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          aria-hidden={!sidebarOpen}
+          className={`fixed lg:sticky top-0 h-screen w-80 bg-white border-r border-slate-200 dark:bg-[#141e34] dark:border-slate-800 z-50 transform transition-transform duration-300 lg:translate-x-0 lg:visible ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full invisible"
           }`}
         >
           <ReportSidebar
@@ -204,7 +235,7 @@ export default function ReportPage() {
         {/* Main Content */}
         <main className="flex-1 min-w-0">
           {/* Top Bar */}
-          <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
+          <header className="bg-white border-b border-slate-200 dark:bg-[#141e34] dark:border-slate-800">
             <div className="flex items-center justify-between p-4 lg:px-8">
               <div className="flex items-center gap-4">
                 <Link
@@ -225,7 +256,11 @@ export default function ReportPage() {
                 <span className="hidden sm:block px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
                   v{report.identification.version}
                 </span>
-                <button className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setSidebarOpen(true)}>
+                <button
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Abrir navegação do laudo"
+                >
                   <FileText className="w-5 h-5 text-slate-600" />
                 </button>
               </div>
@@ -494,6 +529,22 @@ function Param({ label, value, icon: Icon }: { label: string; value: string; ico
       <p className="text-sm font-medium text-slate-800 truncate" title={value}>
         {value}
       </p>
+    </div>
+  );
+}
+
+// ============================================
+// Skeleton de seção (lazy-load)
+// ============================================
+function SectionSkeleton() {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm animate-pulse">
+      <div className="h-5 w-40 bg-slate-200 rounded mb-4" />
+      <div className="space-y-3">
+        <div className="h-4 w-full bg-slate-100 rounded" />
+        <div className="h-4 w-3/4 bg-slate-100 rounded" />
+        <div className="h-4 w-5/6 bg-slate-100 rounded" />
+      </div>
     </div>
   );
 }

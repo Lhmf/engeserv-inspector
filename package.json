@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "generate-icons": "node scripts/generate-icons.mjs",
+    "postinstall": "prisma generate && prisma db push --accept-data-loss"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.16.10",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",

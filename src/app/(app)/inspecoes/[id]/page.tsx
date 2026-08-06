@@ -241,7 +241,9 @@ export default function InspectionDetailPage() {
           <div className="relative">
             <button
               onClick={() => setActionMenuOpen(actionMenuOpen === inspection.id ? null : inspection.id)}
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 active:scale-95"
+              aria-label="Ações da inspeção"
+              aria-expanded={actionMenuOpen === inspection.id}
             >
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -652,7 +654,7 @@ function PhotoGallery({ photos, equipmentTag }: { photos: Inspection["photos"]; 
       <div className="flex flex-wrap gap-2">
         <button
           className={cn(
-            "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+            "inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-95",
             "bg-navy text-white"
           )}
         >
@@ -661,7 +663,7 @@ function PhotoGallery({ photos, equipmentTag }: { photos: Inspection["photos"]; 
         {categories.map((cat) => (
           <button
             key={cat}
-            className="px-3 py-1.5 rounded-full text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="inline-flex min-h-11 items-center rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition-all hover:bg-slate-200 active:scale-95"
           >
             {cat} ({photos.filter((p) => p.category === cat).length})
           </button>
@@ -685,8 +687,11 @@ function PhotoGallery({ photos, equipmentTag }: { photos: Inspection["photos"]; 
                   {photo.category}
                 </Badge>
               </div>
-              <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 bg-white/90 rounded-full hover:bg-white shadow-lg transition-colors">
+              <div className="absolute bottom-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <button
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-white/90 shadow-lg transition-colors hover:bg-white active:scale-95"
+                  aria-label="Baixar foto"
+                >
                   <Download className="w-4 h-4 text-slate-700" />
                 </button>
               </div>
@@ -749,8 +754,53 @@ function MeasurementTable({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border border-slate-200 overflow-hidden">
+      {/* Mobile measurement cards (< md) */}
+      <div className="grid gap-3 md:hidden">
+        {measurements.map((m) => {
+          let status: "OK" | "ATENÇÃO" | "CRÍTICO" = "OK";
+          let statusColor = "text-emerald-600 bg-emerald-50";
+          if (minThickness) {
+            if (m.thicknessMm <= minThickness) {
+              status = "CRÍTICO";
+              statusColor = "text-rose-600 bg-rose-50";
+            } else if (m.thicknessMm <= minThickness * 1.2) {
+              status = "ATENÇÃO";
+              statusColor = "text-amber-600 bg-amber-50";
+            }
+          }
+          return (
+            <div key={m.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-sm font-semibold text-slate-800">{m.point}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">
+                    {m.angleDeg !== undefined ? `${m.angleDeg}°` : "Ângulo: —"}
+                  </p>
+                </div>
+                <Badge variant="outline" className={statusColor} dot>
+                  {status}
+                </Badge>
+              </div>
+              <div className="mt-3 rounded-lg bg-slate-50 px-4 py-3 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Espessura</p>
+                <p className="font-mono text-2xl font-bold text-slate-800">{m.thicknessMm.toFixed(2)} mm</p>
+              </div>
+              {m.notes && (
+                <p className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">{m.notes}</p>
+              )}
+              <p className="mt-2 text-xs text-slate-400">Registrado em {formatDate(m.createdAt)}</p>
+            </div>
+          );
+        })}
+        {measurements.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-slate-500">
+            Nenhuma medição registrada.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table (md+) */}
+      <div className="hidden rounded-lg border border-slate-200 overflow-hidden md:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>

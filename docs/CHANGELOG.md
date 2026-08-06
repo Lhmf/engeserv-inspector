@@ -3,6 +3,110 @@
 Todas as entregas do projeto, em ordem cronológica. Atualize a cada
 sessão de trabalho concluída.
 
+## 06/08/2026 — RC4: Aplicativo Profissional de Campo
+
+**Objetivo:** transformar o EngeServ Inspector em aplicativo profissional para uso em campo (comparável a SafetyCulture/iAuditor/Fulcrum). Sem novas funcionalidades — apenas polish de UX, dark mode, touch, performance, PWA e correções.
+
+### Dark Mode Completo (FASE 5)
+- `tailwind.config.ts`: `darkMode: "class"` ativado + tokens de tema (`bg-base`, `bg-surface`, `bg-muted`, `text-primary`, `text-secondary`, `border`).
+- `globals.css`: tokens CSS variables por scheme (`:root` light / `html.dark` dark), `color-scheme` sincronizado.
+- Remapeamento dark dos utilitários mais usados: `bg-white/slate-50/100/200/300`, `text-slate-100→900`, `border-slate-*`, `divide-slate-*`, fundos/cores de status (emerald/amber/rose/red/blue/purple/green), inputs/selects/textareas, placeholders, sombras.
+- `layout.tsx`: script inline **anti-flash** aplica `.dark` antes da hidratação (localStorage `engeserv-theme` + `prefers-color-scheme`); `themeColor` por scheme.
+- `TopBar`: toggle de tema com persistência em localStorage + estado inicial sincronizado.
+- Componentes primitivos com dark: `Button`, `Card`, `Badge`, `StatCard`, `MeasurementTable`, `Sidebar`, `TopBar`, `UserAvatar`, dashboard/reports/engineering.
+
+### Responsividade (FASE 2)
+- Tabelas → **cards mobile** (`<md`) em: Dashboard (Críticos, Próximas, Recentes), Inspeções, Laudos, Clientes, Equipamentos, Usuários, Validades, Wizard medições.
+- Tabela completa preservada em desktop (`hidden overflow-x-auto md:block`).
+- Wizard de medições: cards mobile nativos com status/espessura — tela de campo utilizável no celular.
+- `min-w-0` nos grids de gráficos do dashboard (previne overflow).
+
+### Touch Experience / a11y (FASE 4)
+- **Alvo mínimo 44×44px** global (botões, links de ícone, controles).
+- Ação de linha (Wizard/Detalhes) em inspecoes: `min-h-11 min-w-11` + `aria-label`.
+- Botões fechar drawer, toggle theme, notificações, menu usuário: 44px+ com `aria-label`.
+- Calendário de Validades: nav `min-h-11` + `aria-label`; eventos com alvo de toque maior (`min-h-7`).
+- **aria-labels** nos filtros de busca/status: inspecoes, laudos, validades.
+- Drawer/sidebar: `invisible` + `aria-hidden` quando fechado (remove da tab order).
+- Reports sidebar: off-canvas com `invisible`/`aria-hidden` + toggle com `aria-label`.
+- Estados `active`/`pressed`/`focus`: `active:scale-95/97`, focus rings, feedback tátil global via `@media (hover: none)`.
+- Reset `-webkit-tap-highlight-color` + `overscroll-behavior-y`.
+
+### Performance (FASE 6)
+- `DashboardClient`: **memoizado** + charts lazy-load (`next/dynamic`, `ssr:false`) — First Load JS 235kB → 114kB.
+- `reports/[id]`: **9 seções lazy-load** sob demanda (ExecutiveSummary, InspectionDataCard, MeasurementTable, EngineeringAnalysisCard, TechnicalConclusion, Recommendations, Attachments, HistoryTimeline, SignaturePanel).
+- `MeasurementTable`: `memo` + `useMemo` (sort/filter) + `useCallback`.
+- Removido `engineering/page.tsx.bak` (11.2KB morto).
+- Sidebar: removidos `STATUS_CONFIG` + `getEquipmentTypeLabel` (código morto).
+- `NewEquipmentForm`: **removidas duplicações de campos** — "Dados do Fabricante" (Fabricante/Ano) e "Identificação" limpas; ~300 linhas de formulário duplicado eliminadas.
+
+### PWA (FASE 7)
+- Manifest: `theme_color`/`background_color` por scheme, ícones `any` + `maskable` (192/512), shortcuts (Dashboard/Nova Inspeção/Clientes/Laudos), `display: standalone`, `orientation: portrait`.
+- `layout.tsx`: `viewport` com `viewportFit: cover` + `themeColor` por media query; safe-areas no TopBar/headers.
+- Service Worker v3: cache-first assets, network-first API, background sync, auto-limpeza.
+
+### Fotos (FASE 8)
+- Fluxo validado: CameraCapture in-app (sem galeria) → compressão → upload Vercel Blob → armazenamento só da URL → miniatura → laudo → histórico.
+- Miniaturas nas categorias do wizard (confirmação visual).
+
+### Correções de build/bugs
+- **264 erros TypeScript pré-existentes eliminados** (testes do Engineering Engine importavam `../calculations/remaining-life` de módulos inexistentes → corrigido para `../calculations`; `@types/jest` instalado).
+- `DashboardClient`: fechamento `memo(...)` corrigido (sintaxe).
+- `MeasurementTable`: bug do className literal `"{ternary}"` corrigido.
+- KpiCard inline do Engineering Studio com dark mode.
+
+**Validação:** `npm run build` ✅ 37 páginas · `tsc --noEmit` ✅ 0 erros.
+
+---
+
+## 03/08/2026 — RC3.1: Homologação Mobile Final
+
+**Objetivo:** polish comercial da experiência mobile em 320–1440px. Sem novas funcionalidades.
+
+**Acabamento mobile:**
+- **Tabelas → Cards Mobile** (padrão RC3 estendido): Laudos e Validades agora renderizam **cards nativos** no celular (<768px) com TAG/nome, cliente, status, datas e botão de ação full-width (min 48px); tabela completa preservada em desktop.
+- **Validades**: cards com borda lateral colorida para status Vencido; grid 2×2 (Cliente/Próxima/Última/Prazo).
+- **Fotos no Wizard**: cada categoria mostra miniaturas das fotos já enviadas (até 4 + contador "+N") — confirmação visual estilo iAuditor, sem função nova.
+- **Skeleton loading**: Validades e Laudos trocaram spinner por `SkeletonTable`/`SkeletonKpiCard` (padrão da aplicação).
+- **Auth pages**: botões Entrar/Enviar com `min-h-12` + `text-base` (48px, sem zoom iOS); safe-area alinhada em esqueci-senha.
+- **Header PWA**: `pt-[max(0.5rem,env(safe-area-inset-top))]` — respeita notch em standalone.
+- **Correção de link quebrado**: cards de Equipamentos não apontam mais para rota inexistente `/equipamentos/[id]`.
+- **Service Worker**: cache bump `v3` — garante atualização do app shell para clientes existentes.
+
+**Páginas revisadas:** Login, Dashboard, Clientes, Equipamentos, Inspeções, Wizard (5 passos), Engineering Studio, Laudos/Workspace, Validades, Usuários, Configurações, Reports.
+
+**Validação:** `npm run build` ✅ 0 erros · `tsc --noEmit` ✅ · PWA instalável · offline/sync mantidos.
+
+---
+
+## 03/08/2026 — RC3: Mobile UX & Responsividade
+
+**Objetivo:** transformar o sistema em aplicativo profissional para inspetores em campo (320–1440px). Sem funcionalidades novas.
+
+**Design System Mobile** (`globals.css @layer base`):
+- Inputs/selects/textareas: **min-height 48px**, `font-size 16px` (previne zoom iOS), radius 0.5rem.
+- Botões: min-height 44px.
+- `html, body { overflow-x: hidden }` — previne scroll horizontal acidental.
+
+**Sidebar (aplicativo):**
+- Mobile (<768px): drawer off-canvas com overlay + animação + **fecha ao navegar**.
+- Tablet/desktop (≥768px): rail colapsável `md:w-16`/`md:w-64`.
+
+**Tabelas → Cards Mobile:** Clientes, Equipamentos e Usuários viram cards no celular (tabela preservada em desktop).
+
+**Wizard:**
+- Barra de ações fixa inferior (Voltar · Salvar rascunho · Próximo/Revisar), `pb-safe`.
+- Botão manual "Salvar rascunho" com feedback ✓.
+- Resumo de fotos (enviadas/offline/categorias).
+
+**Performance:** charts do Dashboard em **lazy-load** (`next/dynamic`, `ssr:false`) → First Load JS de **235kB → 114kB**.
+
+**PWA:** header com safe-area do notch; manifest instalável; ícones maskable; SW app-shell.
+
+**Validação:** `npm run build` ✅ · `tsc --noEmit` ✅ · lint ⚠️ (sem `.eslintrc`; projeto usa `ignoreDuringBuilds`).
+
+---
+
 ## 19/07/2026 — Sprint 1: Estrutura base
 
 - Criado o projeto Next.js 14 (App Router) + TypeScript + Tailwind CSS.

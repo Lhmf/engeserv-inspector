@@ -8,10 +8,18 @@ import { COOKIE } from "@/lib/auth";
 
 const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user"];
 
+// Assets públicos da PWA que NÃO exigem autenticação:
+// manifest, service worker, ícones, favicon e arquivos estáticos raiz.
+const PUBLIC_ASSETS = ["/manifest.json", "/sw.js", "/icons", "/favicon", "/screenshots", "/offline"];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || pathname.startsWith("/_next")) {
+  if (
+    PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
+    pathname.startsWith("/_next") ||
+    PUBLIC_ASSETS.some((p) => pathname.startsWith(p))
+  ) {
     return NextResponse.next();
   }
 

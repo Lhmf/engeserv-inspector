@@ -33,12 +33,12 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <div className={cn("rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow", className)}>
+    <div className={cn("rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-slate-800 dark:bg-[#141e34] dark:hover:shadow-slate-900/40", className)}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{title}</p>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
-          {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1 dark:text-slate-400">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mb-1 dark:text-slate-100">{value}</p>
+          {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
           {trend && (
             <div className={cn("mt-2 flex items-center gap-1 text-xs font-medium", trend.positive !== false ? "text-emerald-600" : "text-rose-600")}>
               {trend.positive !== false ? (
@@ -52,10 +52,10 @@ export function StatCard({
           {progress && (
             <div className="mt-3">
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-500">{progress.label}</span>
-                <span className="font-medium text-slate-700">{Math.round((progress.value / progress.max) * 100)}%</span>
+                <span className="text-slate-500 dark:text-slate-400">{progress.label}</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">{Math.round((progress.value / progress.max) * 100)}%</span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-navy rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(100, (progress.value / progress.max) * 100)}%` }}

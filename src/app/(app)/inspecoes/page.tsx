@@ -129,6 +129,7 @@ export default function InspecoesPage() {
             <input
               type="text"
               placeholder="Buscar por TAG, cliente, inspetor..."
+              aria-label="Buscar inspeções"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -137,6 +138,7 @@ export default function InspecoesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filtrar por status"
             className="w-full sm:w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">Todos os status</option>
@@ -164,69 +166,126 @@ export default function InspecoesPage() {
             }}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">TAG</th>
-                  <th className="px-4 py-3 text-left">Equipamento / Cliente</th>
-                  <th className="px-4 py-3 text-left">Inspetor</th>
-                  <th className="px-4 py-3 text-left">Início</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Medições</th>
-                  <th className="px-4 py-3 text-left">Fotos</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredInspections.map((insp) => (
-                  <tr key={insp.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{insp.equipment.tag}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <div>{getEquipmentTypeLabel(insp.equipment.type)}</div>
-                      <div className="text-xs text-slate-400">{insp.equipment.client.companyName}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{insp.inspector.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(insp.startedAt)}</td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const { bg, text, border } = getStatusColor(insp.status);
-                        return (
-                          <Badge variant="outline" className={cn(bg, text, border)}>
-                            {insp.status.replace("_", " ")}
-                          </Badge>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <span className="font-medium">{insp._count?.measurements || 0}</span> pontos
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <span className="font-medium">{insp._count?.photos || 0}</span> fotos
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/inspecoes/${insp.id}/wizard`}
-                          className="p-2 rounded-lg text-slate-500 hover:text-navy hover:bg-navy/10 transition-colors"
-                          title="Abrir Wizard"
-                        >
-                          <ClipboardCheck className="w-5 h-5" />
-                        </Link>
-                        <Link
-                          href={`/inspecoes/${insp.id}`}
-                          className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                          title="Ver Detalhes"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </Link>
-                      </div>
-                    </td>
+          <>
+            {/* Mobile cards (< md) */}
+            <div className="grid gap-3 p-4 md:hidden">
+              {filteredInspections.map((insp) => (
+                <div key={insp.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-semibold text-slate-800">{insp.equipment.tag}</p>
+                      <p className="mt-0.5 text-sm text-slate-600">
+                        {getEquipmentTypeLabel(insp.equipment.type)}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">{insp.equipment.client.companyName}</p>
+                    </div>
+                    {(() => {
+                      const { bg, text, border } = getStatusColor(insp.status);
+                      return (
+                        <Badge variant="outline" className={cn(bg, text, border, "flex-shrink-0")}>
+                          {insp.status.replace("_", " ")}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                    <span className="truncate text-slate-500">Inspetor: {insp.inspector.name}</span>
+                    <span className="ml-2 whitespace-nowrap text-slate-700">{formatDate(insp.startedAt)}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                    <span className="text-xs uppercase text-slate-400">
+                      {insp._count?.measurements || 0} pontos · {insp._count?.photos || 0} fotos
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/inspecoes/${insp.id}/wizard`}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 hover:text-navy hover:bg-navy/10 transition-colors"
+                        title="Abrir Wizard"
+                        aria-label="Abrir Wizard"
+                      >
+                        <ClipboardCheck className="w-5 h-5" />
+                      </Link>
+                      <Link
+                        href={`/inspecoes/${insp.id}`}
+                        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        title="Ver Detalhes"
+                        aria-label="Ver Detalhes"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table (md+) */}
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">TAG</th>
+                    <th className="px-4 py-3 text-left">Equipamento / Cliente</th>
+                    <th className="px-4 py-3 text-left">Inspetor</th>
+                    <th className="px-4 py-3 text-left">Início</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="hidden lg:table-cell px-4 py-3 text-left">Medições</th>
+                    <th className="hidden lg:table-cell px-4 py-3 text-left">Fotos</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredInspections.map((insp) => (
+                    <tr key={insp.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-800">{insp.equipment.tag}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div>{getEquipmentTypeLabel(insp.equipment.type)}</div>
+                        <div className="text-xs text-slate-400">{insp.equipment.client.companyName}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{insp.inspector.name}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(insp.startedAt)}</td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const { bg, text, border } = getStatusColor(insp.status);
+                          return (
+                            <Badge variant="outline" className={cn(bg, text, border)}>
+                              {insp.status.replace("_", " ")}
+                            </Badge>
+                          );
+                        })()}
+                      </td>
+                      <td className="hidden lg:table-cell px-4 py-3 text-slate-600">
+                        <span className="font-medium">{insp._count?.measurements || 0}</span> pontos
+                      </td>
+                      <td className="hidden lg:table-cell px-4 py-3 text-slate-600">
+                        <span className="font-medium">{insp._count?.photos || 0}</span> fotos
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/inspecoes/${insp.id}/wizard`}
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 hover:text-navy hover:bg-navy/10 transition-colors"
+                            title="Abrir Wizard"
+                            aria-label="Abrir Wizard"
+                          >
+                            <ClipboardCheck className="w-5 h-5" />
+                          </Link>
+                          <Link
+                            href={`/inspecoes/${insp.id}`}
+                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Ver Detalhes"
+                            aria-label="Ver Detalhes"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

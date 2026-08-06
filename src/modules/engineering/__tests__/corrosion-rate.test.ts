@@ -4,7 +4,7 @@
  * AGUARDANDO VALORES OFICIAIS DO ENGENHEIRO RESPONSÁVEL
  */
 
-import { CorrosionRateCalculator } from '../calculations/corrosion-rate';
+import { CorrosionRateCalculator } from '../calculations';
 import type { CorrosionRateInput, CorrosionRateResult } from '../calculations';
 
 describe('CorrosionRateCalculator', () => {

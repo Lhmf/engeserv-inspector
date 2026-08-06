@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background: brand navy, full-bleed for maskable safe zone -->
+  <rect width="512" height="512" fill="#1F3864"/>
+  <!-- Subtle inner glow ring -->
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#2E74B5" stroke-width="12" opacity="0.35"/>
+  <!-- Hard-hat / inspection motif: two chevrons (like a roof/engineer) -->
+  <path d="M256 112 L96 232 L96 272 L256 152 L416 272 L416 232 Z" fill="#FFFFFF"/>
+  <path d="M256 176 L128 304 L128 344 L256 216 L384 344 L384 304 Z" fill="#2E74B5"/>
+  <!-- Slider/gauge line (inspection) -->
+  <rect x="176" y="360" width="160" height="16" rx="8" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="356" cy="368" r="26" fill="#2E74B5" stroke="#FFFFFF" stroke-width="10"/>
+  <circle cx="356" cy="368" r="9" fill="#FFFFFF"/>
+</svg>

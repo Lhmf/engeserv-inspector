@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonTable, SkeletonKpiCard } from "@/components/ui/Skeleton";
 import { formatDate } from "@/lib/utils";
 import type { ValidadeStatus } from "@/lib/validades";
 import {
@@ -14,7 +15,6 @@ import {
   Clock,
   Search,
   Eye,
-  Loader2,
   AlertCircle,
   Filter,
   ChevronLeft,
@@ -181,6 +181,7 @@ export default function ValidadesPage() {
             <input
               type="text"
               placeholder="Buscar por TAG, cliente..."
+              aria-label="Buscar validades"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -189,6 +190,7 @@ export default function ValidadesPage() {
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
+            aria-label="Filtrar por cliente"
             className="w-full sm:w-48 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">Todos os clientes</option>
@@ -199,6 +201,7 @@ export default function ValidadesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | ValidadeStatus)}
+            aria-label="Filtrar por status de validade"
             className="w-full sm:w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">Todos os status</option>
@@ -212,9 +215,11 @@ export default function ValidadesPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="p-12 flex flex-col items-center gap-3 text-slate-500">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p>Carregando validades...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((i) => <SkeletonKpiCard key={i} />)}
+          </div>
+          <SkeletonTable rows={6} columns={6} />
         </div>
       ) : error ? (
         <div className="p-12 flex flex-col items-center gap-3 text-rose-600">
@@ -253,56 +258,118 @@ function ValidadeTable({ items }: { items: ValidadeItem[] }) {
       {items.length === 0 ? (
         <EmptyState title="Nenhum equipamento encontrado" description="Tente ajustar os filtros" />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3 text-left">TAG</th>
-                <th className="px-4 py-3 text-left">Tipo</th>
-                <th className="px-4 py-3 text-left">Cliente</th>
-                <th className="px-4 py-3 text-left">Última</th>
-                <th className="px-4 py-3 text-left">Próxima</th>
-                <th className="px-4 py-3 text-left">Dias</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.map((item) => {
-                const daysLeft = item.nextDueDate
-                  ? Math.ceil((item.nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  : null;
-                return (
-                  <tr key={item.equipmentId} className={cn("hover:bg-slate-50", item.status === "VENCIDO" && "bg-rose-50/50")}>
-                    <td className="px-4 py-3 font-medium text-slate-800">{item.equipmentTag}</td>
-                    <td className="px-4 py-3 text-slate-600">{item.equipmentType.replace(/_/g, " ")}</td>
-                    <td className="px-4 py-3 text-slate-600">{item.clientName}</td>
-                    <td className="px-4 py-3 text-slate-500">{item.lastApprovedAt ? formatDate(item.lastApprovedAt) : "—"}</td>
-                    <td className="px-4 py-3 text-slate-500">{item.nextDueDate ? formatDate(item.nextDueDate) : "—"}</td>
-                    <td className="px-4 py-3">
-                      {daysLeft !== null ? (
-                        <span className={cn("font-medium", daysLeft <= 0 ? "text-rose-600" : daysLeft <= 60 ? "text-amber-600" : "text-slate-600")}>
-                          {daysLeft <= 0 ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d`}
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className={STATUS_COLORS[item.status]}>
-                        {STATUS_LABELS[item.status]}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link href={`/equipamentos/${item.equipmentId}`} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy/90 transition-colors">
-                        <Eye className="w-4 h-4" />
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Mobile cards (< md) */}
+          <div className="space-y-3 p-4 md:hidden">
+            {items.map((item) => {
+              const daysLeft = item.nextDueDate
+                ? Math.ceil((item.nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+              return (
+                <div
+                  key={item.equipmentId}
+                  className={cn("rounded-xl border border-slate-200 bg-white p-4 shadow-sm", item.status === "VENCIDO" && "border-l-4 border-l-rose-500")}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-800">{item.equipmentTag}</p>
+                      <p className="truncate text-sm text-slate-500">{item.equipmentType.replace(/_/g, " ")}</p>
+                    </div>
+                    <Badge variant="outline" className={STATUS_COLORS[item.status]}>
+                      {STATUS_LABELS[item.status]}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-sm">
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Cliente</p>
+                      <p className="truncate text-slate-700">{item.clientName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Próxima</p>
+                      <p className="text-slate-700">{item.nextDueDate ? formatDate(item.nextDueDate) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Última</p>
+                      <p className="text-slate-700">{item.lastApprovedAt ? formatDate(item.lastApprovedAt) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Prazo</p>
+                      <p className={cn("font-medium", daysLeft !== null && daysLeft <= 0 ? "text-rose-600" : daysLeft !== null && daysLeft <= 60 ? "text-amber-600" : "text-slate-700")}>
+                        {daysLeft !== null ? (daysLeft <= 0 ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d`) : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <Link
+                      href={`/equipamentos/${item.equipmentId}`}
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90 transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Ver equipamento
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table (md+) */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">TAG</th>
+                  <th className="px-4 py-3 text-left">Tipo</th>
+                  <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Última</th>
+                  <th className="px-4 py-3 text-left">Próxima</th>
+                  <th className="px-4 py-3 text-left">Dias</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {items.map((item) => {
+                  const daysLeft = item.nextDueDate
+                    ? Math.ceil((item.nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  return (
+                    <tr key={item.equipmentId} className={cn("hover:bg-slate-50", item.status === "VENCIDO" && "bg-rose-50/50")}>
+                      <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{item.equipmentTag}</td>
+                      <td className="px-4 py-3 text-slate-600"><span className="block max-w-[150px] truncate">{item.equipmentType.replace(/_/g, " ")}</span></td>
+                      <td className="px-4 py-3 text-slate-600"><span className="block max-w-[180px] truncate">{item.clientName}</span></td>
+                      <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{item.lastApprovedAt ? formatDate(item.lastApprovedAt) : "—"}</td>
+                      <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{item.nextDueDate ? formatDate(item.nextDueDate) : "—"}</td>
+                      <td className="px-4 py-3">
+                        {daysLeft !== null ? (
+                          <span className={cn("font-medium", daysLeft <= 0 ? "text-rose-600" : daysLeft <= 60 ? "text-amber-600" : "text-slate-600")}>
+                            {daysLeft <= 0 ? `${Math.abs(daysLeft)}d vencido` : `${daysLeft}d`}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className={STATUS_COLORS[item.status]}>
+                          {STATUS_LABELS[item.status]}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/equipamentos/${item.equipmentId}`}
+                          className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-navy px-3 py-2 text-sm font-medium text-white hover:bg-navy/90 active:scale-95 transition-all"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
@@ -335,9 +402,21 @@ function ValidadeCalendar({ items }: { items: ValidadeItem[] }) {
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       {/* Month header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-200">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-slate-100"><ChevronLeft className="w-5 h-5" /></button>
+        <button
+          onClick={prevMonth}
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 active:scale-95 transition-all"
+          aria-label="Mês anterior"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
         <h3 className="text-lg font-semibold text-slate-800">{monthNames[month]} {year}</h3>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-100"><ChevronRight className="w-5 h-5" /></button>
+        <button
+          onClick={nextMonth}
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 active:scale-95 transition-all"
+          aria-label="Próximo mês"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Day headers */}
@@ -365,7 +444,7 @@ function ValidadeCalendar({ items }: { items: ValidadeItem[] }) {
               </span>
               {dayEvents.slice(0, 3).map((ev) => (
                 <Link key={ev.equipmentId} href={`/equipamentos/${ev.equipmentId}`}
-                  className={cn("block text-[10px] truncate rounded px-1 py-0.5 mt-0.5", ev.status === "VENCIDO" ? "bg-rose-100 text-rose-700" : ev.status === "PROXIMO" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}
+                  className={cn("flex min-h-7 items-center rounded px-1 text-[10px] leading-tight truncate mt-0.5 active:opacity-70", ev.status === "VENCIDO" ? "bg-rose-100 text-rose-700" : ev.status === "PROXIMO" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}
                 >
                   {ev.equipmentTag}
                 </Link>

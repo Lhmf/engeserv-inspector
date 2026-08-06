@@ -10,6 +10,17 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { CameraCapture, compressImage } from "@/components/CameraCapture";
+import { useOnline } from "@/lib/useOnline";
+import {
+  saveDraft,
+  getDraft,
+  clearDraft,
+  enqueuePhoto,
+  getQueuedPhotos,
+  removeQueuePhoto,
+  getPendingSyncCount,
+  type InspectionDraft,
+} from "@/lib/offline";
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,6 +38,7 @@ import {
   Plus,
   Trash2,
   FileOutput,
+  Save,
 } from "lucide-react";
 
 const STEPS = [
@@ -79,6 +91,9 @@ export default function InspectionWizardPage() {
   const [notes, setNotes] = useState("");
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loadingInspection, setLoadingInspection] = useState(true);
+  const [offlinePhotos, setOfflinePhotos] = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
+  const online = useOnline();
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -93,41 +108,129 @@ export default function InspectionWizardPage() {
     loadInspection();
   }, [inspectionId]);
 
+  // Recompute pending sync count whenever photos/measurements/notes change
+  useEffect(() => {
+    getPendingSyncCount().then(setPendingCount).catch(() => {});
+  }, [photos, measurements, offlinePhotos]);
+
   async function loadInspection() {
     if (!inspectionId) return;
     setLoadingInspection(true);
     try {
+      let insp: any = null;
       const res = await fetch(`/api/inspections/${inspectionId}`);
       const data = await res.json();
-      if (!res.ok) {
+      if (res.ok) {
+        insp = data.inspection;
+      }
+
+      // Prefer the local draft (may contain offline work) as the source of truth
+      const draft = await getDraft(inspectionId);
+      if (draft) {
+        setTypeFromDraft(draft, insp);
+      } else if (insp) {
+        setInspection(insp);
+        setPhotos(insp.photos || []);
+        setMeasurements(insp.measurements || []);
+        setNotes(insp.notes || "");
+        setRecommendations(insp.recommendations || []);
+        setValue("type", insp.type || "PERIODICA");
+        setValue("initialNotes", insp.notes || "");
+      } else if (!res.ok) {
         router.push("/inspecoes");
         return;
       }
-      const insp = data.inspection;
-      setInspection(insp);
-      setPhotos(insp.photos || []);
-      setMeasurements(insp.measurements || []);
-      setNotes(insp.notes || "");
-      setRecommendations(insp.recommendations || []);
-      setValue("type", insp.type || "PERIODICA");
-      setValue("initialNotes", insp.notes || "");
+
+      // Load offline queued photos for this inspection
+      const queued = await getQueuedPhotos(inspectionId);
+      setOfflinePhotos(queued.map((q) => ({ ...q, offline: true })));
     } catch (e) {
       console.error("Erro ao carregar inspeção", e);
-      router.push("/inspecoes");
+      // Offline com draft salvo — ainda assim conseguimos trabalhar
+      const draft = await getDraft(inspectionId);
+      if (draft) {
+        setPhysicalFromDraft(draft);
+        const queued = await getQueuedPhotos(inspectionId);
+        setOfflinePhotos(queued.map((q) => ({ ...q, offline: true })));
+      } else {
+        router.push("/inspecoes");
+      }
     } finally {
       setLoadingInspection(false);
     }
   }
 
-  // Auto-save on step change
+  function setTypeFromDraft(draft: InspectionDraft, insp?: any) {
+    // Inspetão carregada da rede; usa o draft como override dos dados do wizard
+    if (insp) setInspection(insp);
+    setPhotos(insp?.photos || []);
+    setMeasurements(draft.measurements || []);
+    setNotes(draft.notes || "");
+    setRecommendations(draft.recommendations || []);
+    setValue("type", (draft.type as any) || insp?.type || "PERIODICA");
+    setValue("initialNotes", draft.notes || "");
+  }
+
+  function setPhysicalFromDraft(draft: InspectionDraft) {
+    setMeasurements(draft.measurements || []);
+    setNotes(draft.notes || "");
+    setRecommendations(draft.recommendations || []);
+    setValue("type", (draft.type as any) || "PERIODICA");
+    setValue("initialNotes", draft.notes || "");
+  }
+
+  // Save a local draft whenever fields change (debounced) — offline-safe
+  useEffect(() => {
+    if (loadingInspection) return;
+    const t = setTimeout(() => {
+      saveDraft({
+        id: inspectionId,
+        inspectionId,
+        type: selectedType,
+        notes,
+        recommendations,
+        measurements,
+        updatedAt: Date.now(),
+      }).catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [selectedType, notes, recommendations, measurements, loadingInspection, inspectionId]);
+
+  // Manual save with feedback (RC3: "Salvar rascunho")
+  const [draftSaved, setDraftSaved] = useState(false);
+  async function saveDraftNow() {
+    await saveDraft({
+      id: inspectionId,
+      inspectionId,
+      type: selectedType,
+      notes,
+      recommendations,
+      measurements,
+      updatedAt: Date.now(),
+    }).catch(() => {});
+    setDraftSaved(true);
+    setTimeout(() => setDraftSaved(false), 2000);
+  }
+
+  // Auto-save to network on step change (only when online)
   useEffect(() => {
     if (!loadingInspection && inspection) {
       autoSave();
     }
   }, [currentStep]);
 
+  // Auto-flush queued photos when connection returns
+  useEffect(() => {
+    if (!online) return;
+    flushOfflinePhotos();
+  }, [online]);
+
   async function autoSave() {
     if (!inspectionId) return;
+    if (!navigator.onLine) {
+      console.log("[Offline] autoSave preservado como rascunho local");
+      return;
+    }
     try {
       await fetch(`/api/inspections/${inspectionId}`, {
         method: "PUT",
@@ -141,6 +244,59 @@ export default function InspectionWizardPage() {
     } catch (e) {
       console.error("Auto-save failed", e);
     }
+  }
+
+  async function flushOfflinePhotos() {
+    if (!inspectionId) return;
+    try {
+      const queued = await getQueuedPhotos(inspectionId);
+      if (queued.length === 0) return;
+
+      for (const q of queued) {
+        const blob = dataUrlToBlob(q.dataUrl);
+        const file = new File([blob], `offline-${q.category}-${Date.now()}.jpg`, { type: "image/jpeg" });
+        const formData = new FormData();
+        formData.append("files", file);
+        formData.append("category", q.category);
+        if (q.caption) formData.append("caption", q.caption);
+
+        const res = await fetch(`/api/inspections/${inspectionId}/photos`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Falha ao enviar foto");
+
+        await removeQueuePhoto(q.id!);
+        setPhotos((prev) => [...prev, ...data.photos]);
+      }
+      setOfflinePhotos([]);
+      setPendingCount(await getPendingSyncCount());
+      console.log(`[Sync] ${queued.length} foto(s) offline sincronizadas`);
+    } catch (e) {
+      console.error("[Sync] Falha ao sincronizar fotos:", e);
+    }
+  }
+
+  function dataUrlToBlob(dataUrl: string): Blob {
+    const [meta, b64] = dataUrl.split(",");
+    const mime = meta.match(/data:(.*?);/)?.[1] || "image/jpeg";
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  async function enqueuePhotoLocal(blob: Blob, category: string) {
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    const id = await enqueuePhoto({ inspectionId, category, dataUrl });
+    setOfflinePhotos((prev) => [...prev, { id, inspectionId, category, dataUrl, offline: true, createdAt: Date.now() }]);
+    setPendingCount(await getPendingSyncCount());
   }
 
   async function onSubmit(data: InspectionFormData) {
@@ -165,6 +321,10 @@ export default function InspectionWizardPage() {
 
   async function saveMeasurements() {
     if (!inspectionId || measurements.length === 0) return;
+    if (!navigator.onLine) {
+      console.log("[Offline] medições preservadas no rascunho local");
+      return;
+    }
     try {
       const res = await fetch(`/api/inspections/${inspectionId}/measurements/batch`, {
         method: "POST",
@@ -195,6 +355,17 @@ export default function InspectionWizardPage() {
   async function submitForReview() {
     setSaving(true);
     try {
+      if (!navigator.onLine) {
+        alert(
+          "Você está offline. Seu rascunho foi salvo localmente no dispositivo e será enviado automaticamente quando a conexão voltar."
+        );
+        router.push(`/inspecoes/${inspectionId}`);
+        return;
+      }
+
+      // Garante que fotos da fila sejam enviadas antes de finalizar
+      await flushOfflinePhotos();
+
       const res = await fetch(`/api/inspections/${inspectionId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -210,6 +381,7 @@ export default function InspectionWizardPage() {
       if (!res.ok) throw new Error("Erro ao enviar para revisão");
 
       await saveMeasurements();
+      await clearDraft(inspectionId);
       router.push(`/inspecoes/${inspectionId}`);
     } catch (e: any) {
       alert(e.message);
@@ -221,6 +393,14 @@ export default function InspectionWizardPage() {
   async function handleGenerateReport() {
     setGeneratingReport(true);
     try {
+      if (!navigator.onLine) {
+        alert(
+          "A geração do laudo requer conexão. Seus dados estão salvos localmente — volte assim que houver internet."
+        );
+        return;
+      }
+
+      await flushOfflinePhotos();
       await saveMeasurements();
 
       const res = await fetch("/api/reports/pipeline", {
@@ -263,7 +443,17 @@ export default function InspectionWizardPage() {
       case 1:
         return <StepInfo inspection={inspection} register={register} errors={errors} handleSubmit={handleSubmit} onSubmit={onSubmit} saving={saving} />;
       case 2:
-        return <StepPhotos inspectionId={inspectionId} photos={photos} setPhotos={setPhotos} onBack={prevStep} onNext={nextStep} />;
+        return (
+          <StepPhotos
+            inspectionId={inspectionId}
+            photos={photos}
+            setPhotos={setPhotos}
+            onBack={prevStep}
+            onNext={nextStep}
+            offlinePhotos={offlinePhotos}
+            onEnqueuePhoto={enqueuePhotoLocal}
+          />
+        );
       case 3:
         return <StepMeasurements measurements={measurements} setMeasurements={setMeasurements} minThickness={inspection?.equipment?.minThicknessMm} onBack={prevStep} onNext={() => { saveMeasurements(); nextStep(); }} />;
       case 4:
@@ -303,7 +493,7 @@ export default function InspectionWizardPage() {
       <div className="max-w-4xl mx-auto p-8 text-center">
         <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-slate-800">Inspeção não encontrada</h2>
-        <Link href="/inspecoes" className="mt-4 inline-block text-navy hover:underline">Voltar para inspeções</Link>
+        <Link href="/inspecoes" className="mt-4 inline-flex min-h-11 items-center rounded-lg px-3 text-navy hover:underline">Voltar para inspeções</Link>
       </div>
     );
   }
@@ -311,8 +501,8 @@ export default function InspectionWizardPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header with progress */}
-      <div className="sticky top-4 z-10">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="sticky top-[calc(env(safe-area-inset-top)+3.5rem)] z-20">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#141e34]">
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -344,7 +534,8 @@ export default function InspectionWizardPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="overflow-x-auto -mx-1 px-1">
+            <div className="flex items-center justify-between text-xs text-slate-500 min-w-[420px]">
             {STEPS.map((step, idx) => (
               <div
                 key={step.id}
@@ -370,13 +561,14 @@ export default function InspectionWizardPage() {
                   )}
                 </div>
                 <span className={cn(
-                  "mt-1 text-center font-medium",
+                  "mt-1 text-center font-medium hidden sm:block",
                   idx === currentStep - 1 ? "text-navy" : "text-slate-500"
                 )}>
                   {step.title}
                 </span>
               </div>
             ))}
+            </div>
           </div>
         </div>
       </div>
@@ -402,6 +594,36 @@ export default function InspectionWizardPage() {
           </div>
         </div>
       )}
+
+      {/* Sticky bottom action bar (RC3 — alvo de toque no celular) */}
+      <div className="sticky bottom-0 z-20 mt-4 space-y-3 rounded-t-2xl border-t border-slate-200 bg-white/95 px-2 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur sm:px-4">
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="secondary" onClick={prevStep} disabled={currentStep === 1} className="flex-1 min-h-12">
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Voltar
+          </Button>
+          <Button variant="outline" onClick={saveDraftNow} className="flex-1 min-h-12">
+            {draftSaved ? <Check className="w-4 h-4 mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+            {draftSaved ? "Salvo!" : "Salvar"}
+          </Button>
+          <Button
+            onClick={() => (currentStep === STEPS.length ? undefined : currentStep === STEPS.length - 1 ? submitForReview() : nextStep())}
+            className="flex-1 min-h-12"
+            disabled={saving}
+          >
+            {currentStep < STEPS.length - 1 ? "Próximo" : currentStep === STEPS.length - 1 ? "Revisar" : "Finalizar"}
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+        {draftSaved && (
+          <p className="text-center text-xs font-medium text-emerald-600">Rascunho salvo localmente ✓</p>
+        )}
+        {!online && (
+          <p className="text-center text-xs font-medium text-amber-600">
+            Offline — autosave local ativo…
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -470,8 +692,17 @@ function StepInfo({ inspection, register, errors, handleSubmit, onSubmit, saving
 // ================================================================
 // STEP 2: Fotografias
 // ================================================================
-function StepPhotos({ inspectionId, photos, setPhotos, onBack, onNext }: { inspectionId: string; photos: any[]; setPhotos: (p: any[]) => void; onBack: () => void; onNext: () => void }) {
+function StepPhotos({ inspectionId, photos, setPhotos, onBack, onNext, offlinePhotos, onEnqueuePhoto }: {
+  inspectionId: string;
+  photos: any[];
+  setPhotos: (p: any[]) => void;
+  onBack: () => void;
+  onNext: () => void;
+  offlinePhotos?: any[];
+  onEnqueuePhoto?: (blob: Blob, category: string) => Promise<void>;
+}) {
   const [uploading, setUploading] = useState(false);
+  const online = useOnline();
 
   const categories = [
     "PLACA", "CORROSAO", "VALVULA", "MANOMETRO",
@@ -481,6 +712,18 @@ function StepPhotos({ inspectionId, photos, setPhotos, onBack, onNext }: { inspe
   async function handleUpload(files: File[], category: string) {
     setUploading(true);
     try {
+      if (!online) {
+        // Offline: queue each file blob locally
+        if (onEnqueuePhoto) {
+          for (const f of files) {
+            const blob = await compressImage(f, 0.72, 1600);
+            await onEnqueuePhoto(blob, category);
+          }
+          alert("Você está offline. As fotos foram salvas localmente e serão enviadas quando a conexão voltar.");
+        }
+        return;
+      }
+
       const formData = new FormData();
       files.forEach(f => formData.append("files", f));
       formData.append("category", category);
@@ -504,6 +747,14 @@ function StepPhotos({ inspectionId, photos, setPhotos, onBack, onNext }: { inspe
   async function handleCameraUpload(blob: Blob, category: string) {
     setUploading(true);
     try {
+      if (!online) {
+        if (onEnqueuePhoto) {
+          await onEnqueuePhoto(blob, category);
+          alert("Você está offline. A foto foi salva localmente e será enviada quando a conexão voltar.");
+        }
+        return;
+      }
+
       const file = new File([blob], `camera-${category}-${Date.now()}.jpg`, { type: "image/jpeg" });
       const formData = new FormData();
       formData.append("files", file);
@@ -531,6 +782,45 @@ function StepPhotos({ inspectionId, photos, setPhotos, onBack, onNext }: { inspe
       <p className="text-sm text-slate-500">
         Adicione fotos categorizadas. Cada categoria deve ter pelo menos uma foto.
       </p>
+
+      {!online && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <Clock className="w-4 h-4 flex-shrink-0" />
+          Você está offline. Fotos capturadas serão salvas localmente e enviadas automaticamente quando a conexão voltar.
+       </div>
+      )}
+
+      {/* Photo summary (RC3 — iAuditor-like) */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-slate-700">Fotos da inspeção</p>
+          <p className="text-xs text-slate-500">{photos.length} enviadas · {offlinePhotos?.length || 0} offline · {categories.length} categorias</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-navy/10 px-3 py-1 text-xs font-medium text-navy">
+            <Camera className="w-4 h-4" />
+            {photos.length}/{categories.length ? "foto" : "fotos"}
+          </span>
+        </div>
+      </div>
+
+      {offlinePhotos && offlinePhotos.length > 0 && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+          <p className="font-medium mb-1">
+            {offlinePhotos.length} foto(s) aguardando sincronização
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {offlinePhotos.map((p) => (
+              <img
+                key={p.id}
+                src={p.dataUrl}
+                alt={`Offline ${p.category}`}
+                className="w-16 h-16 object-cover rounded-lg border border-blue-200"
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {categories.map(cat => (
@@ -643,15 +933,33 @@ function PhotoCategoryDropZone({
         {/* Camera quick capture */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowCamera(true); }}
-          className="mt-2 px-3 py-1 bg-navy/10 text-navy text-xs font-medium rounded-full hover:bg-navy/20 transition-colors"
+          className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-full bg-navy/10 px-4 py-2 text-sm font-medium text-navy transition-colors hover:bg-navy/20 active:scale-95"
           title="Abrir câmera"
         >
-          <Camera className="w-3 h-3 inline mr-1" />
+          <Camera className="w-4 h-4" />
           Capturar
         </button>
 
         {photos.length > 0 && (
-          <p className="mt-2 text-xs text-slate-500">{photos.length} foto(s)</p>
+          <div className="mt-3 w-full">
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {photos.slice(0, 4).map((p) => (
+                <img
+                  key={p.id}
+                  src={p.url}
+                  alt={`${category} ${p.caption ?? ""}`}
+                  loading="lazy"
+                  className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                />
+              ))}
+              {photos.length > 4 && (
+                <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
+                  +{photos.length - 4}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-xs font-medium text-slate-600">{photos.length} foto(s)</p>
+          </div>
         )}
       </div>
     </div>
@@ -698,7 +1006,97 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
         </Button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile measurement cards (< md) */}
+      <div className="grid gap-3 md:hidden">
+        {rows.map((row: any, idx: number) => (
+          <div key={idx} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-slate-700">Ponto #{idx + 1}</span>
+              <div className="flex items-center gap-2">
+                {(() => {
+                  if (!row.thicknessMm || !minThickness) return null;
+                  const danger = row.thicknessMm <= minThickness;
+                  const warn = row.thicknessMm <= minThickness * 1.2;
+                  return (
+                    <Badge variant="outline" className={danger
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : warn
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
+                      {danger ? "Crítico" : warn ? "Atenção" : "OK"}
+                    </Badge>
+                  );
+                })()}
+                <button
+                  onClick={() => removeRow(idx)}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50"
+                  title="Remover ponto"
+                  aria-label="Remover ponto"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Ponto</label>
+                <input
+                  type="text"
+                  value={row.point}
+                  onChange={(e) => updateRow(idx, "point", e.target.value)}
+                  placeholder="P1, A-1..."
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Espessura (mm)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={row.thicknessMm ?? ""}
+                  onChange={(e) => updateRow(idx, "thicknessMm", e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder="0.00"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-500">Ângulo (°)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="360"
+                  inputMode="numeric"
+                  value={row.angleDeg ?? ""}
+                  onChange={(e) => updateRow(idx, "angleDeg", e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="0-360"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-500">Observações</label>
+                <input
+                  type="text"
+                  value={row.notes || ""}
+                  onChange={(e) => updateRow(idx, "notes", e.target.value)}
+                  placeholder="Notas..."
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-slate-500">
+            Nenhuma medição adicionada. Clique em "Adicionar Ponto" para começar.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop table (md+) */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -719,7 +1117,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                     value={row.point}
                     onChange={(e) => updateRow(idx, "point", e.target.value)}
                     placeholder="P1, A-1..."
-                    className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -730,7 +1128,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                     value={row.thicknessMm ?? ""}
                     onChange={(e) => updateRow(idx, "thicknessMm", e.target.value ? parseFloat(e.target.value) : null)}
                     placeholder="0.00"
-                    className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -742,7 +1140,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                     value={row.angleDeg ?? ""}
                     onChange={(e) => updateRow(idx, "angleDeg", e.target.value ? parseInt(e.target.value) : null)}
                     placeholder="0-360"
-                    className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -751,7 +1149,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                     value={row.notes || ""}
                     onChange={(e) => updateRow(idx, "notes", e.target.value)}
                     placeholder="Notas..."
-                    className="w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-md border border-slate-300 px-2 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -773,10 +1171,11 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                 <td className="px-3 py-2 text-center">
                   <button
                     onClick={() => removeRow(idx)}
-                    className="text-rose-500 hover:text-rose-700 text-sm"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center text-rose-500 hover:text-rose-700 text-sm"
                     title="Remover"
+                    aria-label="Remover ponto"
                   >
-                    <Trash2 className="w-4 h-4 mx-auto" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
               </tr>
@@ -862,7 +1261,7 @@ function StepObservations({ notes, setNotes, recommendations, setRecommendations
               }}
               disabled={recommendations.includes(t)}
               className={cn(
-                "px-3 py-1.5 text-xs rounded-full border transition-colors",
+                "inline-flex min-h-11 items-center px-4 py-2 text-sm rounded-full border transition-colors active:scale-95",
                 recommendations.includes(t)
                   ? "bg-navy text-white border-navy"
                   : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"

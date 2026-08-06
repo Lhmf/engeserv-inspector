@@ -2,6 +2,18 @@
 
 Backlog de curto prazo. Itens concluídos migram para `CHANGELOG.md`.
 
+## Concluído na RC4 — Aplicativo Profissional (06/08/2026)
+
+- [x] **Dark mode completo** — `darkMode: class`, tokens CSS variables, anti-flash script, persistência, remapeamento dos utilitários, primitivos com dark (Button/Card/Badge/StatCard/etc.)
+- [x] **Responsividade** — tabelas→cards mobile em Dashboard, Inspeções, Laudos, Clientes, Equipamentos, Usuários, Validades, Wizard medições; tabela preservada em desktop
+- [x] **Touch/a11y** — alvo mínimo 44×44px, aria-labels em ações/filtros/calendário, drawer invisível+aria-hidden, estados active/pressed/focus
+- [x] **Performance** — Dashboard memo + charts lazy, reports 9 seções lazy, MeasurementTable memo, remoção de código morto (.bak, Sidebar)
+- [x] **PWA** — manifest completo (theme_color por scheme, maskable, shortcuts), safe-areas, SW v3
+- [x] **Fotos** — fluxo validado (câmera in-app → compressão → Vercel Blob → URL → miniatura → laudo)
+- [x] **NewEquipmentForm** — removidas duplicações de campos (3x → 1x)
+- [x] **264 erros TypeScript pré-existentes corrigidos** (testes do Engine + @types/jest)
+- [x] Build ✅ · tsc ✅ · CHANGELOG/TODO/ROADMAP atualizados
+
 ## Concluído na Sprint 1
 
 - [x] Criar projeto Next.js (App Router) + Tailwind

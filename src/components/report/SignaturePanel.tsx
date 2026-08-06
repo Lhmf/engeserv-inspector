@@ -194,14 +194,14 @@ export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => onSign(`sign-${signature.role.toLowerCase()}-approve`)}
-                        className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 active:scale-95"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                         Aprovar
                       </button>
                       <button
                         onClick={() => onSign(`sign-${signature.role.toLowerCase()}-reject`)}
-                        className="px-3 py-1.5 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-1"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700 active:scale-95"
                       >
                         <XCircle className="w-4 h-4" />
                         Rejeitar
@@ -211,7 +211,7 @@ export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
                   {isSigned && signature && typeof signature === 'object' && 'role' in signature && (
                     <button
                       onClick={() => onSign(`view-signature-${signature.role.toLowerCase()}`)}
-                      className="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1"
+                      className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 active:scale-95"
                     >
                       <FileText className="w-4 h-4" />
                       Ver

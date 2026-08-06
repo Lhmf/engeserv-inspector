@@ -149,7 +149,7 @@ function CaseCard({ caseItem, isSelected, onClick }: { caseItem: CaseItem; isSel
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 rounded-lg border transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 ${
+      className={`w-full p-4 rounded-lg border transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2 active:scale-[0.98] active:bg-slate-50 ${
         isSelected
           ? "border-navy bg-navy-50"
           : "border-slate-200 hover:border-navy hover:bg-navy-50"
@@ -177,7 +177,7 @@ function CaseCard({ caseItem, isSelected, onClick }: { caseItem: CaseItem; isSel
           <p className="text-xs text-slate-500">{caseItem.equipment}</p>
 
           {/* Metrics */}
-          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
             <div className="bg-slate-50 rounded-lg p-2">
               <p className="text-slate-400">Inspeção</p>
               <p className="font-medium text-slate-800">{formatDate(caseItem.lastInspection)}</p>
@@ -217,8 +217,8 @@ function KpiCard({
   valueColor?: string;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-5">
-      <p className="text-slate-500 text-sm mb-1">{label}</p>
+    <div className="bg-white rounded-lg border border-slate-200 p-5 dark:bg-[#141e34] dark:border-slate-800">
+      <p className="text-slate-500 text-sm mb-1 dark:text-slate-400">{label}</p>
       <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
     </div>
   );
@@ -270,7 +270,7 @@ function ResultCard({ result }: { result: FormattedCalculationResult }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3 text-sm">
         <div>
           <p className="text-slate-400">Valor</p>
           <p className="font-mono font-medium text-slate-800 text-lg">{result.value} {result.unit}</p>
@@ -543,7 +543,7 @@ export default function EngineeringPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200 dark:bg-[#141e34] dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-4 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -687,7 +687,7 @@ export default function EngineeringPage() {
                           <button
                             key={type}
                             onClick={() => setCalculationType(type)}
-                            className={`p-3 rounded-lg border-2 text-left transition-all ${
+                            className={`p-3 min-h-12 rounded-lg border-2 text-left transition-all active:scale-[0.98] ${
                               calculationType === type
                                 ? "border-navy bg-navy-50"
                                 : "border-slate-200 hover:border-navy hover:bg-navy-50"

@@ -1,3 +1,232 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* ============================================================
+   * Tokens de tema (RC4)
+   * Definem os tokens oficiais via CSS variables. O dark mode é
+   * controlado pela classe `.dark` no <html> (toggle TopBar /
+   * preferência do sistema).
+   * ============================================================ */
+  :root {
+    --color-bg-base: #f8fafc;        /* slate-50  (fundo) */
+    --color-bg-surface: #ffffff;     /* superfície de cards */
+    --color-bg-muted: #f1f5f9;       /* slate-100 (muted) */
+    --color-text-primary: #0f172a;   /* slate-900 */
+    --color-text-secondary: #64748b; /* slate-500 */
+    --color-border: #e2e8f0;         /* slate-200 */
+    color-scheme: light;
+  }
+
+  html.dark {
+    --color-bg-base: #0b1120;        /* fundo escuro */
+    --color-bg-surface: #141e34;     /* cards escuros */
+    --color-bg-muted: #1e293b;       /* slate-800 muted */
+    --color-text-primary: #f1f5f9;   /* slate-100 */
+    --color-text-secondary: #94a3b8; /* slate-400 */
+    --color-border: #334155;         /* slate-700 */
+    color-scheme: dark;
+  }
+
+  html.dark body {
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+  }
+
+  /* ============================================================
+   * Dark mode — remapeamento dos utilitários mais usados
+   * (evita editar ~350 ocorrências de cores hardcoded, cobrindo
+   * a maioria das superfícies com regras consistentes).
+   * ============================================================ */
+  html.dark .bg-white { background-color: var(--color-bg-surface); }
+  html.dark .bg-slate-50 { background-color: var(--color-bg-base); }
+  html.dark .bg-slate-100 { background-color: var(--color-bg-muted); }
+
+  html.dark .text-slate-900 { color: var(--color-text-primary); }
+  html.dark .text-slate-800 { color: #e2e8f0; }
+  html.dark .text-slate-700 { color: #cbd5e1; }
+  html.dark .text-slate-600 { color: #94a3b8; }
+  html.dark .text-slate-500 { color: #94a3b8; }
+  html.dark .text-slate-400 { color: #64748b; }
+
+  html.dark .border-slate-200 { border-color: var(--color-border); }
+  html.dark .border-slate-300 { border-color: #475569; }
+  html.dark .border-slate-100 { border-color: #1e293b; }
+  html.dark .border-slate-400 { border-color: #64748b; }
+  html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b; }
+  html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--color-border); }
+
+  /* Cores de superfície de status — versão dark (fundos saturados → tons escuros) */
+  html.dark .bg-slate-200 { background-color: #334155; }
+  html.dark .bg-slate-300 { background-color: #475569; }
+  html.dark .bg-emerald-50 { background-color: #0f2e22; }
+  html.dark .bg-amber-50 { background-color: #33290f; }
+  html.dark .bg-rose-50 { background-color: #3a1520; }
+  html.dark .bg-red-50 { background-color: #3a1520; }
+  html.dark .bg-blue-50 { background-color: #12283a; }
+  html.dark .bg-purple-50 { background-color: #251f3a; }
+  html.dark .bg-green-50 { background-color: #0f2e22; }
+  html.dark .bg-navy-50 { background-color: #16233c; }
+
+  /* Badges: texto de status mais claro para legibilidade em dark */
+  html.dark .text-emerald-700 { color: #6ee7b7; }
+  html.dark .text-amber-700 { color: #fcd34d; }
+  html.dark .text-rose-700 { color: #fda4af; }
+  html.dark .text-red-700 { color: #fda4af; }
+  html.dark .text-blue-700 { color: #93c5fd; }
+  html.dark .text-purple-700 { color: #c4b5fd; }
+  html.dark .text-green-700 { color: #6ee7b7; }
+  html.dark .text-emerald-600 { color: #34d399; }
+  html.dark .text-amber-600 { color: #fbbf24; }
+  html.dark .text-rose-600 { color: #fb7185; }
+  html.dark .text-red-600 { color: #fb7185; }
+  html.dark .text-blue-600 { color: #60a5fa; }
+  html.dark .text-purple-600 { color: #a78bfa; }
+  html.dark .text-green-600 { color: #34d399; }
+
+  /* Bordas de status em dark */
+  html.dark .border-emerald-200 { border-color: #14532d; }
+  html.dark .border-amber-200 { border-color: #713f12; }
+  html.dark .border-rose-200 { border-color: #881337; }
+  html.dark .border-red-200 { border-color: #881337; }
+  html.dark .border-blue-200 { border-color: #1e3a5f; }
+  html.dark .border-purple-200 { border-color: #3b2f63; }
+  html.dark .border-green-200 { border-color: #14532d; }
+  html.dark .border-slate-600 { border-color: #64748b; }
+
+  /* Ícones de status (lucide) — garantem legibilidade */
+  html.dark .text-rose-500 { color: #fb7185; }
+  html.dark .text-amber-500 { color: #fbbf24; }
+  html.dark .text-emerald-500 { color: #34d399; }
+  html.dark .text-blue-500 { color: #60a5fa; }
+  html.dark .text-purple-500 { color: #a78bfa; }
+  html.dark .text-slate-300 { color: #cbd5e1; }
+  html.dark .text-slate-200 { color: #e2e8f0; }
+
+  /* Inputs e formulários em dark */
+  html.dark input,
+  html.dark textarea,
+  html.dark select {
+    background-color: var(--color-bg-surface);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+  }
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #64748b;
+  }
+  html.dark input:disabled,
+  html.dark select:disabled {
+    background-color: var(--color-bg-muted);
+    opacity: 0.7;
+  }
+
+  /* Sombras: escuras (não brancas) em dark mode */
+  html.dark .shadow-sm,
+  html.dark .shadow,
+  html.dark .shadow-md,
+  html.dark .shadow-lg {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6), 0 1px 2px -1px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ============================================================
+   * Design System Mobile (RC3)
+   * ------------------------------------------------------------
+   * Inputs/selects/textareas: altura mínima 48px e fonte 16px
+   * (16px evita o zoom automático do iOS ao focar o campo).
+   * Botões e controles de toque: alvo mínimo ~44x44px.
+   */
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* evita zoom automático do iOS */
+    line-height: 1.25rem;
+    min-height: 48px;
+    border-radius: 0.5rem;
+  }
+  textarea {
+    min-height: 96px;
+  }
+  button {
+    min-height: 44px;
+  }
+  /* Link/button inline small (links de tabela, ícones) respeitam o alvo de toque */
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevenir scroll horizontal acidental em qualquer nível */
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Safe-area insets for iOS when viewport-fit=cover (notch / home indicator) */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .min-h-safe {
+    min-height: calc(100dvh + env(safe-area-inset-top) + env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent iOS text-size adjust and tap highlight flashes */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+html,
+body {
+  overscroll-behavior-y: none;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Foco não fica coberto pelo TopBar sticky (safe-area + header) */
+[data-focus-scope] {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 4rem);
+}
+input,
+textarea,
+select,
+button,
+a {
+  scroll-margin-top: calc(env(safe-area-inset-top) + 4rem);
+}
+
+/* Feedback tátil global: reduzimos levemente o alvo ao tocar (feedback visual) */
+@media (hover: none) {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  a[href] {
+    transition: transform 120ms ease, background-color 150ms ease, opacity 150ms ease;
+  }
+  button:not(:disabled):active,
+  [role="button"]:not(:disabled):active,
+  a[href]:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
+/* Inputs em telas pequenas: evitar que o teclado "empurre" o layout indevidamente */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}

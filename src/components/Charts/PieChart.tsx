@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -48,6 +51,17 @@ export function PieChartComponent({
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
+  // Hide the built-in legend below md so the donut doesn't get squeezed;
+  // consumers (e.g. Dashboard) render their own badge legend.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   return (
     <div className={cn("w-full flex flex-col items-center", className)} style={{ width, height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -82,7 +96,7 @@ export function PieChartComponent({
                   name ?? "",
                 ]}
           />
-          {showLegend && (
+          {showLegend && isDesktop && (
             <Legend
               layout="vertical"
               align="right"

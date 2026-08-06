@@ -4,7 +4,7 @@
  * AGUARDANDO VALORES OFICIAIS DO ENGENHEIRO RESPONSÁVEL
  */
 
-import { RemainingLifeCalculator } from '../calculations/remaining-life';
+import { RemainingLifeCalculator } from '../calculations';
 import type { RemainingLifeInput, RemainingLifeResult } from '../calculations';
 
 describe('RemainingLifeCalculator', () => {

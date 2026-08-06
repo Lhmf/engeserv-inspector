@@ -4,7 +4,7 @@
  * AGUARDANDO VALORES OFICIAIS DO ENGENHEIRO RESPONSÁVEL
  */
 
-import { MawpCalculator } from '../calculations/mawp';
+import { MawpCalculator } from '../calculations';
 import type { MawpInput, MawpResult } from '../calculations';
 
 describe('MawpCalculator', () => {

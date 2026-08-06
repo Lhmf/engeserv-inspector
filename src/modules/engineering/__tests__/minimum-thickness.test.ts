@@ -4,7 +4,7 @@
  * AGUARDANDO VALORES OFICIAIS DO ENGENHEIRO RESPONSÁVEL
  */
 
-import { MinimumThicknessCalculator } from '../calculations/minimum-thickness';
+import { MinimumThicknessCalculator } from '../calculations';
 import type { MinimumThicknessInput } from '../calculations';
 
 describe('MinimumThicknessCalculator', () => {

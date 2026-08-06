@@ -78,7 +78,7 @@ export function CameraCapture({ onCapture, frontCamera = false, disabled = false
     // Draw current frame
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Compress to JPEG with 80% quality (reduces size ~5x-10x)
+    // Compress to JPEG (reduces size ~5x-10x) — otimizado para a fila offline
     canvas.toBlob(
       (blob) => {
         if (blob) {
@@ -88,7 +88,7 @@ export function CameraCapture({ onCapture, frontCamera = false, disabled = false
         stopCamera();
       },
       "image/jpeg",
-      0.8
+      0.72
     );
   }, [onCapture, stopCamera]);
 
@@ -171,7 +171,7 @@ export function CameraCapture({ onCapture, frontCamera = false, disabled = false
  * Helper: compress an image blob client-side.
  * Útil para comprimir imagens já existentes (da galeria em modo fallback).
  */
-export function compressImage(file: File, quality = 0.8, maxWidth = 1920): Promise<Blob> {
+export function compressImage(file: File, quality = 0.72, maxWidth = 1600): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);

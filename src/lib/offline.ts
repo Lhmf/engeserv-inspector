@@ -6,10 +6,10 @@
  */
 
 const DB_NAME = "EngeServSync";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "syncQueue";
 
-interface SyncQueueItem {
+export interface SyncQueueItem {
   id?: number;
   url: string;
   method: string;
@@ -17,6 +17,27 @@ interface SyncQueueItem {
   body: string | null;
   createdAt: number;
   retries: number;
+}
+
+/** Rascunho local de uma inspeção em andamento (Wizard). */
+export interface InspectionDraft {
+  id: string; // inspectionId
+  inspectionId: string;
+  type: string;
+  notes: string | null;
+  recommendations: string[];
+  measurements: any[];
+  updatedAt: number;
+}
+
+/** Foto capturada offline, aguardando envio. Blob armazenado como dataURL. */
+export interface QueuedPhoto {
+  id?: number;
+  inspectionId: string;
+  category: string;
+  dataUrl: string;
+  caption?: string;
+  createdAt: number;
 }
 
 // ============================================================
@@ -42,6 +63,14 @@ function openDB(): Promise<IDBDatabase> {
       // Store for cached clients
       if (!db.objectStoreNames.contains("clients")) {
         db.createObjectStore("clients", { keyPath: "id" });
+      }
+      // Drafts (Wizard offline)
+      if (!db.objectStoreNames.contains("drafts")) {
+        db.createObjectStore("drafts", { keyPath: "id" });
+      }
+      // Offline photo queue
+      if (!db.objectStoreNames.contains("photoQueue")) {
+        db.createObjectStore("photoQueue", { keyPath: "id", autoIncrement: true });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -221,4 +250,111 @@ export async function offlineFetch(url: string, options?: RequestInit): Promise<
 
     throw e;
   }
+}
+
+// ============================================================
+// Wizard Drafts (local persistence)
+// ============================================================
+
+/** Salva (ou atualiza) o rascunho local de uma inspeção. */
+export async function saveDraft(draft: InspectionDraft): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction("drafts", "readwrite");
+  tx.objectStore("drafts").put(draft);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/** Recupera o rascunho local de uma inspeção (ou null). */
+export async function getDraft(inspectionId: string): Promise<InspectionDraft | undefined> {
+  const db = await openDB();
+  const tx = db.transaction("drafts", "readonly");
+  const store = tx.objectStore("drafts");
+  return new Promise((resolve, reject) => {
+    const req = store.get(inspectionId);
+    req.onsuccess = () => resolve(req.result as InspectionDraft | undefined);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** Remove o rascunho local após o envio. */
+export async function clearDraft(inspectionId: string): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction("drafts", "readwrite");
+  tx.objectStore("drafts").delete(inspectionId);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ============================================================
+// Offline Photo Queue
+// ============================================================
+
+/** Enfileira uma foto capturada offline (só guardada localmente). */
+export async function enqueuePhoto(photo: Omit<QueuedPhoto, "id" | "createdAt">): Promise<number> {
+  const db = await openDB();
+  const tx = db.transaction("photoQueue", "readwrite");
+  const store = tx.objectStore("photoQueue");
+  return new Promise<number>((resolve, reject) => {
+    const req = store.add({ ...photo, createdAt: Date.now() } as QueuedPhoto);
+    req.onsuccess = () => resolve(req.result as number);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** Lista fotos pendentes para uma inspeção. */
+export async function getQueuedPhotos(inspectionId?: string): Promise<QueuedPhoto[]> {
+  const db = await openDB();
+  const tx = db.transaction("photoQueue", "readonly");
+  const store = tx.objectStore("photoQueue");
+  const all = await new Promise<QueuedPhoto[]>((resolve, reject) => {
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result as QueuedPhoto[]);
+    req.onerror = () => reject(req.error);
+  });
+  return inspectionId ? all.filter((p) => p.inspectionId === inspectionId) : all;
+}
+
+/** Remove uma foto da fila após envio com sucesso. */
+export async function removeQueuePhoto(id: number): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction("photoQueue", "readwrite");
+  tx.objectStore("photoQueue").delete(id);
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/** Total de itens pendentes de sincronização (fila geral + fotos). */
+export async function getPendingSyncCount(): Promise<number> {
+  const db = await openDB();
+  const count = async (storeName: string) => {
+    const tx = db.transaction(storeName, "readonly");
+    const store = tx.objectStore(storeName);
+    return new Promise<number>((resolve, reject) => {
+      const req = store.count();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  };
+  return (await count(STORE_NAME)) + (await count("photoQueue"));
+}
+
+/** `true` se a fila de sincronização (incl. fotos) está vazia. */
+export async function isQueueEmpty(): Promise<boolean> {
+  return (await getPendingSyncCount()) === 0;
+}
+
+/** Dispara o processamento da fila assim que a conexão voltar. */
+export function registerAutoFlush(onFlushed?: () => void) {
+  initOfflineDetection();
+  window.addEventListener("online", () => {
+    processQueue();
+    onFlushed?.();
+  });
 }

@@ -3,6 +3,27 @@
 Cada fase deve ser pequena e testável. Marque `[x]` quando concluída e
 registre a data em `CHANGELOG.md`.
 
+## RC4 — Aplicativo Profissional de Campo ✅ (06/08/2026)
+
+- [x] **Dark Mode** — `darkMode: class`, tokens CSS variables, anti-flash, persistência, remapeamento de utilitários, primitivos com dark
+- [x] **Responsividade** — tabelas→cards mobile (Dashboard, Inspeções, Laudos, Clientes, Equipamentos, Usuários, Validades, Wizard medições); tabela preservada em desktop
+- [x] **Touch/a11y** — alvo mínimo 44×44px, aria-labels, drawer invisível+aria-hidden, estados active/pressed/focus, safe-areas
+- [x] **Performance** — Dashboard memo + charts lazy, reports 9 seções lazy, MeasurementTable memo, código morto removido
+- [x] **PWA** — manifest completo (theme_color por scheme, maskable, shortcuts), SW v3, instalação/splash/notch validados
+- [x] **Fotos** — fluxo câmera in-app → compressão → Vercel Blob → URL → miniatura → laudo
+- [x] **Correções** — NewEquipmentForm sem duplicações, 264 erros TS pré-existentes resolvidos
+
+**Melhorias futuras (pós-RC4):**
+- [ ] Exportação PDF/Word dos laudos (prioridade)
+- [ ] Assinatura digital dos responsáveis técnicos
+- [ ] Portal do cliente final
+- [ ] Integração WhatsApp / E-mail para alertas
+- [ ] Mapa inteligente de inspeção (cilindro desenrolado clicável)
+- [ ] Integração com robô de medição por ultrassom
+- [ ] Multi-empresa (multi-tenant) / SaaS
+- [ ] Suporte offline completo (fase 2)
+- [ ] Substituir placeholders dos cálculos Engineering Engine (aguarda engenheiro)
+
 ## Sprint 1 — Estrutura base ✅ (entregue nesta rodada)
 
 - [x] Autenticação de usuários (login/logout via cookie de sessão)
@@ -15,7 +36,7 @@ registre a data em `CHANGELOG.md`.
 - [x] Módulo de Usuários funcional (criação de Gestor/Funcionário com
       checagem de permissão)
 - [x] Deploy configurado para Vercel + instruções de rodar em localhost
-- [ ] Tema claro/escuro (opcional — não incluído nesta rodada)
+- [x] Tema claro/escuro (entregue na RC4 — dark mode completo)
 
 ## Sprint 2 — Cadastro ✅
 

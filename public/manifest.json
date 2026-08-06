@@ -1,24 +1,72 @@
 {
   "name": "EngeServ Inspector",
   "short_name": "EngeServ",
-  "description": "Gestão de inspeções NR-13 — Laudos Técnicos",
+  "description": "Gestão de inspeções NR-13 — Laudos Técnicos, inspeções em campo, medições por ultrassom e validades de equipamentos.",
+  "id": "/",
   "start_url": "/login",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#0a1628",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Visão geral das inspeções",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Nova Inspeção",
+      "short_name": "Nova Inspeção",
+      "description": "Iniciar uma nova inspeção em campo",
+      "url": "/inspecoes/novo",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Clientes",
+      "short_name": "Clientes",
+      "description": "Cadastro e gestão de clientes",
+      "url": "/clientes",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Laudos",
+      "short_name": "Laudos",
+      "description": "Laudos técnicos e validações",
+      "url": "/laudos",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

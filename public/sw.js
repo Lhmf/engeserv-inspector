@@ -1,71 +1,84 @@
 /**
- * Service Worker — EngeServ Inspector
+ * Service Worker — EngeServ Inspector (RC2)
  *
- * Cache-first para assets estáticos, network-first para APIs.
- * Background Sync para fila de upload quando offline.
+ * - Cache-first para assets estáticos (_next/*, png, css, js)
+ * - Network-first para APIs, com fallback para o cache.
+ * - Cache do app shell para navegação offline (fallback → /login).
+ * - Background Sync para fila de envio quando a conexão volta.
  */
+const CACHE_NAME = "engeserv-v3";
 
-const CACHE_NAME = "engeserv-v1";
-const STATIC_ASSETS = [
+// App shell: páginas principais ficam disponíveis offline
+const APP_SHELL = [
   "/",
   "/login",
   "/dashboard",
+  "/clientes",
+  "/equipamentos",
+  "/inspecoes",
+  "/inspecoes/novo",
+  "/laudos",
+  "/validades",
+  "/configuracoes",
   "/manifest.json",
 ];
 
-// Instalação: cache assets estáticos
+const STATIC_EXT = /\.(js|css|png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf|otf|eot)$/;
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-// Ativação: limpar caches antigos
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME)
-          .map((k) => caches.delete(k))
-      );
-    })
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Interceptar requisições
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // API requests: network-first com fallback
+  // Só intercepta requisições same-origin
+  if (url.origin !== self.location.origin) return;
+
+  // Requisições de API: network-first
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(networkFirst(request));
     return;
   }
 
-  // Static assets (Next.js chunks, JS, CSS): cache-first
-  if (
-    url.pathname.startsWith("/_next/") ||
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$/)
-  ) {
+  // Assets estáticos: cache-first
+  if (url.pathname.startsWith("/_next/") || STATIC_EXT.test(url.pathname)) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // Pages: network-first
+  // Navegação: network-first com fallback para o app shell (offline)
+  if (request.mode === "navigate") {
+    event.respondWith(
+      networkFirst(request).catch(() => {
+        return caches.match("/login");
+      })
+    );
+    return;
+  }
+
+  // Demais: network-first
   event.respondWith(networkFirst(request));
 });
 
-// Cache-first: busca do cache, se não tiver, busca da rede
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
-
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -78,7 +91,6 @@ async function cacheFirst(request) {
   }
 }
 
-// Network-first: tenta rede, fallback pro cache
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
@@ -91,7 +103,6 @@ async function networkFirst(request) {
     const cached = await caches.match(request);
     if (cached) return cached;
 
-    // Para POST/PUT offline, tenta registrar sync
     if (request.method !== "GET") {
       try {
         const registration = await self.registration;
@@ -117,7 +128,6 @@ self.addEventListener("sync", (event) => {
 
 async function processQueue() {
   try {
-    // Tenta processar a fila via IndexedDB
     const db = await openDB();
     const tx = db.transaction("syncQueue", "readonly");
     const store = tx.objectStore("syncQueue");
@@ -130,14 +140,11 @@ async function processQueue() {
           headers: item.headers,
           body: item.body,
         });
-
-        // Remove da fila após sucesso
         const deleteTx = db.transaction("syncQueue", "readwrite");
         const deleteStore = deleteTx.objectStore("syncQueue");
         deleteStore.delete(item.id);
       } catch (e) {
         console.error("Sync failed for:", item.url, e);
-        // Deixa na fila para próxima tentativa
       }
     }
   } catch (e) {
@@ -147,11 +154,14 @@ async function processQueue() {
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("EngeServSync", 1);
+    const request = indexedDB.open("EngeServSync", 2);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("syncQueue")) {
         db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("photos")) {
+        db.createObjectStore("photos", { keyPath: "id", autoIncrement: true });
       }
     };
     request.onsuccess = () => resolve(request.result);
