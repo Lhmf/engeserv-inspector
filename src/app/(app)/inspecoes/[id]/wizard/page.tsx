@@ -391,51 +391,51 @@ export default function InspectionWizardPage() {
   }
 
   async function handleGenerateReport() {
-    setGeneratingReport(true);
-    try {
-      if (!navigator.onLine) {
-        alert(
-          "A geração do laudo requer conexão. Seus dados estão salvos localmente — volte assim que houver internet."
-        );
-        return;
+      setGeneratingReport(true);
+      try {
+        if (!navigator.onLine) {
+          alert(
+            "A geração do laudo requer conexão. Seus dados estão salvos localmente — volte assim que houver internet."
+          );
+          return;
+        }
+
+        await flushOfflinePhotos();
+        await saveMeasurements();
+
+        const res = await fetch("/api/reports/pipeline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId,
+            equipmentId: inspection.equipment.id,
+            options: {
+              templateId: "DEFAULT_NR13",
+              templateVersion: "1.0",
+              includeSimulations: true,
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Erro ao gerar laudo");
+        }
+
+        const data = await res.json();
+        // Usar o technicalReportId (ID real do banco) para redirecionar
+        const redirectId = data.technicalReportId || data.reportId || data.report?.id;
+        if (redirectId) {
+          router.push(`/reports/${redirectId}`);
+        } else {
+          router.push(`/laudos`);
+        }
+      } catch (e: any) {
+        alert("Erro ao gerar laudo: " + e.message);
+      } finally {
+        setGeneratingReport(false);
       }
-
-      await flushOfflinePhotos();
-      await saveMeasurements();
-
-      const res = await fetch("/api/reports/pipeline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspectionId,
-          equipmentId: inspection.equipment.id,
-          options: {
-            templateId: "DEFAULT_NR13",
-            templateVersion: "1.0",
-            includeSimulations: true,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Erro ao gerar laudo");
-      }
-
-      const data = await res.json();
-      if (data.reportId) {
-        router.push(`/reports/${data.reportId}`);
-      } else if (data.report?.id) {
-        router.push(`/reports/${data.report.id}`);
-      } else {
-        router.push(`/laudos`);
-      }
-    } catch (e: any) {
-      alert("Erro ao gerar laudo: " + e.message);
-    } finally {
-      setGeneratingReport(false);
     }
-  }
 
   // Step builders
   function renderStepContent() {

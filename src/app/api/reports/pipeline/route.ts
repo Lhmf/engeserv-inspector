@@ -50,10 +50,72 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Falha ao gerar laudo", details: result.errors.map((e: any) => e.message) }, { status: 500 });
       }
 
-      return NextResponse.json({ report: result.report, reportId: result.report.id });
+      // Retornar o reportId real do banco (salvo no SAVE_DRAFT)
+      return NextResponse.json({ 
+        report: result.report, 
+        reportId: result.report.id,
+        technicalReportId: result.steps.find(s => s.step === 'SAVE_DRAFT')?.data?.savedReportId 
+      });
     }
 
-    // Without a real report store, return not found for direct reportId lookup
+    // Buscar laudo real persistido pelo reportId
+    if (reportId) {
+      const technicalReport = await prisma.technicalReport.findUnique({
+        where: { id: reportId },
+        include: {
+          inspection: {
+            include: {
+              equipment: {
+                include: { client: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!technicalReport) {
+        return NextResponse.json({ error: "Laudo não encontrado." }, { status: 404 });
+      }
+
+      // Reconstruir o objeto TechnicalReport a partir dos dados JSON salvos
+      const report = {
+        id: technicalReport.id,
+        identification: {
+          reportNumber: technicalReport.reportNumber,
+          version: technicalReport.version,
+          type: technicalReport.type,
+          status: technicalReport.status,
+          artNumber: technicalReport.artNumber,
+          inspectionDate: technicalReport.inspectionDate,
+          createdAt: technicalReport.createdAt,
+          updatedAt: technicalReport.updatedAt,
+          issuedAt: technicalReport.issuedAt,
+          expiresAt: technicalReport.expiresAt,
+          inspectorId: technicalReport.inspectorId,
+          inspectorName: technicalReport.inspectorName,
+          engineerId: technicalReport.engineerId,
+          engineerName: technicalReport.engineerName,
+          managerId: technicalReport.managerId,
+          managerName: technicalReport.managerName,
+        },
+        client: JSON.parse(technicalReport.clientData),
+        equipment: JSON.parse(technicalReport.equipmentData),
+        executiveSummary: JSON.parse(technicalReport.executiveSummary),
+        inspectionData: JSON.parse(technicalReport.inspectionData),
+        engineeringResults: JSON.parse(technicalReport.engineeringResults),
+        technicalConclusion: JSON.parse(technicalReport.technicalConclusion),
+        recommendations: JSON.parse(technicalReport.recommendations),
+        nextInspection: JSON.parse(technicalReport.nextInspection),
+        attachments: JSON.parse(technicalReport.attachments),
+        history: JSON.parse(technicalReport.history),
+        validations: JSON.parse(technicalReport.validations),
+        signatures: JSON.parse(technicalReport.signatures),
+        metadata: JSON.parse(technicalReport.metadata),
+      };
+
+      return NextResponse.json({ report, reportId: technicalReport.id });
+    }
+
     return NextResponse.json({ error: "Laudo não encontrado em armazenamento permanente." }, { status: 404 });
 
   } catch (error: any) {
@@ -119,10 +181,16 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
+    // Buscar o ID real do TechnicalReport salvo no banco
+    const technicalReport = await prisma.technicalReport.findUnique({
+      where: { inspectionId },
+    });
+
     return NextResponse.json({
       success: true,
       report: result.report,
       reportId: result.report?.id,
+      technicalReportId: technicalReport?.id,
       steps: result.steps.map(s => ({ step: s.step, status: s.status })),
     });
 

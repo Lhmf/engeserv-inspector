@@ -73,17 +73,18 @@ export async function POST(req: NextRequest) {
   }
 
   const inspection = await prisma.inspection.create({
-    data: {
-      equipmentId,
-      inspectorId: session.userId,
-      type: type || "PERIODICA",
-      status: "EM_ANDAMENTO",
-    },
-    include: {
-      equipment: { select: { id: true, tag: true, type: true, client: { select: { companyName: true } } } },
-      inspector: { select: { id: true, name: true, email: true } },
-    },
-  });
+      data: {
+        equipmentId,
+        inspectorId: session.userId,
+        type: type || "PERIODICA",
+        status: "EM_ANDAMENTO",
+        recommendations: "[]",
+      },
+      include: {
+        equipment: { select: { id: true, tag: true, type: true, client: { select: { companyName: true } } } },
+        inspector: { select: { id: true, name: true, email: true } },
+      },
+    });
 
   return NextResponse.json({ inspection }, { status: 201 });
 }

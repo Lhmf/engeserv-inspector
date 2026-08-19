@@ -130,7 +130,8 @@ export default function ReportPage() {
     setError(null);
 
     try {
-      // Try to load from API via pipeline result
+      // Try to load from API via pipeline result using the reportId directly
+      // The API now handles both technicalReportId and inspectionId
       const res = await fetch(`/api/reports/pipeline?id=${reportId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -253,17 +254,25 @@ export default function ReportPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className="hidden sm:block px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
-                  v{report.identification.version}
-                </span>
-                <button
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
-                  onClick={() => setSidebarOpen(true)}
-                  aria-label="Abrir navegação do laudo"
-                >
-                  <FileText className="w-5 h-5 text-slate-600" />
-                </button>
-              </div>
+                              <span className="hidden sm:block px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
+                                v{report.identification.version}
+                              </span>
+                              <button
+                                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
+                                onClick={() => window.open(`/api/reports/${reportId}/pdf`, '_blank')}
+                                aria-label="Baixar PDF"
+                                title="Baixar PDF"
+                              >
+                                <FileOutput className="w-5 h-5" />
+                              </button>
+                              <button
+                                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
+                                onClick={() => setSidebarOpen(true)}
+                                aria-label="Abrir navegação do laudo"
+                              >
+                                <FileText className="w-5 h-5 text-slate-600" />
+                              </button>
+                            </div>
             </div>
           </header>
 

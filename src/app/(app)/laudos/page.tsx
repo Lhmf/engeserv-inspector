@@ -14,6 +14,7 @@ import {
   Eye,
   ArrowRight,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,22 +61,24 @@ export default function LaudosPage() {
     setLoading(true);
     setError(null);
     try {
-      // Try to get inspections that could generate reports
-      const res = await fetch("/api/inspections?status=APROVADA&status=AGUARDANDO_APROVACAO");
+      // Buscar TechnicalReports reais do banco
+      const res = await fetch("/api/reports/list");
       const data = await res.json();
 
-      if (res.ok && data.inspections) {
-        const items: LaudoItem[] = data.inspections.map((i: any) => ({
-          id: i.id,
-          reportNumber: `LT-${new Date().getFullYear()}-${i.id.slice(-5).toUpperCase()}`,
-          equipmentTag: i.equipment.tag,
-          clientName: i.equipment.client.companyName,
-          status: i.status === "APROVADA" ? "PUBLISHED" : i.status === "AGUARDANDO_APROVACAO" ? "UNDER_REVIEW" : "DRAFT",
-          version: 1,
-          createdAt: i.createdAt,
-          inspectionDate: i.startedAt,
+      if (res.ok && data.reports) {
+        const items: LaudoItem[] = data.reports.map((r: any) => ({
+          id: r.id,
+          reportNumber: r.reportNumber,
+          equipmentTag: r.equipmentTag,
+          clientName: r.clientName,
+          status: r.status,
+          version: r.version,
+          createdAt: r.createdAt,
+          inspectionDate: r.inspectionDate,
         }));
         setLaudos(items);
+      } else {
+        throw new Error(data.error || "Erro ao carregar laudos");
       }
     } catch (e: any) {
       setError(e.message);
@@ -129,7 +132,7 @@ export default function LaudosPage() {
           <EmptyState
             title="Nenhum laudo disponível"
             description={
-              search ? "Tente ajustar a busca" : "As inspeções aprovadas aparecerão aqui como laudos"
+              search ? "Tente ajustar a busca" : "Os laudos gerados aparecerão aqui"
             }
             action={{
               label: "Ir para Inspeções",

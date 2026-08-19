@@ -26,6 +26,7 @@ import type { TechnicalReport, ValidationChecklistItem } from '../types';
 import { engineeringIntegration, EngineeringIntegrationService } from '@/modules/engineering/integration';
 import { generateId } from '../utils/id-generator';
 import type { MeasurementPoint } from '@/modules/engineering/types';
+import { prisma } from '@/lib/prisma';
 
 // ============================================================
 // PIPELINE CONFIG PADRÃO
@@ -536,136 +537,250 @@ export class InspectionReportPipeline {
   }
 
   private async saveDraft(context: PipelineStepContext): Promise<PipelineStepData> {
-    const { reportEntity } = context;
+      const { reportEntity, rawData, input, audit } = context;
     
-    if (!reportEntity) throw new Error('Entidade do laudo não disponível para salvamento');
+      if (!reportEntity || !rawData) throw new Error('Entidade do laudo ou dados da inspeção não disponíveis para salvamento');
 
-    // Em produção, aqui salvaria no banco de dados
-    // Por enquanto, apenas simular salvamento e retornar ID
-    const reportId = reportEntity.toJSON().id;
+      const report = reportEntity.toJSON();
     
-    // Marcar como DRAFT (já é o padrão ao criar)
-    return { 
-      savedReportId: reportId,
-      message: `Laudo salvo como rascunho (ID: ${reportId})`,
-    };
-  }
+      // Persistir no banco de dados
+      const technicalReport = await prisma.technicalReport.upsert({
+        where: { inspectionId: input.inspectionId },
+        update: {
+          reportNumber: report.identification.reportNumber,
+          version: report.identification.version,
+          status: report.identification.status,
+          type: report.identification.type,
+          inspectionDate: report.identification.inspectionDate,
+          issuedAt: report.identification.issuedAt,
+          expiresAt: report.identification.expiresAt,
+          artNumber: report.identification.artNumber,
+          inspectorId: report.identification.inspectorId,
+          inspectorName: report.identification.inspectorName,
+          engineerId: report.identification.engineerId,
+          engineerName: report.identification.engineerName,
+          managerId: report.identification.managerId,
+          managerName: report.identification.managerName,
+          clientData: JSON.stringify(report.client),
+          equipmentData: JSON.stringify(report.equipment),
+          executiveSummary: JSON.stringify(report.executiveSummary),
+          inspectionData: JSON.stringify(report.inspectionData),
+          engineeringResults: JSON.stringify(report.engineeringResults),
+          technicalConclusion: JSON.stringify(report.technicalConclusion),
+          recommendations: JSON.stringify(report.recommendations),
+          nextInspection: JSON.stringify(report.nextInspection),
+          attachments: JSON.stringify(report.attachments),
+          history: JSON.stringify(report.history),
+          validations: JSON.stringify(report.validations),
+          signatures: JSON.stringify(report.signatures),
+          metadata: JSON.stringify(report.metadata),
+        },
+        create: {
+          reportNumber: report.identification.reportNumber,
+          version: report.identification.version,
+          status: report.identification.status,
+          type: report.identification.type,
+          inspectionDate: report.identification.inspectionDate,
+          issuedAt: report.identification.issuedAt,
+          expiresAt: report.identification.expiresAt,
+          artNumber: report.identification.artNumber,
+          inspectorId: report.identification.inspectorId,
+          inspectorName: report.identification.inspectorName,
+          engineerId: report.identification.engineerId,
+          engineerName: report.identification.engineerName,
+          managerId: report.identification.managerId,
+          managerName: report.identification.managerName,
+          clientData: JSON.stringify(report.client),
+          equipmentData: JSON.stringify(report.equipment),
+          executiveSummary: JSON.stringify(report.executiveSummary),
+          inspectionData: JSON.stringify(report.inspectionData),
+          engineeringResults: JSON.stringify(report.engineeringResults),
+          technicalConclusion: JSON.stringify(report.technicalConclusion),
+          recommendations: JSON.stringify(report.recommendations),
+          nextInspection: JSON.stringify(report.nextInspection),
+          attachments: JSON.stringify(report.attachments),
+          history: JSON.stringify(report.history),
+          validations: JSON.stringify(report.validations),
+          signatures: JSON.stringify(report.signatures),
+          metadata: JSON.stringify(report.metadata),
+          inspectionId: input.inspectionId,
+        },
+      });
 
-  // ============================================================
-  // HELPER METHODS
-  // ============================================================
-
-  private async fetchRawInspectionData(inspectionId: string, equipmentId: string): Promise<RawInspectionData> {
-    // Em produção, buscar do banco de dados (Prisma)
-    // Por enquanto, retornar dados mock baseados nos casos do Engineering Studio
-    const cases = this.integrationService.getAllCases();
-    const matchedCase = cases.find(c => c.id === equipmentId);
-    
-    if (!matchedCase) {
-      throw new Error(`Caso não encontrado para equipamento ${equipmentId}`);
+      return { 
+        savedReportId: technicalReport.id,
+        message: `Laudo salvo com sucesso (ID: ${technicalReport.id})`,
+      };
     }
 
-    const equipment = matchedCase.equipmentData!;
-    const now = new Date();
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
 
-    return {
-      inspection: {
-        id: inspectionId,
-        equipmentId,
-        inspectorId: 'inspector-001',
-        status: 'APROVADA',
-        startedAt: new Date(now.getTime() - 86400000), // 1 dia atrás
-        completedAt: new Date(now.getTime() - 43200000), // 12 horas atrás
-        approvedAt: new Date(now.getTime() - 21600000), // 6 horas atrás
-        type: 'PERIODICA',
-        notes: 'Inspeção periódica NR-13',
-        recommendations: [],
-      },
-      equipment: {
-        id: equipment.id,
-        tag: equipment.tag,
-        type: equipment.type,
-        description: equipment.description,
-        manufacturer: equipment.manufacturer,
-        manufactureYear: equipment.manufactureYear,
-        serialNumber: equipment.serialNumber,
-        designCode: equipment.designCode,
-        designTempC: equipment.designTempC,
-        operatingPressureBar: equipment.operatingPressureBar,
-        operatingTempC: equipment.operatingTempC,
-        mawpBar: equipment.mawpBar,
-        hydroTestPressureBar: equipment.hydroTestPressureBar,
-        originalThicknessMm: equipment.originalThicknessMm,
-        minThicknessMm: equipment.minThicknessMm,
-        headType: equipment.headType,
-        headMaterial: equipment.headMaterial,
-        bodyMaterial: equipment.bodyMaterial,
-        headNominalThicknessMm: equipment.headNominalThicknessMm,
-        volumeLiters: equipment.volumeLiters,
-        corrosionAllowanceMm: equipment.corrosionAllowanceMm,
-        jointEfficiency: equipment.jointEfficiency,
-        fluidType: equipment.fluidType,
-        fluidClass: equipment.fluidClass,
-        riskGroup: equipment.riskGroup,
-        nr13Category: equipment.nr13Category,
-      },
-      measurements: this.generateMockMeasurements(equipment),
-      photos: this.generateMockPhotos(),
-      client: {
-        id: 'client-001',
-        name: matchedCase.client,
-        cnpj: '00.000.000/0001-00',
-        address: 'Endereço do Cliente',
-        city: 'São Paulo',
-        state: 'SP',
-        contactName: 'Contato Técnico',
-        contactEmail: 'contato@cliente.com',
-        contactPhone: '(11) 99999-9999',
-        responsibleTechnicalId: 'tech-001',
-        responsibleTechnicalName: 'Eng. Responsável',
-      },
-    };
-  }
+    private async fetchRawInspectionData(inspectionId: string, equipmentId: string): Promise<RawInspectionData> {
+      // Buscar dados reais do banco de dados (Prisma)
+      const inspection = await prisma.inspection.findUnique({
+        where: { id: inspectionId },
+        include: {
+          equipment: {
+            include: {
+              client: true,
+            },
+          },
+          inspector: true,
+          photos: {
+            orderBy: { order: 'asc' },
+          },
+          measurements: true,
+        },
+      });
 
-  private generateMockMeasurements(equipment: any): MeasurementPoint[] {
-    const baseThickness = equipment.originalThicknessMm || 10;
-    const minThickness = equipment.minThicknessMm || 5;
-    const points = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'];
-    
-    return points.map((point, i) => {
-      const variation = (Math.random() - 0.5) * 2; // ±1mm
-      const thickness = Math.max(minThickness - 0.5, baseThickness + variation);
-      let status: 'OK' | 'ATTENTION' | 'CRITICAL' = 'OK';
-      if (thickness < minThickness * 1.1) status = 'ATTENTION';
-      if (thickness <= minThickness) status = 'CRITICAL';
-      
+      if (!inspection) {
+        throw new Error(`Inspeção não encontrada: ${inspectionId}`);
+      }
+
+      if (!inspection.equipment) {
+        throw new Error(`Equipamento não encontrado para inspeção ${inspectionId}`);
+      }
+
+      if (!inspection.equipment.client) {
+        throw new Error(`Cliente não encontrado para equipamento ${inspection.equipment.id}`);
+      }
+
+      // Converter recomendações de JSON string para array
+      let recommendations: string[] = [];
+      try {
+        recommendations = JSON.parse(inspection.recommendations || '[]');
+      } catch {
+        recommendations = [];
+      }
+
+      // Converter fotos
+          const photos = inspection.photos.map((photo: any) => ({
+            id: photo.id,
+            inspectionId: photo.inspectionId,
+            url: photo.url,
+            category: photo.category as 'PLACA' | 'CORROSAO' | 'VALVULA' | 'MANOMETRO' | 'ULTRASSOM' | 'VISTA_GERAL' | 'SOLDA' | 'TRINCA' | 'REPARO',
+            caption: photo.caption ?? undefined,
+            order: photo.order,
+            takenAt: photo.createdAt,
+            takenBy: photo.uploadedById,
+          }));
+
+          // Converter medições
+          const measurements = inspection.measurements.map((m: any) => ({
+            id: m.id,
+            inspectionId: m.inspectionId,
+            point: m.point,
+            thicknessMm: m.thicknessMm,
+            angleDeg: m.angleDeg ?? undefined,
+            notes: m.notes ?? undefined,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+          }));
+
+      const equipment = inspection.equipment;
+      const client = equipment.client;
+
       return {
-        id: `meas-${equipment.id}-${point}`,
-        inspectionId: `insp-${equipment.id}`,
-        point,
-        thicknessMm: Math.round(thickness * 100) / 100,
-        angleDeg: i * 45,
-        notes: status === 'CRITICAL' ? 'Ponto crítico - abaixo do mínimo' : undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status,
-      };
-    });
-  }
+              inspection: {
+                id: inspection.id,
+                equipmentId: inspection.equipmentId,
+                inspectorId: inspection.inspectorId,
+                status: inspection.status as 'EM_ANDAMENTO' | 'AGUARDANDO_APROVACAO' | 'APROVADA' | 'REJEITADA',
+                startedAt: inspection.startedAt,
+                completedAt: inspection.completedAt ?? undefined,
+                approvedAt: inspection.approvedAt ?? undefined,
+                type: inspection.type as 'INICIAL' | 'PERIODICA' | 'EXTRAORDINARIA',
+                notes: inspection.notes ?? undefined,
+                recommendations,
+              },
+              equipment: {
+                        id: equipment.id,
+                        tag: equipment.tag,
+                        type: equipment.type as 'CALDEIRA' | 'VASO_DE_PRESSAO' | 'SILO' | 'TANQUE' | 'TUBULACAO' | 'COMPRESSOR' | 'TROCADOR_DE_CALOR' | 'REATOR' | 'OUTRO',
+                        description: equipment.description ?? undefined,
+                        manufacturer: equipment.manufacturer ?? undefined,
+                        manufactureYear: equipment.manufactureYear ?? undefined,
+                        serialNumber: equipment.serialNumber ?? undefined,
+                        designCode: equipment.designCode ?? undefined,
+                        designTempC: equipment.designTempC ?? undefined,
+                        operatingPressureBar: equipment.operatingPressureBar ?? undefined,
+                        operatingTempC: equipment.operatingTempC ?? undefined,
+                        mawpBar: equipment.mawpBar ?? undefined,
+                        hydroTestPressureBar: equipment.hydroTestPressureBar ?? undefined,
+                        originalThicknessMm: equipment.originalThicknessMm ?? undefined,
+                        minThicknessMm: equipment.minThicknessMm ?? undefined,
+                        headType: equipment.headType ?? undefined,
+                        headMaterial: equipment.headMaterial ?? undefined,
+                        bodyMaterial: equipment.bodyMaterial ?? undefined,
+                        headNominalThicknessMm: equipment.headNominalThicknessMm ?? undefined,
+                        volumeLiters: equipment.volumeLiters ?? undefined,
+                        corrosionAllowanceMm: equipment.corrosionAllowanceMm ?? undefined,
+                        jointEfficiency: equipment.jointEfficiency ?? undefined,
+                        fluidType: equipment.fluidType ?? undefined,
+                        fluidClass: equipment.fluidClass ?? undefined,
+                        riskGroup: equipment.riskGroup ?? undefined,
+                        nr13Category: equipment.nr13Category ?? undefined,
+                      },
+              measurements,
+              photos,
+              client: {
+                        id: client.id,
+                        name: client.companyName,
+                        cnpj: client.cnpj ?? undefined,
+                        address: client.address ?? undefined,
+                        city: client.city ?? undefined,
+                        state: client.state ?? undefined,
+                        contactName: client.contactName ?? undefined,
+                        contactEmail: client.contactEmail ?? undefined,
+                        contactPhone: client.contactPhone ?? undefined,
+                        responsibleTechnicalId: client.responsibleId ?? undefined,
+                        responsibleTechnicalName: undefined,
+                      },
+            };
+          }
 
-  private generateMockPhotos() {
-    const categories = ['PLACA', 'CORROSAO', 'VALVULA', 'MANOMETRO', 'VISTA_GERAL', 'SOLDA'];
-    return categories.map((cat, i) => ({
-      id: `photo-${i}`,
-      inspectionId: 'insp-001',
-      url: `/photos/${cat.toLowerCase()}.jpg`,
-      category: cat,
-      caption: `Foto da categoria ${cat}`,
-      order: i,
-      takenAt: new Date(),
-      takenBy: 'inspector-001',
-    }));
-  }
+    // Manter métodos de mock para fallback (opcional - podem ser removidos depois)
+    private generateMockMeasurements(equipment: any): MeasurementPoint[] {
+      const baseThickness = equipment.originalThicknessMm || 10;
+      const minThickness = equipment.minThicknessMm || 5;
+      const points = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8'];
+    
+      return points.map((point, i) => {
+        const variation = (Math.random() - 0.5) * 2; // ±1mm
+        const thickness = Math.max(minThickness - 0.5, baseThickness + variation);
+        let status: 'OK' | 'ATTENTION' | 'CRITICAL' = 'OK';
+        if (thickness < minThickness * 1.1) status = 'ATTENTION';
+        if (thickness <= minThickness) status = 'CRITICAL';
+      
+        return {
+          id: `meas-${equipment.id}-${point}`,
+          inspectionId: `insp-${equipment.id}`,
+          point,
+          thicknessMm: Math.round(thickness * 100) / 100,
+          angleDeg: i * 45,
+          notes: status === 'CRITICAL' ? 'Ponto crítico - abaixo do mínimo' : undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status,
+        };
+      });
+    }
+
+    private generateMockPhotos() {
+      const categories = ['PLACA', 'CORROSAO', 'VALVULA', 'MANOMETRO', 'VISTA_GERAL', 'SOLDA'];
+      return categories.map((cat, i) => ({
+        id: `photo-${i}`,
+        inspectionId: 'insp-001',
+        url: `/photos/${cat.toLowerCase()}.jpg`,
+        category: cat,
+        caption: `Foto da categoria ${cat}`,
+        order: i,
+        takenAt: new Date(),
+        takenBy: 'inspector-001',
+      }));
+    }
 
   private isRecoverableError(error: any): boolean {
     if (error instanceof Error) {
