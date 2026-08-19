@@ -13,14 +13,49 @@ datasource db {
   url      = env("PRISMA_DATABASE_URL")
 }
 
-// Enums como String para compatibilidade com SQLite
-// Em produção (PostgreSQL) usar enums nativos
+enum Role {
+  ADMIN_MASTER
+  GESTOR
+  FUNCIONARIO
+}
+
+enum InspectionStatus {
+  EM_ANDAMENTO
+  AGUARDANDO_APROVACAO
+  APROVADA
+  REJEITADA
+}
+
+enum PhotoCategory {
+  PLACA
+  CORROSAO
+  VALVULA
+  MANOMETRO
+  ULTRASSOM
+  VISTA_GERAL
+  SOLDA
+  TRINCA
+  REPARO
+}
+
+enum EquipmentType {
+  CALDEIRA
+  VASO_DE_PRESSAO
+  SILO
+  TANQUE
+  TUBULACAO
+  COMPRESSOR
+  TROCADOR_DE_CALOR
+  REATOR
+  OUTRO
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
   passwordHash String
-  role         String   @default("FUNCIONARIO")
+  role         Role     @default(FUNCIONARIO)
   active       Boolean  @default(true)
   phone        String?  // WhatsApp do usuário
   createdAt    DateTime @default(now())
@@ -64,7 +99,7 @@ model Client {
 model Equipment {
   id         String   @id @default(cuid())
   tag        String // identificacao/TAG do equipamento no cliente
-  type       String
+  type       EquipmentType
   description String?
   manufacturer String?
   manufactureYear Int?
@@ -119,6 +154,12 @@ model TextTemplate {
   @@map("text_templates")
 }
 
+enum InspectionType {
+  INICIAL
+  PERIODICA
+  EXTRAORDINARIA
+}
+
 model Inspection {
   id          String   @id @default(cuid())
   equipmentId String
@@ -127,10 +168,10 @@ model Inspection {
   inspectorId String
   inspector   User @relation("InspectionInspector", fields: [inspectorId], references: [id])
 
-  type        String   @default("PERIODICA")
+  type        InspectionType @default(PERIODICA)
   notes       String?
   recommendations String  // JSON string array
-  status      String     @default("EM_ANDAMENTO")
+  status      InspectionStatus @default(EM_ANDAMENTO)
   startedAt   DateTime   @default(now())
   completedAt DateTime?
   approvedAt  DateTime?
@@ -154,7 +195,7 @@ model InspectionPhoto {
   inspection   Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
 
   url          String
-  category     String
+  category     PhotoCategory
   caption      String?
   order        Int      @default(0)
 
@@ -183,11 +224,20 @@ model InspectionMeasurement {
   @@map("inspection_measurements")
 }
 
+enum TechnicalReportStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+  ARCHIVED
+}
+
 model TechnicalReport {
   id                String   @id @default(cuid())
   reportNumber      String   @unique
   version           Int      @default(1)
-  status            String   @default("DRAFT")
+  status            TechnicalReportStatus @default(DRAFT)
   type              String   @default("NR13")
   
   // Datas
@@ -206,20 +256,20 @@ model TechnicalReport {
   managerId         String?
   managerName       String?
   
-  // Dados estruturados do laudo (snapshot JSON como String)
-  clientData        String
-  equipmentData     String
-  executiveSummary  String
-  inspectionData    String
-  engineeringResults String
-  technicalConclusion String
-  recommendations   String
-  nextInspection    String
-  attachments       String
-  history           String
-  validations       String
-  signatures        String
-  metadata          String
+  // Dados estruturados do laudo (snapshot JSON)
+  clientData        Json
+  equipmentData     Json
+  executiveSummary  Json
+  inspectionData    Json
+  engineeringResults Json
+  technicalConclusion Json
+  recommendations   Json
+  nextInspection    Json
+  attachments       Json
+  history           Json
+  validations       Json
+  signatures        Json
+  metadata          Json
   
   // Relacionamentos
   inspectionId      String   @unique

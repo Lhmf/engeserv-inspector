@@ -644,45 +644,45 @@ export class InspectionReportPipeline {
       }
 
       if (!inspection.equipment.client) {
-        throw new Error(`Cliente não encontrado para equipamento ${inspection.equipment.id}`);
-      }
+              throw new Error(`Cliente não encontrado para equipamento ${inspection.equipment.id}`);
+            }
 
-      // Converter recomendações de JSON string para array
-      let recommendations: string[] = [];
-      try {
-        recommendations = JSON.parse(inspection.recommendations || '[]');
-      } catch {
-        recommendations = [];
-      }
+            // Converter recomendações de JSON string para array
+            let recommendations: string[] = [];
+            try {
+              recommendations = JSON.parse(inspection.recommendations || '[]');
+            } catch {
+              recommendations = [];
+            }
 
-      // Converter fotos
-          const photos = inspection.photos.map((photo: any) => ({
-            id: photo.id,
-            inspectionId: photo.inspectionId,
-            url: photo.url,
-            category: photo.category as 'PLACA' | 'CORROSAO' | 'VALVULA' | 'MANOMETRO' | 'ULTRASSOM' | 'VISTA_GERAL' | 'SOLDA' | 'TRINCA' | 'REPARO',
-            caption: photo.caption ?? undefined,
-            order: photo.order,
-            takenAt: photo.createdAt,
-            takenBy: photo.uploadedById,
-          }));
+            // Converter fotos
+            const photos = inspection.photos.map((photo: any) => ({
+              id: photo.id,
+              inspectionId: photo.inspectionId,
+              url: photo.url,
+              category: photo.category,
+              caption: photo.caption ?? undefined,
+              order: photo.order,
+              takenAt: photo.createdAt,
+              takenBy: photo.uploadedById,
+            }));
 
-          // Converter medições
-          const measurements = inspection.measurements.map((m: any) => ({
-            id: m.id,
-            inspectionId: m.inspectionId,
-            point: m.point,
-            thicknessMm: m.thicknessMm,
-            angleDeg: m.angleDeg ?? undefined,
-            notes: m.notes ?? undefined,
-            createdAt: m.createdAt,
-            updatedAt: m.updatedAt,
-          }));
+            // Converter medições
+            const measurements = inspection.measurements.map((m: any) => ({
+              id: m.id,
+              inspectionId: m.inspectionId,
+              point: m.point,
+              thicknessMm: m.thicknessMm,
+              angleDeg: m.angleDeg ?? undefined,
+              notes: m.notes ?? undefined,
+              createdAt: m.createdAt,
+              updatedAt: m.updatedAt,
+            }));
 
-      const equipment = inspection.equipment;
-      const client = equipment.client;
+            const equipment = inspection.equipment;
+            const client = equipment.client;
 
-      return {
+            return {
               inspection: {
                 id: inspection.id,
                 equipmentId: inspection.equipmentId,
@@ -695,51 +695,51 @@ export class InspectionReportPipeline {
                 notes: inspection.notes ?? undefined,
                 recommendations,
               },
-              equipment: {
-                        id: equipment.id,
-                        tag: equipment.tag,
-                        type: equipment.type as 'CALDEIRA' | 'VASO_DE_PRESSAO' | 'SILO' | 'TANQUE' | 'TUBULACAO' | 'COMPRESSOR' | 'TROCADOR_DE_CALOR' | 'REATOR' | 'OUTRO',
-                        description: equipment.description ?? undefined,
-                        manufacturer: equipment.manufacturer ?? undefined,
-                        manufactureYear: equipment.manufactureYear ?? undefined,
-                        serialNumber: equipment.serialNumber ?? undefined,
-                        designCode: equipment.designCode ?? undefined,
-                        designTempC: equipment.designTempC ?? undefined,
-                        operatingPressureBar: equipment.operatingPressureBar ?? undefined,
-                        operatingTempC: equipment.operatingTempC ?? undefined,
-                        mawpBar: equipment.mawpBar ?? undefined,
-                        hydroTestPressureBar: equipment.hydroTestPressureBar ?? undefined,
-                        originalThicknessMm: equipment.originalThicknessMm ?? undefined,
-                        minThicknessMm: equipment.minThicknessMm ?? undefined,
-                        headType: equipment.headType ?? undefined,
-                        headMaterial: equipment.headMaterial ?? undefined,
-                        bodyMaterial: equipment.bodyMaterial ?? undefined,
-                        headNominalThicknessMm: equipment.headNominalThicknessMm ?? undefined,
-                        volumeLiters: equipment.volumeLiters ?? undefined,
-                        corrosionAllowanceMm: equipment.corrosionAllowanceMm ?? undefined,
-                        jointEfficiency: equipment.jointEfficiency ?? undefined,
-                        fluidType: equipment.fluidType ?? undefined,
-                        fluidClass: equipment.fluidClass ?? undefined,
-                        riskGroup: equipment.riskGroup ?? undefined,
-                        nr13Category: equipment.nr13Category ?? undefined,
-                      },
-              measurements,
-              photos,
-              client: {
-                        id: client.id,
-                        name: client.companyName,
-                        cnpj: client.cnpj ?? undefined,
-                        address: client.address ?? undefined,
-                        city: client.city ?? undefined,
-                        state: client.state ?? undefined,
-                        contactName: client.contactName ?? undefined,
-                        contactEmail: client.contactEmail ?? undefined,
-                        contactPhone: client.contactPhone ?? undefined,
-                        responsibleTechnicalId: client.responsibleId ?? undefined,
-                        responsibleTechnicalName: undefined,
-                      },
-            };
-          }
+                    equipment: {
+                      id: equipment.id,
+                      tag: equipment.tag,
+                      type: equipment.type as 'CALDEIRA' | 'VASO_DE_PRESSAO' | 'SILO' | 'TANQUE' | 'TUBULACAO' | 'COMPRESSOR' | 'TROCADOR_DE_CALOR' | 'REATOR' | 'OUTRO',
+                      description: equipment.description ?? undefined,
+                      manufacturer: equipment.manufacturer ?? undefined,
+                      manufactureYear: equipment.manufactureYear ?? undefined,
+                      serialNumber: equipment.serialNumber ?? undefined,
+                      designCode: equipment.designCode ?? undefined,
+                      designTempC: equipment.designTempC ?? undefined,
+                      operatingPressureBar: equipment.operatingPressureBar ?? undefined,
+                      operatingTempC: equipment.operatingTempC ?? undefined,
+                      mawpBar: equipment.mawpBar ?? undefined,
+                      hydroTestPressureBar: equipment.hydroTestPressureBar ?? undefined,
+                      originalThicknessMm: equipment.originalThicknessMm ?? undefined,
+                      minThicknessMm: equipment.minThicknessMm ?? undefined,
+                      headType: equipment.headType ?? undefined,
+                      headMaterial: equipment.headMaterial ?? undefined,
+                      bodyMaterial: equipment.bodyMaterial ?? undefined,
+                      headNominalThicknessMm: equipment.headNominalThicknessMm ?? undefined,
+                      volumeLiters: equipment.volumeLiters ?? undefined,
+                      corrosionAllowanceMm: equipment.corrosionAllowanceMm ?? undefined,
+                      jointEfficiency: equipment.jointEfficiency ?? undefined,
+                      fluidType: equipment.fluidType ?? undefined,
+                      fluidClass: equipment.fluidClass ?? undefined,
+                      riskGroup: equipment.riskGroup ?? undefined,
+                      nr13Category: equipment.nr13Category ?? undefined,
+                    },
+                    measurements,
+                    photos,
+                    client: {
+                      id: client.id,
+                      name: client.companyName,
+                      cnpj: client.cnpj ?? undefined,
+                      address: client.address ?? undefined,
+                      city: client.city ?? undefined,
+                      state: client.state ?? undefined,
+                      contactName: client.contactName ?? undefined,
+                      contactEmail: client.contactEmail ?? undefined,
+                      contactPhone: client.contactPhone ?? undefined,
+                      responsibleTechnicalId: client.responsibleId ?? undefined,
+                      responsibleTechnicalName: undefined,
+                    },
+                  };
+                }
 
     // Manter métodos de mock para fallback (opcional - podem ser removidos depois)
     private generateMockMeasurements(equipment: any): MeasurementPoint[] {

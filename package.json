@@ -10,7 +10,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "generate-icons": "node scripts/generate-icons.mjs",
-    "postinstall": "prisma generate && prisma db push --accept-data-loss"
+    "postinstall": "prisma generate && prisma db push"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
