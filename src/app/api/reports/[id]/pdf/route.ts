@@ -39,19 +39,19 @@ export async function GET(
     // Verificar acesso (opcional - pode verificar se usuário tem permissão)
 
     // Parse dos dados JSON
-    const clientData = JSON.parse(technicalReport.clientData);
-    const equipmentData = JSON.parse(technicalReport.equipmentData);
-    const executiveSummary = JSON.parse(technicalReport.executiveSummary);
-    const inspectionData = JSON.parse(technicalReport.inspectionData);
-    const engineeringResults = JSON.parse(technicalReport.engineeringResults);
-    const technicalConclusion = JSON.parse(technicalReport.technicalConclusion);
-    const recommendations = JSON.parse(technicalReport.recommendations);
-    const nextInspection = JSON.parse(technicalReport.nextInspection);
-    const attachments = JSON.parse(technicalReport.attachments);
-    const history = JSON.parse(technicalReport.history);
-    const validations = JSON.parse(technicalReport.validations);
-    const signatures = JSON.parse(technicalReport.signatures);
-    const metadata = JSON.parse(technicalReport.metadata);
+    const clientData = typeof technicalReport.clientData === 'string' ? JSON.parse(technicalReport.clientData) : technicalReport.clientData;
+    const equipmentData = typeof technicalReport.equipmentData === 'string' ? JSON.parse(technicalReport.equipmentData) : technicalReport.equipmentData;
+    const executiveSummary = typeof technicalReport.executiveSummary === 'string' ? JSON.parse(technicalReport.executiveSummary) : technicalReport.executiveSummary;
+    const inspectionData = typeof technicalReport.inspectionData === 'string' ? JSON.parse(technicalReport.inspectionData) : technicalReport.inspectionData;
+    const engineeringResults = typeof technicalReport.engineeringResults === 'string' ? JSON.parse(technicalReport.engineeringResults) : technicalReport.engineeringResults;
+    const technicalConclusion = typeof technicalReport.technicalConclusion === 'string' ? JSON.parse(technicalReport.technicalConclusion) : technicalReport.technicalConclusion;
+    const recommendations = typeof technicalReport.recommendations === 'string' ? JSON.parse(technicalReport.recommendations) : technicalReport.recommendations;
+    const nextInspection = typeof technicalReport.nextInspection === 'string' ? JSON.parse(technicalReport.nextInspection) : technicalReport.nextInspection;
+    const attachments = typeof technicalReport.attachments === 'string' ? JSON.parse(technicalReport.attachments) : technicalReport.attachments;
+    const history = typeof technicalReport.history === 'string' ? JSON.parse(technicalReport.history) : technicalReport.history;
+    const validations = typeof technicalReport.validations === 'string' ? JSON.parse(technicalReport.validations) : technicalReport.validations;
+    const signatures = typeof technicalReport.signatures === 'string' ? JSON.parse(technicalReport.signatures) : technicalReport.signatures;
+    const metadata = typeof technicalReport.metadata === 'string' ? JSON.parse(technicalReport.metadata) : technicalReport.metadata;
 
     // Criar PDF
     const pdfDoc = await PDFDocument.create();
