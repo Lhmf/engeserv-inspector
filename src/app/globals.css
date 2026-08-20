@@ -157,14 +157,16 @@
   }
 
   /* Prevenir scroll horizontal acidental em qualquer nível */
-    html {
-      overflow-x: clip;
+      html {
+        overflow-x: clip;
+      }
+      body {
+        overflow-x: clip;
+        /* overflow-y: auto removido - deixa o viewport fazer scroll natural.
+           O AppLayoutClient usa min-h-screen flex; conteúdo longo estende o body naturalmente.
+           O lock do drawer mobile usa inline style (hidden/"") que funciona independentemente. */
+      }
     }
-    body {
-      overflow-x: clip;
-      overflow-y: auto;
-    }
-  }
 
 /* Safe-area insets for iOS when viewport-fit=cover (notch / home indicator) */
 @layer utilities {
@@ -187,11 +189,14 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-behavior: smooth;
+  /* scroll-behavior: smooth removido: pode causar conflitos de scroll
+     em layouts com sidebar fixed + conteúdo flexível.
+     O scroll nativo do viewport deve funcionar sem animação forçada. */
 }
-html,
 body {
-  overscroll-behavior-y: none;
+  /* overscroll-behavior-y removido: pode interferir na propagação de scroll
+     em layouts flex com sidebar fixed + conteúdo flex-1.
+     O viewport deve fazer scroll natural sem restrições. */
 }
 * {
   -webkit-tap-highlight-color: transparent;
