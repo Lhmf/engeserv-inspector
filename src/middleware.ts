@@ -6,7 +6,7 @@ import { COOKIE } from "@/lib/auth";
 // equipamentos etc. Roda no Edge Runtime, por isso usa jose
 // diretamente (nao pode importar Prisma aqui).
 
-const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user"];
+const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user", "/api/debug/bcrypt-test-v2"];
 
 // Assets públicos da PWA que NÃO exigem autenticação:
 // manifest, service worker, ícones, favicon e arquivos estáticos raiz.

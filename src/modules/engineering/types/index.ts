@@ -157,6 +157,9 @@ export interface MaterialData {
   minYieldStrengthMpa?: number; // Limite de escoamento mínimo (MPa)
   minTensileStrengthMpa?: number; // Resistência à tração mínima (MPa)
   corrosionResistance?: CorrosionResistance;
+  // Tensões admissíveis por temperatura (S) - valores em MPa
+  // Índice = temperatura em °C (aproximado)
+  allowableStressByTempMpa?: Record<number, number>;
 }
 
 export type CorrosionResistance = 'ALTA' | 'MEDIA' | 'BAIXA' | 'DESCONHECIDA';

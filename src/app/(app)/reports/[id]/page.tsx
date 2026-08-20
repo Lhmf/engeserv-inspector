@@ -112,7 +112,7 @@ const statusLabel: Record<string, string> = {
 export default function ReportPage() {
   const params = useParams();
   const router = useRouter();
-  const reportId = params.id as string;
+  const urlReportId = params.id as string;
 
   const [report, setReport] = useState<TechnicalReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,16 +123,15 @@ export default function ReportPage() {
 
   useEffect(() => {
     loadReport();
-  }, [reportId]);
+  }, [urlReportId]);
 
   async function loadReport() {
     setLoading(true);
     setError(null);
 
     try {
-      // Try to load from API via pipeline result using the reportId directly
-      // The API now handles both technicalReportId and inspectionId
-      const res = await fetch(`/api/reports/pipeline?id=${reportId}`, {
+      // First, try to load as technicalReportId directly
+      const res = await fetch(`/api/reports/pipeline?id=${urlReportId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -146,13 +145,13 @@ export default function ReportPage() {
         }
       }
 
-      // Fallback: try to fetch the inspection that generated this report
-      // and run the pipeline to rebuild it (handles temporary reports)
+      // If not found as technicalReportId, it might be an inspectionId
+      // Try to run the pipeline with this ID as inspectionId
       const pipelineRes = await fetch("/api/reports/pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          inspectionId: reportId.startsWith("rpt-") ? reportId : reportId,
+          inspectionId: urlReportId,
           equipmentId: "",
           options: {},
         }),
@@ -160,10 +159,22 @@ export default function ReportPage() {
 
       if (pipelineRes.ok) {
         const data = await pipelineRes.json();
-        if (data.report) {
-          setReport(parseDates(data.report));
-          setLoading(false);
-          return;
+        // Use technicalReportId from pipeline response if available
+        const technicalReportId = data.technicalReportId || data.reportId || data.report?.id;
+        if (technicalReportId) {
+          // Now load the actual technical report
+          const techRes = await fetch(`/api/reports/pipeline?id=${technicalReportId}`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+          if (techRes.ok) {
+            const techData = await techRes.json();
+            if (techData.report) {
+              setReport(parseDates(techData.report));
+              setLoading(false);
+              return;
+            }
+          }
         }
       }
 
@@ -258,11 +269,11 @@ export default function ReportPage() {
                                 v{report.identification.version}
                               </span>
                               <button
-                                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
-                                onClick={() => window.open(`/api/reports/${reportId}/pdf`, '_blank')}
-                                aria-label="Baixar PDF"
-                                title="Baixar PDF"
-                              >
+                                                              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
+                                                              onClick={() => window.open(`/api/reports/${report.identification.reportNumber}/pdf`, '_blank')}
+                                                              aria-label="Baixar PDF"
+                                                              title="Baixar PDF"
+                                                            >
                                 <FileOutput className="w-5 h-5" />
                               </button>
                               <button

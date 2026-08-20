@@ -157,11 +157,14 @@
   }
 
   /* Prevenir scroll horizontal acidental em qualquer nível */
-  html,
-  body {
-    overflow-x: hidden;
+    html {
+      overflow-x: clip;
+    }
+    body {
+      overflow-x: clip;
+      overflow-y: auto;
+    }
   }
-}
 
 /* Safe-area insets for iOS when viewport-fit=cover (notch / home indicator) */
 @layer utilities {

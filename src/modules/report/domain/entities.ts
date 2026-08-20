@@ -300,7 +300,13 @@ export class TechnicalReportBuilder {
     
     const reportNumber = `LT-${new Date().getFullYear()}-${generateId('num').slice(-5)}`;
     const now = new Date();
-
+    
+    // Preencher dados reais do Engineering Engine
+    const executiveSummary = this.buildExecutiveSummary(engineeringAnalysis);
+    const technicalConclusion = this.buildTechnicalConclusion(engineeringAnalysis);
+    const recommendations = this.buildRecommendations(engineeringAnalysis);
+    const nextInspection = this.buildNextInspection(engineeringAnalysis);
+    
     return {
       id: generateId('rpt'),
       identification: {
@@ -312,10 +318,14 @@ export class TechnicalReportBuilder {
         inspectionDate: inspection.startedAt,
         createdAt: now,
         updatedAt: now,
+        issuedAt: undefined,
+        expiresAt: undefined,
         inspectorId: options?.inspectorId || '',
         inspectorName: options?.inspectorName || '',
         engineerId: options?.engineerId,
         engineerName: options?.engineerName,
+        managerId: options?.managerId,
+        managerName: options?.managerName,
       },
       // Top-level client and equipment (required by TechnicalReport type)
       client: {
@@ -359,13 +369,7 @@ export class TechnicalReportBuilder {
         riskGroup: equipment.riskGroup,
         nr13Category: equipment.nr13Category,
       },
-      executiveSummary: {
-        overview: '',
-        keyFindings: [],
-        overallStatus: 'INDETERMINADO',
-        criticalityLevel: 'LOW',
-        requiresImmediateAction: false,
-      },
+      executiveSummary,
       inspectionData: {
         inspection: {
           id: inspection.id,
@@ -441,39 +445,9 @@ export class TechnicalReportBuilder {
         formulaVersions: engineeringAnalysis.formulaVersions,
         normativeReferences: engineeringAnalysis.normativeReferences,
       },
-      technicalConclusion: {
-        conclusion: 'INDETERMINADO',
-        justification: '',
-        riskFactors: engineeringAnalysis.riskFactors.map(rf => ({
-          factor: rf.factor,
-          description: rf.description,
-          severity: rf.severity,
-          mitigation: rf.mitigation,
-        })),
-        complianceStatement: 'Laudo elaborado conforme NR-13, ASME BPVC VIII-1, API 570/510.',
-        restrictions: [],
-      },
-      recommendations: {
-        immediate: [],
-        shortTerm: [],
-        mediumTerm: [],
-        longTerm: [],
-        inspection: {
-          nextInspectionDate: engineeringAnalysis.nextInspectionDate?.value || new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()),
-          intervalMonths: 12,
-          type: 'PERIODIC',
-          scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
-          criteria: 'Conforme NR-13 e normas aplicáveis',
-        },
-      },
-      nextInspection: {
-        recommendedDate: engineeringAnalysis.nextInspectionDate?.value || new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()),
-        maxIntervalMonths: 12,
-        type: 'PERIODIC',
-        justification: 'Intervalo padrão NR-13 para vasos de pressão',
-        scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
-        acceptanceCriteria: 'Conforme NR-13 e normas aplicáveis',
-      },
+      technicalConclusion,
+      recommendations,
+      nextInspection,
       signatures: {
         requiredRoles: ['INSPECTOR', 'ENGINEER', 'MANAGER'],
         isComplete: false,
@@ -515,27 +489,11 @@ export class TechnicalReportBuilder {
         generatedBy: options?.inspectorId || '',
         lastModifiedBy: options?.inspectorId || '',
         lastModifiedAt: now,
-        placeholderMode: true,
+        placeholderMode: false, // Não é mais placeholder
       },
     } as TechnicalReport;
   }
-
-  private static calculateStats(measurements: EngMeasurementPoint[], minThickness: number) {
-    if (!measurements.length) {
-      return { count: 0, minThicknessMm: 0, maxThicknessMm: 0, avgThicknessMm: 0, belowMinCount: 0, belowMinPercentage: 0 };
-    }
-    const thicknesses = measurements.map(m => m.thicknessMm);
-    const belowMin = thicknesses.filter(t => t < minThickness).length;
-    return {
-      count: measurements.length,
-      minThicknessMm: Math.min(...thicknesses),
-      maxThicknessMm: Math.max(...thicknesses),
-      avgThicknessMm: thicknesses.reduce((a, b) => a + b, 0) / thicknesses.length,
-      belowMinCount: belowMin,
-      belowMinPercentage: (belowMin / measurements.length) * 100,
-    };
-  }
-
+  
   private static formatCalculations(analysis: IntegrityAnalysis) {
     const calcs: any[] = [];
     if (analysis.minimumThickness) {
@@ -595,5 +553,92 @@ export class TechnicalReportBuilder {
       });
     }
     return calcs;
+  }
+  
+  private static buildExecutiveSummary(analysis: IntegrityAnalysis): any {
+    const overview = `Laudo técnico de inspeção NR-13 realizado em ${analysis.inspectionId}. ` +
+      `O equipamento ${analysis.equipmentId} foi avaliado com status geral: ${analysis.overallStatus}. ` +
+      `Criticidade: ${analysis.overallCriticality}. ` +
+      (analysis.recommendations.length > 0 ? `Recomendações: ${analysis.recommendations.join('; ')}` : '');
+    
+    return {
+      overview,
+      keyFindings: analysis.recommendations,
+      overallStatus: analysis.overallStatus,
+      criticalityLevel: analysis.overallCriticality,
+      requiresImmediateAction: analysis.overallCriticality === 'CRITICAL' || analysis.overallStatus === 'CONDENADO',
+    };
+  }
+  
+  private static buildTechnicalConclusion(analysis: IntegrityAnalysis): any {
+    const conclusionMap: Record<string, any> = {
+      'INTEGRO': 'INTEGRO',
+      'ACEITAVEL_COM_RESTRICOES': 'ACEITAVEL_COM_RESTRICOES',
+      'REQUER_REPARO': 'REQUER_REPARO',
+      'CONDENADO': 'CONDENADO',
+      'INDETERMINADO': 'INDETERMINADO',
+    };
+    
+    return {
+      conclusion: conclusionMap[analysis.overallStatus] || 'INDETERMINADO',
+      justification: analysis.recommendations.join('; ') || 'Análise técnica baseada em medições ultrassônicas e cálculos conforme ASME BPVC VIII-1 e NR-13.',
+      riskFactors: analysis.riskFactors.map(rf => ({
+        factor: rf.factor,
+        description: rf.description,
+        severity: rf.severity,
+        mitigation: rf.mitigation,
+      })),
+      complianceStatement: 'Laudo elaborado conforme NR-13, ASME BPVC VIII-1, API 570/510.',
+      restrictions: analysis.overallStatus === 'CONDENADO' ? ['Equipamento fora de serviço'] : 
+                    analysis.overallStatus === 'REQUER_REPARO' ? ['Operação com restrições até reparo'] : [],
+    };
+  }
+  
+  private static buildRecommendations(analysis: IntegrityAnalysis): any {
+    const immediate = analysis.recommendations.filter(r => r.includes('urgente') || r.includes('imediato') || r.includes('crítico'));
+    const shortTerm = analysis.recommendations.filter(r => r.includes('repar') || r.includes('substitu'));
+    const mediumTerm = analysis.recommendations.filter(r => r.includes('monitor') || r.includes('inspeç'));
+    const longTerm = analysis.recommendations.filter(r => !immediate.includes(r) && !shortTerm.includes(r) && !mediumTerm.includes(r));
+    
+    return {
+      immediate: immediate.map((desc, i) => ({ id: `imm-${i}`, description: desc, priority: 'CRITICAL', category: 'REPAIR' })),
+      shortTerm: shortTerm.map((desc, i) => ({ id: `st-${i}`, description: desc, priority: 'HIGH', category: 'REPAIR' })),
+      mediumTerm: mediumTerm.map((desc, i) => ({ id: `mt-${i}`, description: desc, priority: 'MEDIUM', category: 'MONITOR' })),
+      longTerm: longTerm.map((desc, i) => ({ id: `lt-${i}`, description: desc, priority: 'LOW', category: 'MONITOR' })),
+      inspection: {
+        nextInspectionDate: analysis.nextInspectionDate?.value || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        intervalMonths: 12,
+        type: 'PERIODIC',
+        scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
+        criteria: 'Conforme NR-13 e normas aplicáveis',
+      },
+    };
+  }
+  
+  private static buildNextInspection(analysis: IntegrityAnalysis): any {
+    return {
+      recommendedDate: analysis.nextInspectionDate?.value || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      maxIntervalMonths: 12,
+      type: 'PERIODIC',
+      justification: 'Intervalo padrão NR-13 para vasos de pressão',
+      scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
+      acceptanceCriteria: 'Conforme NR-13 e normas aplicáveis',
+    };
+  }
+  
+  private static calculateStats(measurements: EngMeasurementPoint[], minThickness: number) {
+    if (!measurements.length) {
+      return { count: 0, minThicknessMm: 0, maxThicknessMm: 0, avgThicknessMm: 0, belowMinCount: 0, belowMinPercentage: 0 };
+    }
+    const thicknesses = measurements.map(m => m.thicknessMm);
+    const belowMin = thicknesses.filter(t => t < minThickness).length;
+    return {
+      count: measurements.length,
+      minThicknessMm: Math.min(...thicknesses),
+      maxThicknessMm: Math.max(...thicknesses),
+      avgThicknessMm: thicknesses.reduce((a, b) => a + b, 0) / thicknesses.length,
+      belowMinCount: belowMin,
+      belowMinPercentage: (belowMin / measurements.length) * 100,
+    };
   }
 }

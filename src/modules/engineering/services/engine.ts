@@ -280,29 +280,38 @@ export class EngineeringEngineService {
   }
   
   private getAllowableStress(equipment: EquipmentData, operatingConditions?: OperatingConditions): number {
-    // Tentar obter do material especificado
-    if (equipment.bodyMaterial) {
-      const materialRef = (require('../constants').MATERIAL_REFERENCES as Record<string, any>)[equipment.bodyMaterial.replace(/[\s\-.]/g, '_').toUpperCase()];
-      if (materialRef && operatingConditions?.designTempC) {
-        // Interpolar tensão admissível pela temperatura
-        const temps = Object.keys(materialRef.allowableStressByTempMpa).map(Number).sort((a, b) => a - b);
-        const temp = operatingConditions.designTempC;
-        let stress = materialRef.allowableStressByTempMpa[temps[0]];
-        for (const t of temps) {
-          if (temp <= t) {
-            stress = materialRef.allowableStressByTempMpa[t];
-            break;
+      // Tentar obter do material especificado
+      if (equipment.bodyMaterial) {
+        // Normalizar o material: "SA-516 Gr.70" -> "SA-516_GR70"
+        // Manter o traço em SA-516, converter espaço e ponto
+        const normalizedMaterial = equipment.bodyMaterial
+          .replace(/\s+/g, '_')  // espaços -> _
+          .replace(/\./g, '')    // remove pontos
+          .replace(/GR_/g, 'GR') // corrige GR_ para GR
+          .toUpperCase();
+      
+        const materialRef = (require('../constants').MATERIAL_REFERENCES as Record<string, any>)[normalizedMaterial];
+      
+        if (materialRef && operatingConditions?.designTempC) {
+          // Interpolar tensão admissível pela temperatura
+          const temps = Object.keys(materialRef.allowableStressByTempMpa).map(Number).sort((a, b) => a - b);
+          const temp = operatingConditions.designTempC;
+          let stress = materialRef.allowableStressByTempMpa[temps[0]];
+          for (const t of temps) {
+            if (temp <= t) {
+              stress = materialRef.allowableStressByTempMpa[t];
+              break;
+            }
           }
+          return stress;
         }
-        return stress;
+        // Retornar valor a temperatura ambiente se não tiver temperatura
+        const temps = Object.keys(materialRef.allowableStressByTempMpa).map(Number).sort((a, b) => a - b);
+        return materialRef.allowableStressByTempMpa[temps[0]];
       }
-      // Retornar valor a temperatura ambiente se não tiver temperatura
-      const temps = Object.keys(materialRef.allowableStressByTempMpa).map(Number).sort((a, b) => a - b);
-      return materialRef.allowableStressByTempMpa[temps[0]];
+      // Default conservador para aço carbono
+      return 138; // MPa (SA-516 Gr.70 a 50°C)
     }
-    // Default conservador para aço carbono
-    return 138; // MPa (SA-516 Gr.70 a 50°C)
-  }
   
   private estimateInsideDiameter(equipment: EquipmentData): number {
     if (equipment.volumeLiters && equipment.volumeLiters > 0) {
