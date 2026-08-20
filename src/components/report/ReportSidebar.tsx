@@ -15,7 +15,10 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronUp,
-  Download
+  Download,
+  FileOutput,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 interface ReportSidebarProps {
@@ -37,9 +40,14 @@ interface ReportSidebarProps {
   sections: { id: string; label: string; icon: React.ReactNode }[];
   activeSection: string;
   onSectionChange: (id: string) => void;
+  technicalReportId: string;
+  onExportPdf: () => Promise<void>;
+  onDownloadData: () => Promise<void>;
+  isExportingPdf?: boolean;
+  isDownloadingData?: boolean;
 }
 
-export function ReportSidebar({ report, sections, activeSection, onSectionChange }: ReportSidebarProps) {
+export function ReportSidebar({ report, sections, activeSection, onSectionChange, technicalReportId, onExportPdf, onDownloadData, isExportingPdf, isDownloadingData }: ReportSidebarProps) {
   const statusColors = {
     DRAFT: "bg-slate-100 text-slate-700",
     UNDER_REVIEW: "bg-amber-100 text-amber-700",
@@ -130,18 +138,44 @@ export function ReportSidebar({ report, sections, activeSection, onSectionChange
       </nav>
 
       {/* Quick Actions */}
-      <div className="p-4 border-t border-slate-200">
-        <div className="space-y-2">
-          <button className="w-full px-3 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy/90 transition-colors flex items-center justify-center gap-2">
-            <FileText className="w-4 h-4" />
-            Exportar PDF
-          </button>
-          <button className="w-full px-3 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2">
-            <Download className="w-4 h-4" />
-            Download Dados
-          </button>
-        </div>
-      </div>
+            <div className="p-4 border-t border-slate-200">
+              <div className="space-y-2">
+                <button
+                  onClick={onExportPdf}
+                  disabled={isExportingPdf}
+                  className="w-full px-3 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isExportingPdf ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Gerando PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileOutput className="w-4 h-4" />
+                      Exportar PDF
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={onDownloadData}
+                  disabled={isDownloadingData}
+                  className="w-full px-3 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDownloadingData ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Baixando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Download Dados
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
     </div>
   );
 }

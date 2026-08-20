@@ -120,73 +120,225 @@ export default function ReportPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("resumo");
   const [sidebarPanel, setSidebarPanel] = useState<"workflow" | "checklist" | "history">("workflow");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [technicalReportId, setTechnicalReportId] = useState<string>("");
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isDownloadingData, setIsDownloadingData] = useState(false);
+  const [workflowAction, setWorkflowAction] = useState<{ loading: boolean; stepId: string | null }>({ loading: false, stepId: null });
 
   useEffect(() => {
     loadReport();
   }, [urlReportId]);
 
   async function loadReport() {
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      // First, try to load as technicalReportId directly
-      const res = await fetch(`/api/reports/pipeline?id=${urlReportId}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      try {
+        // First, try to load as technicalReportId directly
+        const res = await fetch(`/api/reports/pipeline?id=${urlReportId}`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.report) {
-          setReport(parseDates(data.report));
-          setLoading(false);
-          return;
+        if (res.ok) {
+          const data = await res.json();
+          if (data.report) {
+            setReport(parseDates(data.report));
+            setTechnicalReportId(data.reportId || data.technicalReportId || urlReportId);
+            setLoading(false);
+            return;
+          }
         }
-      }
 
-      // If not found as technicalReportId, it might be an inspectionId
-      // Try to run the pipeline with this ID as inspectionId
-      const pipelineRes = await fetch("/api/reports/pipeline", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inspectionId: urlReportId,
-          equipmentId: "",
-          options: {},
-        }),
-      });
+        // If not found as technicalReportId, it might be an inspectionId
+        // Try to run the pipeline with this ID as inspectionId
+        const pipelineRes = await fetch("/api/reports/pipeline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inspectionId: urlReportId,
+            equipmentId: "",
+            options: {},
+          }),
+        });
 
-      if (pipelineRes.ok) {
-        const data = await pipelineRes.json();
-        // Use technicalReportId from pipeline response if available
-        const technicalReportId = data.technicalReportId || data.reportId || data.report?.id;
-        if (technicalReportId) {
-          // Now load the actual technical report
-          const techRes = await fetch(`/api/reports/pipeline?id=${technicalReportId}`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          });
-          if (techRes.ok) {
-            const techData = await techRes.json();
-            if (techData.report) {
-              setReport(parseDates(techData.report));
-              setLoading(false);
-              return;
+        if (pipelineRes.ok) {
+          const data = await pipelineRes.json();
+          // Use technicalReportId from pipeline response if available
+          const technicalReportId = data.technicalReportId || data.reportId || data.report?.id;
+          if (technicalReportId) {
+            setTechnicalReportId(technicalReportId);
+            // Now load the actual technical report
+            const techRes = await fetch(`/api/reports/pipeline?id=${technicalReportId}`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
+            if (techRes.ok) {
+              const techData = await techRes.json();
+              if (techData.report) {
+                setReport(parseDates(techData.report));
+                setLoading(false);
+                return;
+              }
             }
           }
         }
+
+        throw new Error("Laudo não encontrado");
+      } catch (e: any) {
+        setError(e.message || "Erro ao carregar laudo");
+      } finally {
+        setLoading(false);
       }
+        }
 
-      throw new Error("Laudo não encontrado");
-    } catch (e: any) {
-      setError(e.message || "Erro ao carregar laudo");
-    } finally {
-      setLoading(false);
-    }
-  }
+        async function handleExportPdf() {
+          if (!technicalReportId || isExportingPdf) return;
+    
+          setIsExportingPdf(true);
+          try {
+            const response = await fetch(`/api/reports/${technicalReportId}/pdf`, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            });
 
-  if (loading) {
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+              throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+            }
+
+            // Verificar Content-Type
+            const contentType = response.headers.get("Content-Type");
+            if (!contentType?.includes("application/pdf")) {
+              throw new Error("Resposta não é um PDF válido");
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+      
+            // Criar link de download
+            const link = document.createElement("a");
+            link.href = url;
+            const reportNumber = report?.identification?.reportNumber || technicalReportId;
+            link.download = `Laudo_NR13_${reportNumber.replace(/\//g, "-")}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+      
+          } catch (err: any) {
+            console.error("Erro ao exportar PDF:", err);
+            alert(`Erro ao exportar PDF: ${err.message}`);
+          } finally {
+            setIsExportingPdf(false);
+          }
+        }
+
+        async function handleDownloadData() {
+          if (!report || isDownloadingData) return;
+    
+          setIsDownloadingData(true);
+          try {
+            // Criar objeto com todos os dados do laudo
+            const dataExport = {
+              exportDate: new Date().toISOString(),
+              technicalReport: {
+                identification: report.identification,
+                client: report.client,
+                equipment: report.equipment,
+                executiveSummary: report.executiveSummary,
+                inspectionData: report.inspectionData,
+                engineeringResults: report.engineeringResults,
+                technicalConclusion: report.technicalConclusion,
+                recommendations: report.recommendations,
+                nextInspection: report.nextInspection,
+                attachments: report.attachments,
+                history: report.history,
+                validations: report.validations,
+                signatures: report.signatures,
+                metadata: report.metadata,
+              }
+            };
+
+            const blob = new Blob([JSON.stringify(dataExport, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+      
+            const link = document.createElement("a");
+            link.href = url;
+            const reportNumber = report.identification?.reportNumber || "laudo";
+            link.download = `dados-laudo-${reportNumber.replace(/\//g, "-")}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+      
+          } catch (err: any) {
+            console.error("Erro ao baixar dados:", err);
+            alert(`Erro ao baixar dados: ${err.message}`);
+          } finally {
+            setIsDownloadingData(false);
+          }
+        }
+
+        async function handleWorkflowAction(action: string) {
+          // action format: "complete-stepId" or "skip-stepId"
+          const [type, stepId] = action.split("-");
+          if (!technicalReportId || !stepId || workflowAction.loading) return;
+    
+          setWorkflowAction({ loading: true, stepId });
+    
+          try {
+            // Mapear workflow step para status do TechnicalReport
+            const stepStatusMap: Record<string, string> = {
+              "draft": "UNDER_REVIEW",
+              "review": "APPROVED", 
+              "validation": "APPROVED",
+              "approval": "PUBLISHED",
+              "published": "PUBLISHED",
+            };
+      
+            const newStatus = stepStatusMap[stepId];
+            if (!newStatus) {
+              throw new Error(`Etapa desconhecida: ${stepId}`);
+            }
+      
+            // Chamar API para atualizar status do TechnicalReport
+            const response = await fetch(`/api/reports/${technicalReportId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                status: newStatus,
+                action: type === "complete" ? "complete" : "skip",
+                stepId,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+              throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+            }
+
+            const data = await response.json();
+      
+            // Atualizar estado local
+            if (data.report) {
+              setReport(parseDates(data.report));
+            } else if (data.technicalReport) {
+              setReport(parseDates(data.technicalReport));
+            }
+      
+            // Recarregar para garantir sincronização
+            await loadReport();
+      
+          } catch (err: any) {
+            console.error("Erro na ação de workflow:", err);
+            alert(`Erro ao ${type === "complete" ? "concluir" : "pular"} etapa: ${err.message}`);
+          } finally {
+            setWorkflowAction({ loading: false, stepId: null });
+          }
+        }
+
+        if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -237,11 +389,16 @@ export default function ReportPage() {
           }`}
         >
           <ReportSidebar
-            report={report as any}
-            sections={sidebarSections}
-            activeSection={activeSection}
-            onSectionChange={(id: string) => setActiveSection(id as SectionId)}
-          />
+                      report={report as any}
+                      sections={sidebarSections}
+                      activeSection={activeSection}
+                      onSectionChange={(id: string) => setActiveSection(id as SectionId)}
+                      technicalReportId={technicalReportId}
+                      onExportPdf={handleExportPdf}
+                      onDownloadData={handleDownloadData}
+                      isExportingPdf={isExportingPdf}
+                      isDownloadingData={isDownloadingData}
+                    />
         </aside>
 
         {/* Main Content */}
@@ -435,11 +592,11 @@ export default function ReportPage() {
               <div className="space-y-6">
                 {/* Workflow Progress */}
                 <ReportWorkflow
-                  report={report as any}
-                  activePanel={sidebarPanel}
-                  onPanelChange={setSidebarPanel}
-                  onAction={(a) => console.log("Workflow:", a)}
-                />
+                                  report={report as any}
+                                  activePanel={sidebarPanel}
+                                  onPanelChange={setSidebarPanel}
+                                  onAction={handleWorkflowAction}
+                                />
 
                 {/* Main Sections */}
                 <div className="space-y-6">
