@@ -289,17 +289,17 @@ export default function InspectionDetailPage() {
                                       </>
                                     )}
                                     {inspection.status === "APROVADA" && !inspection.technicalReport && (
-                                      <button
-                                        onClick={() => {
-                                          setActionMenuOpen(null);
-                                          window.location.href = `/reports/new?inspectionId=${inspection.id}`;
-                                        }}
-                                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-navy hover:bg-navy-50"
-                                      >
-                                        <FileOutput className="w-4 h-4" />
-                                        Gerar Laudo Técnico
-                                      </button>
-                                    )}
+                                                        <button
+                                                          onClick={() => {
+                                                            setActionMenuOpen(null);
+                                                            window.location.href = `/reports/${inspection.id}`;
+                                                          }}
+                                                          className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-navy hover:bg-navy-50"
+                                                        >
+                                                          <FileOutput className="w-4 h-4" />
+                                                          Gerar Laudo Técnico
+                                                        </button>
+                                                      )}
                                     {inspection.status === "AGUARDANDO_APROVACAO" && !canApprove && (
                     <div className="px-4 py-2 text-xs text-slate-400 italic">
                       Aguardando aprovação de Gestor/Admin

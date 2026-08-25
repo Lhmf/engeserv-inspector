@@ -206,22 +206,22 @@ export default function LaudosPage() {
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xs text-slate-500">{formatDate(laudo.inspectionDate)}</span>
                     {laudo.type === "EXISTING" ? (
-                      <Link
-                        href={`/reports/${laudo.id}`}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        Visualizar
-                      </Link>
-                    ) : (
-                      <Button
-                        onClick={() => window.location.href = `/reports/new?inspectionId=${laudo.inspectionId}`}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
-                      >
-                        <FileOutput className="w-4 h-4" />
-                        Gerar Laudo
-                      </Button>
-                    )}
+                                          <Link
+                                            href={`/reports/${laudo.id}`}
+                                            className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90 transition-colors"
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                            Visualizar
+                                          </Link>
+                                        ) : (
+                                          <Button
+                                            onClick={() => window.location.href = `/reports/${laudo.inspectionId}`}
+                                            className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                                          >
+                                            <FileOutput className="w-4 h-4" />
+                                            Gerar Laudo
+                                          </Button>
+                                        )}
                   </div>
                 </div>
               ))}
@@ -272,22 +272,22 @@ export default function LaudosPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {laudo.type === "EXISTING" ? (
-                          <Link
-                            href={`/reports/${laudo.id}`}
-                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy/90 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Visualizar
-                          </Link>
-                        ) : (
-                          <Button
-                            onClick={() => window.location.href = `/reports/new?inspectionId=${laudo.inspectionId}`}
-                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
-                          >
-                            <FileOutput className="w-4 h-4" />
-                            Gerar Laudo
-                          </Button>
-                        )}
+                                                  <Link
+                                                    href={`/reports/${laudo.id}`}
+                                                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy/90 transition-colors"
+                                                  >
+                                                    <Eye className="w-4 h-4" />
+                                                    Visualizar
+                                                  </Link>
+                                                ) : (
+                                                  <Button
+                                                    onClick={() => window.location.href = `/reports/${laudo.inspectionId}`}
+                                                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
+                                                  >
+                                                    <FileOutput className="w-4 h-4" />
+                                                    Gerar Laudo
+                                                  </Button>
+                                                )}
                       </td>
                     </tr>
                   ))}
