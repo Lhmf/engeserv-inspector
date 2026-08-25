@@ -7,7 +7,7 @@ import { canApproveInspection } from "@/lib/auth";
 const updateInspectionSchema = z.object({
   type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
   notes: z.string().optional().nullable(),
-  recommendations: z.array(z.string()).optional(),
+  recommendations: z.string().optional(), // JSON string array
   status: z.enum(["EM_ANDAMENTO", "AGUARDANDO_APROVACAO", "APROVADA", "REJEITADA"]).optional(),
   rejectionReason: z.string().optional(),
   completedAt: z.string().datetime().optional(),
