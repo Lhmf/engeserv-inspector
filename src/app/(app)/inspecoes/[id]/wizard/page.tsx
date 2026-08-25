@@ -226,25 +226,25 @@ export default function InspectionWizardPage() {
   }, [online]);
 
   async function autoSave() {
-    if (!inspectionId) return;
-    if (!navigator.onLine) {
-      console.log("[Offline] autoSave preservado como rascunho local");
-      return;
+      if (!inspectionId) return;
+      if (!navigator.onLine) {
+        console.log("[Offline] autoSave preservado como rascunho local");
+        return;
+      }
+      try {
+        await fetch(`/api/inspections/${inspectionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: selectedType,
+            notes: notes || null,
+            recommendations: JSON.stringify(recommendations),
+          }),
+        });
+      } catch (e) {
+        console.error("Auto-save failed", e);
+      }
     }
-    try {
-      await fetch(`/api/inspections/${inspectionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: selectedType,
-          notes: notes || null,
-          recommendations,
-        }),
-      });
-    } catch (e) {
-      console.error("Auto-save failed", e);
-    }
-  }
 
   async function flushOfflinePhotos() {
     if (!inspectionId) return;
@@ -353,42 +353,42 @@ export default function InspectionWizardPage() {
   }
 
   async function submitForReview() {
-    setSaving(true);
-    try {
-      if (!navigator.onLine) {
-        alert(
-          "Você está offline. Seu rascunho foi salvo localmente no dispositivo e será enviado automaticamente quando a conexão voltar."
-        );
+      setSaving(true);
+      try {
+        if (!navigator.onLine) {
+          alert(
+            "Você está offline. Seu rascunho foi salvo localmente no dispositivo e será enviado automaticamente quando a conexão voltar."
+          );
+          router.push(`/inspecoes/${inspectionId}`);
+          return;
+        }
+
+        // Garante que fotos da fila sejam enviadas antes de finalizar
+        await flushOfflinePhotos();
+
+        const res = await fetch(`/api/inspections/${inspectionId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "AGUARDANDO_APROVACAO",
+            completedAt: new Date().toISOString(),
+            type: selectedType,
+            notes: notes || null,
+            recommendations: JSON.stringify(recommendations),
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao enviar para revisão");
+
+        await saveMeasurements();
+        await clearDraft(inspectionId);
         router.push(`/inspecoes/${inspectionId}`);
-        return;
+      } catch (e: any) {
+        alert(e.message);
+      } finally {
+        setSaving(false);
       }
-
-      // Garante que fotos da fila sejam enviadas antes de finalizar
-      await flushOfflinePhotos();
-
-      const res = await fetch(`/api/inspections/${inspectionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "AGUARDANDO_APROVACAO",
-          completedAt: new Date().toISOString(),
-          type: selectedType,
-          notes: notes || null,
-          recommendations,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Erro ao enviar para revisão");
-
-      await saveMeasurements();
-      await clearDraft(inspectionId);
-      router.push(`/inspecoes/${inspectionId}`);
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setSaving(false);
     }
-  }
 
   async function handleGenerateReport() {
       setGeneratingReport(true);

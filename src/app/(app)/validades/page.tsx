@@ -73,27 +73,33 @@ export default function ValidadesPage() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
-    setError(null);
-    try {
-      const [valRes, cliRes] = await Promise.all([
-        fetch("/api/validades"),
-        fetch("/api/clientes"),
-      ]);
+      setLoading(true);
+      setError(null);
+      try {
+        const [valRes, cliRes] = await Promise.all([
+          fetch("/api/validades", { redirect: "manual" }),
+          fetch("/api/clientes", { redirect: "manual" }),
+        ]);
 
-      if (!valRes.ok) throw new Error("Erro ao carregar validades");
+        if (valRes.status === 307 || valRes.status === 401) {
+          // Session expired or not authenticated - redirect to login
+          window.location.href = "/login";
+          return;
+        }
 
-      const valData = await valRes.json();
-      const cliData = await cliRes.json();
+        if (!valRes.ok) throw new Error("Erro ao carregar validades");
 
-      setValidades(valData.validades || []);
-      setClients(cliData.clientes?.filter((c: any) => c.active) || []);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+        const valData = await valRes.json();
+        const cliData = await cliRes.json();
+
+        setValidades(valData.validades || []);
+        setClients(cliData.clientes?.filter((c: any) => c.active) || []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
   const filtered = validades
     .filter((v) => {
