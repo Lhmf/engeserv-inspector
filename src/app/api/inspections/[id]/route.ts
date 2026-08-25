@@ -25,23 +25,24 @@ export async function GET(
   const { id } = await params;
 
   const inspection = await prisma.inspection.findUnique({
-    where: { id },
-    include: {
-      equipment: {
-        select: { id: true, tag: true, type: true, client: { select: { id: true, companyName: true } } },
+      where: { id },
+      include: {
+        equipment: {
+          select: { id: true, tag: true, type: true, client: { select: { id: true, companyName: true } } },
+        },
+        inspector: { select: { id: true, name: true, email: true } },
+        approvedBy: { select: { id: true, name: true, email: true } },
+        technicalReport: { select: { id: true } },
+        photos: {
+          orderBy: { order: "asc" },
+          select: { id: true, url: true, category: true, caption: true, order: true, uploadedBy: { select: { name: true } }, createdAt: true },
+        },
+        measurements: {
+          orderBy: { point: "asc" },
+          select: { id: true, point: true, thicknessMm: true, angleDeg: true, notes: true, createdAt: true },
+        },
       },
-      inspector: { select: { id: true, name: true, email: true } },
-      approvedBy: { select: { id: true, name: true, email: true } },
-      photos: {
-        orderBy: { order: "asc" },
-        select: { id: true, url: true, category: true, caption: true, order: true, uploadedBy: { select: { name: true } }, createdAt: true },
-      },
-      measurements: {
-        orderBy: { point: "asc" },
-        select: { id: true, point: true, thicknessMm: true, angleDeg: true, notes: true, createdAt: true },
-      },
-    },
-  });
+    });
 
   if (!inspection) {
     return NextResponse.json({ error: "Inspeção não encontrada." }, { status: 404 });

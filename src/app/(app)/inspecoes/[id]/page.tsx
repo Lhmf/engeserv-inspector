@@ -35,6 +35,7 @@ import {
   Printer,
   ChevronDown,
   ChevronUp,
+  FileOutput,
 } from "lucide-react";
 import { cn, formatDate, formatDateTime, getStatusColor, getEquipmentTypeLabel } from "@/lib/utils";
 
@@ -54,6 +55,7 @@ interface Inspection {
   };
   inspector: { id: string; name: string; email: string };
   approvedBy: { id: string; name: string; email: string } | null;
+  technicalReport: { id: string } | null;
   photos: Array<{
     id: string;
     url: string;
@@ -269,24 +271,36 @@ export default function InspectionDetailPage() {
                     </button>
                   )}
                   {inspection.status === "AGUARDANDO_APROVACAO" && canApprove && (
-                    <>
-                      <button
-                        onClick={() => handleStatusChange(inspection.id, "APROVADA")}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Aprovar
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange(inspection.id, "REJEITADA")}
-                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-rose-700 hover:bg-rose-50"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Rejeitar
-                      </button>
-                    </>
-                  )}
-                  {inspection.status === "AGUARDANDO_APROVACAO" && !canApprove && (
+                                      <>
+                                        <button
+                                          onClick={() => handleStatusChange(inspection.id, "APROVADA")}
+                                          className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50"
+                                        >
+                                          <CheckCircle className="w-4 h-4" />
+                                          Aprovar
+                                        </button>
+                                        <button
+                                          onClick={() => handleStatusChange(inspection.id, "REJEITADA")}
+                                          className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-rose-700 hover:bg-rose-50"
+                                        >
+                                          <XCircle className="w-4 h-4" />
+                                          Rejeitar
+                                        </button>
+                                      </>
+                                    )}
+                                    {inspection.status === "APROVADA" && !inspection.technicalReport && (
+                                      <button
+                                        onClick={() => {
+                                          setActionMenuOpen(null);
+                                          window.location.href = `/reports/new?inspectionId=${inspection.id}`;
+                                        }}
+                                        className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-navy hover:bg-navy-50"
+                                      >
+                                        <FileOutput className="w-4 h-4" />
+                                        Gerar Laudo Técnico
+                                      </button>
+                                    )}
+                                    {inspection.status === "AGUARDANDO_APROVACAO" && !canApprove && (
                     <div className="px-4 py-2 text-xs text-slate-400 italic">
                       Aguardando aprovação de Gestor/Admin
                     </div>

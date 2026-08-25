@@ -15,6 +15,10 @@ import {
   ArrowRight,
   AlertCircle,
   Download,
+  FileOutput,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +31,8 @@ interface LaudoItem {
   version: number;
   createdAt: string;
   inspectionDate: string;
+  type: "EXISTING" | "READY_TO_GENERATE";
+  inspectionId?: string;
 }
 
 const statusLabel: Record<string, string> = {
@@ -36,6 +42,7 @@ const statusLabel: Record<string, string> = {
   REJECTED: "Rejeitado",
   PUBLISHED: "Publicado",
   ARCHIVED: "Arquivado",
+  PRONTO_PARA_GERAR: "Pronto para gerar",
 };
 
 const statusColor: Record<string, string> = {
@@ -45,6 +52,7 @@ const statusColor: Record<string, string> = {
   REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
   PUBLISHED: "bg-emerald-50 text-emerald-700 border-emerald-200",
   ARCHIVED: "bg-slate-100 text-slate-500 border-slate-200",
+  PRONTO_PARA_GERAR: "bg-emerald-100 text-emerald-700 border-emerald-200",
 };
 
 export default function LaudosPage() {
@@ -61,25 +69,46 @@ export default function LaudosPage() {
     setLoading(true);
     setError(null);
     try {
-      // Buscar TechnicalReports reais do banco
-      const res = await fetch("/api/reports/list");
-      const data = await res.json();
+      const [reportsRes, readyRes] = await Promise.all([
+        fetch("/api/reports/list"),
+        fetch("/api/reports/ready"),
+      ]);
 
-      if (res.ok && data.reports) {
-        const items: LaudoItem[] = data.reports.map((r: any) => ({
-          id: r.id,
-          reportNumber: r.reportNumber,
-          equipmentTag: r.equipmentTag,
-          clientName: r.clientName,
-          status: r.status,
-          version: r.version,
-          createdAt: r.createdAt,
-          inspectionDate: r.inspectionDate,
-        }));
-        setLaudos(items);
-      } else {
-        throw new Error(data.error || "Erro ao carregar laudos");
-      }
+      if (!reportsRes.ok) throw new Error("Erro ao carregar laudos");
+
+      const reportsData = await reportsRes.json();
+      const readyData = await readyRes.json();
+
+      const existingReports: LaudoItem[] = (reportsData.reports || []).map((r: any) => ({
+        id: r.id,
+        reportNumber: r.reportNumber,
+        equipmentTag: r.equipmentTag,
+        clientName: r.clientName,
+        status: r.status,
+        version: r.version,
+        createdAt: r.createdAt,
+        inspectionDate: r.inspectionDate,
+        type: "EXISTING",
+      }));
+
+      const readyToGenerate: LaudoItem[] = (readyData.items || []).map((i: any) => ({
+        id: i.inspectionId || i.id,
+        reportNumber: `— (${i.equipmentTag})`,
+        equipmentTag: i.equipmentTag,
+        clientName: i.clientName,
+        status: "PRONTO_PARA_GERAR",
+        version: 0,
+        createdAt: i.approvedAt || new Date().toISOString(),
+        inspectionDate: i.approvedAt || new Date().toISOString(),
+        type: "READY_TO_GENERATE",
+        inspectionId: i.inspectionId || i.id,
+      }));
+
+      const allItems = [...existingReports, ...readyToGenerate].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setLaudos(allItems);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -100,7 +129,9 @@ export default function LaudosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Laudos Técnicos</h1>
-          <p className="text-sm text-slate-500">Laudos gerados a partir das inspeções realizadas</p>
+          <p className="text-sm text-slate-500">
+            Laudos gerados e inspeções prontas para gerar laudo
+          </p>
         </div>
       </div>
 
@@ -132,7 +163,7 @@ export default function LaudosPage() {
           <EmptyState
             title="Nenhum laudo disponível"
             description={
-              search ? "Tente ajustar a busca" : "Os laudos gerados aparecerão aqui"
+              search ? "Tente ajustar a busca" : "Os laudos gerados e inspeções prontas aparecerão aqui"
             }
             action={{
               label: "Ir para Inspeções",
@@ -144,11 +175,22 @@ export default function LaudosPage() {
             {/* Mobile cards (< md) */}
             <div className="space-y-3 p-4 md:hidden">
               {filtered.map((laudo) => (
-                <div key={laudo.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div
+                  key={laudo.id}
+                  className={cn(
+                    "rounded-xl border border-slate-200 bg-white p-4 shadow-sm",
+                    laudo.type === "READY_TO_GENERATE" && "border-l-4 border-l-emerald-500"
+                  )}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 flex-shrink-0 text-navy" />
+                        <FileText
+                          className={cn(
+                            "h-4 w-4 flex-shrink-0",
+                            laudo.type === "READY_TO_GENERATE" ? "text-emerald-600" : "text-navy"
+                          )}
+                        />
                         <span className="truncate font-medium text-slate-800">{laudo.reportNumber}</span>
                       </div>
                       <p className="mt-1 truncate text-sm text-slate-500">{laudo.clientName}</p>
@@ -163,13 +205,23 @@ export default function LaudosPage() {
                   </div>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xs text-slate-500">{formatDate(laudo.inspectionDate)}</span>
-                    <Link
-                      href={`/reports/${laudo.id}`}
-                      className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90 transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Visualizar
-                    </Link>
+                    {laudo.type === "EXISTING" ? (
+                      <Link
+                        href={`/reports/${laudo.id}`}
+                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Visualizar
+                      </Link>
+                    ) : (
+                      <Button
+                        onClick={() => window.location.href = `/reports/new?inspectionId=${laudo.inspectionId}`}
+                        className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                      >
+                        <FileOutput className="w-4 h-4" />
+                        Gerar Laudo
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -190,15 +242,28 @@ export default function LaudosPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((laudo) => (
-                    <tr key={laudo.id} className="hover:bg-slate-50">
+                    <tr
+                      key={laudo.id}
+                      className={cn(
+                        "hover:bg-slate-50",
+                        laudo.type === "READY_TO_GENERATE" && "bg-emerald-50/50"
+                      )}
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-navy" />
+                          <FileText
+                            className={cn(
+                              "w-4 h-4",
+                              laudo.type === "READY_TO_GENERATE" ? "text-emerald-600" : "text-navy"
+                            )}
+                          />
                           <span className="font-medium text-slate-800">{laudo.reportNumber}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium text-slate-700">{laudo.equipmentTag}</td>
-                      <td className="px-4 py-3 text-slate-600"><span className="block max-w-[220px] truncate">{laudo.clientName}</span></td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <span className="block max-w-[220px] truncate">{laudo.clientName}</span>
+                      </td>
                       <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formatDate(laudo.inspectionDate)}</td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className={statusColor[laudo.status] || statusColor.DRAFT}>
@@ -206,13 +271,23 @@ export default function LaudosPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/reports/${laudo.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy/90 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Visualizar
-                        </Link>
+                        {laudo.type === "EXISTING" ? (
+                          <Link
+                            href={`/reports/${laudo.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-navy text-white text-sm font-medium hover:bg-navy/90 transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Visualizar
+                          </Link>
+                        ) : (
+                          <Button
+                            onClick={() => window.location.href = `/reports/new?inspectionId=${laudo.inspectionId}`}
+                            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
+                          >
+                            <FileOutput className="w-4 h-4" />
+                            Gerar Laudo
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
