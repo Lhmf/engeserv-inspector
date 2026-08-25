@@ -73,33 +73,40 @@ export default function ValidadesPage() {
   }, []);
 
   async function loadData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const [valRes, cliRes] = await Promise.all([
-          fetch("/api/validades", { redirect: "manual" }),
-          fetch("/api/clientes", { redirect: "manual" }),
-        ]);
+        setLoading(true);
+        setError(null);
+        try {
+          const [valRes, cliRes] = await Promise.all([
+            fetch("/api/validades", { redirect: "manual" }),
+            fetch("/api/clientes", { redirect: "manual" }),
+          ]);
 
-        if (valRes.status === 307 || valRes.status === 401) {
-          // Session expired or not authenticated - redirect to login
-          window.location.href = "/login";
-          return;
+          if (valRes.status === 307 || valRes.status === 401) {
+            // Session expired or not authenticated - redirect to login
+            window.location.href = "/login";
+            return;
+          }
+
+          if (!valRes.ok) throw new Error("Erro ao carregar validades");
+
+          const valData = await valRes.json();
+          const cliData = await cliRes.json();
+
+          // Parse date strings back to Date objects (JSON serializes Dates as ISO strings)
+          const validades = (valData.validades || []).map((v: any) => ({
+            ...v,
+            lastApprovedAt: v.lastApprovedAt ? new Date(v.lastApprovedAt) : null,
+            nextDueDate: v.nextDueDate ? new Date(v.nextDueDate) : null,
+          }));
+
+          setValidades(validades);
+          setClients(cliData.clientes?.filter((c: any) => c.active) || []);
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
         }
-
-        if (!valRes.ok) throw new Error("Erro ao carregar validades");
-
-        const valData = await valRes.json();
-        const cliData = await cliRes.json();
-
-        setValidades(valData.validades || []);
-        setClients(cliData.clientes?.filter((c: any) => c.active) || []);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
       }
-    }
 
   const filtered = validades
     .filter((v) => {
@@ -259,6 +266,13 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 }
 
 function ValidadeTable({ items }: { items: ValidadeItem[] }) {
+  const getDaysLeft = (nextDueDate: Date | null) => {
+    if (!nextDueDate) return null;
+    const d = new Date(nextDueDate);
+    if (isNaN(d.getTime())) return null;
+    return Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  };
+  
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {items.length === 0 ? (
@@ -268,9 +282,7 @@ function ValidadeTable({ items }: { items: ValidadeItem[] }) {
           {/* Mobile cards (< md) */}
           <div className="space-y-3 p-4 md:hidden">
             {items.map((item) => {
-              const daysLeft = item.nextDueDate
-                ? Math.ceil((item.nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                : null;
+              const daysLeft = getDaysLeft(item.nextDueDate);
               return (
                 <div
                   key={item.equipmentId}
@@ -338,9 +350,7 @@ function ValidadeTable({ items }: { items: ValidadeItem[] }) {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => {
-                  const daysLeft = item.nextDueDate
-                    ? Math.ceil((item.nextDueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                    : null;
+                  const daysLeft = getDaysLeft(item.nextDueDate);
                   return (
                     <tr key={item.equipmentId} className={cn("hover:bg-slate-50", item.status === "VENCIDO" && "bg-rose-50/50")}>
                       <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{item.equipmentTag}</td>
@@ -397,7 +407,9 @@ function ValidadeCalendar({ items }: { items: ValidadeItem[] }) {
   const eventsByDay: Record<string, ValidadeItem[]> = {};
   items.forEach((item) => {
     if (!item.nextDueDate) return;
-    const key = `${item.nextDueDate.getFullYear()}-${String(item.nextDueDate.getMonth() + 1).padStart(2, "0")}-${String(item.nextDueDate.getDate()).padStart(2, "0")}`;
+    const d = new Date(item.nextDueDate);
+    if (isNaN(d.getTime())) return;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (!eventsByDay[key]) eventsByDay[key] = [];
     eventsByDay[key].push(item);
   });
