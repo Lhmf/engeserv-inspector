@@ -141,14 +141,15 @@ export default function ReportPage() {
         });
 
         if (res.ok) {
-          const data = await res.json();
-          if (data.report) {
-            setReport(parseDates(data.report));
-            setTechnicalReportId(data.reportId || data.technicalReportId || urlReportId);
-            setLoading(false);
-            return;
-          }
-        }
+                  const data = await res.json();
+                  if (data.report) {
+                    setReport(parseDates(data.report));
+                    // Priorizar technicalReportId (ID real do banco) sobre reportId (ID do factory)
+                    setTechnicalReportId(data.technicalReportId || data.reportId || urlReportId);
+                    setLoading(false);
+                    return;
+                  }
+                }
 
         // If not found as technicalReportId, it might be an inspectionId
         // Try to run the pipeline with this ID as inspectionId
@@ -426,13 +427,13 @@ export default function ReportPage() {
                                 v{report.identification.version}
                               </span>
                               <button
-                                                              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
-                                                              onClick={() => window.open(`/api/reports/${report.identification.reportNumber}/pdf`, '_blank')}
-                                                              aria-label="Baixar PDF"
-                                                              title="Baixar PDF"
-                                                            >
-                                <FileOutput className="w-5 h-5" />
-                              </button>
+                                                                                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
+                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf`, '_blank')}
+                                                                                            aria-label="Baixar PDF"
+                                                                                            title="Baixar PDF"
+                                                                                          >
+                                                              <FileOutput className="w-5 h-5" />
+                                                            </button>
                               <button
                                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
                                 onClick={() => setSidebarOpen(true)}
