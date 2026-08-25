@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     let validades = equipments.map((eq) => {
       const lastInspection = eq.inspections[0];
-      const periodicityMonths = 12;
+      const periodicityMonths = 12; // TODO: Quando houver campo de periodicidade customizado no Equipment, utilizar eq.periodicityMonths
       return buildValidadeInfo({
         equipmentId: eq.id,
         equipmentTag: eq.tag,
