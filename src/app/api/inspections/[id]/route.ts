@@ -75,7 +75,7 @@ export async function PUT(
 
   const existing = await prisma.inspection.findUnique({
     where: { id },
-    select: { id: true, status: true, inspectorId: true },
+    select: { id: true, status: true, inspectorId: true, completedAt: true },
   });
 
   if (!existing) {
@@ -116,6 +116,10 @@ export async function PUT(
   if (status === "APROVADA") {
     updateData.approvedAt = new Date();
     updateData.approvedById = session.userId;
+    // Garantir completedAt se não existir (necessário para geração de laudo)
+    if (!existing.completedAt) {
+      updateData.completedAt = new Date();
+    }
   }
   if (status === "REJEITADA") {
     updateData.approvedAt = new Date();
