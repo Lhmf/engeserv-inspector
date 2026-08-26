@@ -325,6 +325,7 @@ export class InspectionReportPipeline {
     if (!rawData.inspection?.id) errors.push('ID da inspeção ausente');
     if (!rawData.inspection?.equipmentId) errors.push('Equipamento não vinculado à inspeção');
     if (rawData.inspection?.status === 'EM_ANDAMENTO') errors.push('Inspeção ainda em andamento - não é possível gerar laudo');
+    if (rawData.inspection?.status === 'REJEITADA') errors.push('Inspeção foi rejeitada - não é possível gerar laudo');
     if (!rawData.inspection?.completedAt) errors.push('Inspeção não possui data de conclusão');
     if (!rawData.inspection?.inspectorId) errors.push('Inspetor não identificado');
     
@@ -341,20 +342,27 @@ export class InspectionReportPipeline {
     if (!rawData) throw new Error('Dados da inspeção não disponíveis');
     
     const errors: string[] = [];
+    const warnings: string[] = [];
     
     if (!rawData.equipment) errors.push('Equipamento não encontrado');
     if (!rawData.equipment?.tag) errors.push('TAG do equipamento ausente');
     if (!rawData.equipment?.type) errors.push('Tipo do equipamento não informado');
-    if (!rawData.equipment?.designPressureBar) errors.push('Pressão de projeto não informada');
-    if (!rawData.equipment?.originalThicknessMm) errors.push('Espessura original não informada');
-    if (!rawData.equipment?.minThicknessMm) errors.push('Espessura mínima não informada');
-    if (!rawData.equipment?.designCode) errors.push('Código de projeto não informado');
+    
+    // Campos opcionais — geram warnings mas NÃO impedem geração do laudo
+    if (!rawData.equipment?.designPressureBar) warnings.push('Pressão de projeto não informada (campo opcional)');
+    if (!rawData.equipment?.originalThicknessMm) warnings.push('Espessura original não informada (campo opcional)');
+    if (!rawData.equipment?.minThicknessMm) warnings.push('Espessura mínima não informada (campo opcional)');
+    if (!rawData.equipment?.designCode) warnings.push('Código de projeto não informado (campo opcional)');
     
     if (errors.length > 0) {
       throw new Error(`Validação do equipamento falhou: ${errors.join('; ')}`);
     }
 
-    return {};
+    if (warnings.length > 0) {
+      console.warn(`[Pipeline] Avisos na validação do equipamento: ${warnings.join('; ')}`);
+    }
+
+    return { warnings };
   }
 
   private async validateMeasurements(context: PipelineStepContext): Promise<PipelineStepData> {

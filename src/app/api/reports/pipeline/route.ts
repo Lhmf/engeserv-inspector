@@ -155,6 +155,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Inspeção não encontrada." }, { status: 404 });
     }
 
+    // Verificar se a inspeção está em status válido para gerar laudo
+    if (inspection.status === 'EM_ANDAMENTO') {
+      return NextResponse.json({ error: "Inspeção ainda está em andamento. Envie para aprovação primeiro." }, { status: 400 });
+    }
+    if (inspection.status === 'REJEITADA') {
+      return NextResponse.json({ error: "Inspeção foi rejeitada. Não é possível gerar laudo." }, { status: 400 });
+    }
+    if (inspection.status === 'AGUARDANDO_APROVACAO') {
+      return NextResponse.json({ error: "Inspeção ainda aguardando aprovação. Não é possível gerar laudo." }, { status: 400 });
+    }
+
     const eqId = equipmentId || inspection.equipmentId;
 
     // Execute the pipeline
@@ -175,9 +186,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.success) {
+      const errorMessages = result.errors.map(e => e.message);
+      const failedSteps = result.steps.filter(s => s.status === 'FAILED').map(s => ({
+        step: s.step,
+        message: s.message,
+        error: s.error?.message,
+      }));
       return NextResponse.json({
-        error: "Pipeline falhou",
-        details: result.errors.map(e => e.message),
+        error: errorMessages.join('; ') || 'Pipeline falhou ao gerar laudo',
+        details: errorMessages,
+        failedSteps,
         steps: result.steps.map(s => ({ step: s.step, status: s.status, message: s.message })),
       }, { status: 500 });
     }

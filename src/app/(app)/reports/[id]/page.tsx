@@ -183,6 +183,11 @@ export default function ReportPage() {
               }
             }
           }
+        } else {
+          // Pipeline falhou — extrair mensagem de erro detalhada
+          const errData = await pipelineRes.json().catch(() => ({ error: "Erro desconhecido" }));
+          const errorMsg = errData.error || errData.details?.join?.('; ') || `Erro HTTP ${pipelineRes.status}`;
+          throw new Error(errorMsg);
         }
 
         throw new Error("Laudo não encontrado");
