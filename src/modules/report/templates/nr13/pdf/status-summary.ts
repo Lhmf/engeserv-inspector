@@ -10,6 +10,7 @@ import {
   getStatusDisplay, getStatusColors, getCriticalityColors,
   formatDateLong,
 } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): number {
   const { page, margin, contentWidth, fonts, report } = ctx;
@@ -51,7 +52,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // Icon symbol
   const iconSymbol = statusInfo.color === 'green' ? '✓' : statusInfo.color === 'yellow' ? '!' : '✗';
   const iconSymWidth = fonts.helveticaBold.widthOfTextAtSize(iconSymbol, 16);
-  page.drawText(iconSymbol, {
+  page.drawText(sanitizeTextForWinAnsi(iconSymbol), {
     x: iconX - iconSymWidth / 2,
     y: iconY - 6,
     font: fonts.helveticaBold,
@@ -61,10 +62,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // Status text
   const textX = margin + 55;
-  page.drawText('RESULTADO DA INSPEÇÃO', {
+  page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPEÇÃO'), {
     x: textX, y: y - 14, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
   });
-  page.drawText(statusInfo.label, {
+  page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
     x: textX, y: y - 30, font: fonts.helveticaBold, size: 18, color: statusColors.text,
   });
 
@@ -77,7 +78,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     x: critX, y: y - boxHeight + 10, width: critWidth, height: 16,
     color: critColors.bg,
   });
-  page.drawText(critText, {
+  page.drawText(sanitizeTextForWinAnsi(critText), {
     x: critX + 8, y: y - boxHeight + 14, font: fonts.helveticaBold, size: 8, color: critColors.text,
   });
 
@@ -86,7 +87,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // ============================================================
   // INDICADORES TÉCNICOS (4 columns)
   // ============================================================
-  page.drawText('Indicadores Técnicos', {
+  page.drawText(sanitizeTextForWinAnsi('Indicadores Técnicos'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
@@ -126,11 +127,11 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     });
 
     // Label
-    page.drawText(truncateText(indicators[i].label, fonts.helveticaBold, 7, cardWidth - 12), {
+    page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].label, fonts.helveticaBold, 7, cardWidth - 12)), {
       x: cardX + 6, y: cardY - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
     });
     // Value
-    page.drawText(truncateText(indicators[i].value, fonts.helveticaBold, 11, cardWidth - 12), {
+    page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].value, fonts.helveticaBold, 11, cardWidth - 12)), {
       x: cardX + 6, y: cardY - 26, font: fonts.helveticaBold, size: 11, color: PDF_COLORS.gray800,
     });
   }
@@ -140,7 +141,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // ============================================================
   // RESUMO DAS MEDIÇÕES (4 summary cards)
   // ============================================================
-  page.drawText('Resumo das Medições', {
+  page.drawText(sanitizeTextForWinAnsi('Resumo das Medições'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
@@ -167,12 +168,12 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
     // Center value
     const valWidth = fonts.helveticaBold.widthOfTextAtSize(summaries[i].value, 20);
-    page.drawText(summaries[i].value, {
+    page.drawText(sanitizeTextForWinAnsi(summaries[i].value), {
       x: cardX + (cardWidth - valWidth) / 2, y: y - 22, font: fonts.helveticaBold, size: 20, color: textColor,
     });
 
     // Label
-    page.drawText(truncateText(summaries[i].label, fonts.helvetica, 7, cardWidth - 12), {
+    page.drawText(sanitizeTextForWinAnsi(truncateText(summaries[i].label, fonts.helvetica, 7, cardWidth - 12)), {
       x: cardX + 6, y: y - 34, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
   }
@@ -182,7 +183,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // ============================================================
   // PRÓXIMA INSPEÇÃO
   // ============================================================
-  page.drawText('Próxima Inspeção Recomendada', {
+  page.drawText(sanitizeTextForWinAnsi('Próxima Inspeção Recomendada'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
@@ -201,10 +202,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   for (let i = 0; i < nextItems.length; i++) {
     const itemX = margin + 8 + i * (contentWidth / 3);
-    page.drawText(nextItems[i].label, {
+    page.drawText(sanitizeTextForWinAnsi(nextItems[i].label), {
       x: itemX, y: y - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
     });
-    page.drawText(truncateText(nextItems[i].value, fonts.helvetica, 9, contentWidth / 3 - 10), {
+    page.drawText(sanitizeTextForWinAnsi(truncateText(nextItems[i].value, fonts.helvetica, 9, contentWidth / 3 - 10)), {
       x: itemX, y: y - 24, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
     });
   }

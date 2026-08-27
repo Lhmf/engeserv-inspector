@@ -6,6 +6,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawSectionTitle, drawRect, drawLine } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 import type { MeasurementPoint } from '@/modules/engineering/types';
 
 export function drawMeasurementsPdf(
@@ -21,7 +22,7 @@ export function drawMeasurementsPdf(
   y = drawSectionTitle(ctx, 6, 'MEDIÇÕES TÉCNICAS', y);
 
   if (!measurements || measurements.length === 0) {
-    page.drawText('Nenhuma medição registrada para esta inspeção.', {
+    page.drawText(sanitizeTextForWinAnsi('Nenhuma medição registrada para esta inspeção.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     return y - 20;
@@ -38,7 +39,7 @@ export function drawMeasurementsPdf(
   drawRect(ctx, margin, y - headerHeight + 4, contentWidth, headerHeight, PDF_COLORS.navy);
 
   for (let i = 0; i < headers.length; i++) {
-    page.drawText(headers[i], {
+    page.drawText(sanitizeTextForWinAnsi(headers[i]), {
       x: x + 4, y: y - headerHeight + 10,
       font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
     });
@@ -66,7 +67,7 @@ export function drawMeasurementsPdf(
       x = margin;
       drawRect(ctx, margin, y - headerHeight + 4, contentWidth, headerHeight, PDF_COLORS.navy);
       for (let i = 0; i < headers.length; i++) {
-        page.drawText(headers[i], {
+        page.drawText(sanitizeTextForWinAnsi(headers[i]), {
           x: x + 4, y: y - headerHeight + 10,
           font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
         });
@@ -91,21 +92,21 @@ export function drawMeasurementsPdf(
     const cellY = y - rowHeight + 8;
 
     // Point
-    page.drawText(m.point || '', {
+    page.drawText(sanitizeTextForWinAnsi(m.point || ''), {
       x: x + 4, y: cellY, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
     });
     x += colWidths[0];
 
     // Location/Notes
     const notes = truncateText(m.notes || '—', fonts.helvetica, 8, colWidths[1] - 8);
-    page.drawText(notes, {
+    page.drawText(sanitizeTextForWinAnsi(notes), {
       x: x + 4, y: cellY, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
     });
     x += colWidths[1];
 
     // Thickness
     const thickText = m.thicknessMm ? m.thicknessMm.toFixed(2) : '—';
-    page.drawText(thickText, {
+    page.drawText(sanitizeTextForWinAnsi(thickText), {
       x: x + 4, y: cellY, font: fonts.courier, size: 8, color: PDF_COLORS.gray800,
     });
     x += colWidths[2];
@@ -120,7 +121,7 @@ export function drawMeasurementsPdf(
       x: x + 2, y: cellY - 2, width: badgeWidth, height: 12,
       color: badgeColors.bg,
     });
-    page.drawText(condition.label, {
+    page.drawText(sanitizeTextForWinAnsi(condition.label), {
       x: x + 7, y: cellY, font: fonts.helveticaBold, size: 7, color: badgeColors.text,
     });
 
@@ -146,10 +147,10 @@ export function drawMeasurementsPdf(
       x: legendX, y: legendY - 2, width: badgeW, height: 10,
       color: leg.color,
     });
-    page.drawText(leg.label, {
+    page.drawText(sanitizeTextForWinAnsi(leg.label), {
       x: legendX + 4, y: legendY, font: fonts.helveticaBold, size: 7, color: leg.textColor,
     });
-    page.drawText(leg.desc, {
+    page.drawText(sanitizeTextForWinAnsi(leg.desc), {
       x: legendX + badgeW + 4, y: legendY, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
     legendX += badgeW + fonts.helvetica.widthOfTextAtSize(leg.desc, 7) + 20;
@@ -166,14 +167,14 @@ export function drawMeasurementsPdf(
       color: PDF_COLORS.gray50,
     });
     const refText = `Espessura mínima admissível: ${minThickness} mm`;
-    page.drawText(refText, {
+    page.drawText(sanitizeTextForWinAnsi(refText), {
       x: margin + 6, y: y, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
     });
 
     if (report.equipment.originalThicknessMm) {
       const origText = ` | Espessura original: ${report.equipment.originalThicknessMm} mm`;
       const refWidth = fonts.helveticaBold.widthOfTextAtSize(refText, 8);
-      page.drawText(origText, {
+      page.drawText(sanitizeTextForWinAnsi(origText), {
         x: margin + 6 + refWidth, y: y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
       });
     }

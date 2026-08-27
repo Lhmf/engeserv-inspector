@@ -9,6 +9,7 @@ import {
   PDF_COLORS, drawSectionTitle, drawRect, drawLine,
   getStatusDisplay, getStatusColors, formatDateLong,
 } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): number {
   const { page, margin, contentWidth, fonts, report } = ctx;
@@ -26,7 +27,7 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
 
   const hasAny = allSections.some(s => s.items.length > 0);
   if (!hasAny) {
-    page.drawText('Nenhuma recomendação registrada.', {
+    page.drawText(sanitizeTextForWinAnsi('Nenhuma recomendação registrada.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     y -= 16;
@@ -38,7 +39,7 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
     // Section title with left border
     drawRect(ctx, margin, y - 2, 3, 12, section.color);
     drawRect(ctx, margin + 3, y - 2, contentWidth - 3, 12, section.bgColor);
-    page.drawText(section.title, {
+    page.drawText(sanitizeTextForWinAnsi(section.title), {
       x: margin + 8, y: y, font: fonts.helveticaBold, size: 9, color: section.color,
     });
     y -= 16;
@@ -52,20 +53,20 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
         x: margin + 8, y: y - 1, width: priWidth, height: 10,
         color: priColors.bg,
       });
-      page.drawText(priText, {
+      page.drawText(sanitizeTextForWinAnsi(priText), {
         x: margin + 11, y: y, font: fonts.helveticaBold, size: 6, color: priColors.text,
       });
 
       // Description
       const descText = truncateText(rec.description, fonts.helvetica, 8, contentWidth - priWidth - 30);
-      page.drawText(descText, {
+      page.drawText(sanitizeTextForWinAnsi(descText), {
         x: margin + priWidth + 16, y: y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
       });
       y -= 12;
 
       // Reference standard
       if (rec.referencedStandard) {
-        page.drawText(`(${rec.referencedStandard})`, {
+        page.drawText(sanitizeTextForWinAnsi(`(${rec.referencedStandard})`), {
           x: margin + priWidth + 16, y, font: fonts.helveticaOblique, size: 7, color: PDF_COLORS.gray400,
         });
         y -= 10;
@@ -80,7 +81,7 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   y -= 6;
   drawRect(ctx, margin, y - 2, 3, 12, PDF_COLORS.navy);
   drawRect(ctx, margin + 3, y - 2, contentWidth - 3, 12, PDF_COLORS.gray100);
-  page.drawText('Próxima Inspeção', {
+  page.drawText(sanitizeTextForWinAnsi('Próxima Inspeção'), {
     x: margin + 8, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.navy,
   });
   y -= 16;
@@ -101,13 +102,13 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
 
   let detailY = y - 12;
   for (const detail of inspDetails) {
-    page.drawText(detail.label, {
+    page.drawText(sanitizeTextForWinAnsi(detail.label), {
       x: margin + 8, y: detailY, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
     });
     const labelText = detail.label;
     const labelWidth = fonts.helveticaBold.widthOfTextAtSize(labelText, 8);
     const value = truncateText(detail.value, fonts.helvetica, 8, contentWidth - labelWidth - 30);
-    page.drawText(value, {
+    page.drawText(sanitizeTextForWinAnsi(value), {
       x: margin + labelWidth + 14, y: detailY, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
     });
     detailY -= 10;
@@ -128,7 +129,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   const statusInfo = getStatusDisplay(technicalConclusion.conclusion);
   const statusColors = getStatusColors(statusInfo.color);
 
-  page.drawText('Conclusão:', {
+  page.drawText(sanitizeTextForWinAnsi('Conclusão:'), {
     x: margin, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
   });
 
@@ -140,14 +141,14 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
     x: badgeX, y: y - 2, width: badgeWidth, height: 14,
     color: statusColors.badgeBg,
   });
-  page.drawText(badgeText, {
+  page.drawText(sanitizeTextForWinAnsi(badgeText), {
     x: badgeX + 6, y: y, font: fonts.helveticaBold, size: 9, color: statusColors.text,
   });
   y -= 20;
 
   // Justification
   if (technicalConclusion.justification) {
-    page.drawText('Justificativa:', {
+    page.drawText(sanitizeTextForWinAnsi('Justificativa:'), {
       x: margin, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
     });
     y -= 14;
@@ -168,13 +169,13 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
 
   // Restrictions
   if (technicalConclusion.restrictions && technicalConclusion.restrictions.length > 0) {
-    page.drawText('Restrições de Operação:', {
+    page.drawText(sanitizeTextForWinAnsi('Restrições de Operação:'), {
       x: margin, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
     });
     y -= 14;
 
     for (const r of technicalConclusion.restrictions) {
-      page.drawText('⚠', {
+      page.drawText(sanitizeTextForWinAnsi('⚠'), {
         x: margin + 4, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.red500,
       });
       y = drawWrappedText(ctx, r, margin + 18, y, contentWidth - 18, {
@@ -205,7 +206,7 @@ function drawWrappedText(
     const testLine = line + (line ? ' ' : '') + word;
     const width = options.font.widthOfTextAtSize(testLine, options.size);
     if (width > maxWidth && line) {
-      page.drawText(line, { x, y: currentY, font: options.font, size: options.size, color: options.color });
+      page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font: options.font, size: options.size, color: options.color });
       currentY -= options.size * 1.3;
       line = word;
       if (currentY < ctx.margin) {
@@ -218,7 +219,7 @@ function drawWrappedText(
     }
   }
   if (line) {
-    page.drawText(line, { x, y: currentY, font: options.font, size: options.size, color: options.color });
+    page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font: options.font, size: options.size, color: options.color });
     currentY -= options.size * 1.3;
   }
   return currentY;

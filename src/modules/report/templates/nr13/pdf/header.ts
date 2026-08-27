@@ -8,6 +8,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawRect, drawLine, formatDateBR } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 /**
  * Draw the full institutional header (first content page).
@@ -33,7 +34,7 @@ export function drawHeaderPdf(
     height: 30,
     color: PDF_COLORS.navy,
   });
-  page.drawText('ES', {
+  page.drawText(sanitizeTextForWinAnsi('ES'), {
     x: margin + 8,
     y: y - 22,
     font: fonts.helveticaBold,
@@ -42,14 +43,14 @@ export function drawHeaderPdf(
   });
 
   // Company name + tagline
-  page.drawText(company.name, {
+  page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin + 38,
     y: y - 14,
     font: fonts.helveticaBold,
     size: 12,
     color: PDF_COLORS.navy,
   });
-  page.drawText(company.tagline, {
+  page.drawText(sanitizeTextForWinAnsi(company.tagline), {
     x: margin + 38,
     y: y - 26,
     font: fonts.helvetica,
@@ -68,7 +69,7 @@ export function drawHeaderPdf(
   // ============================================================
   const titleText = 'LAUDO TÉCNICO DE INSPEÇÃO';
   const titleWidth = fonts.helveticaBold.widthOfTextAtSize(titleText, 14);
-  page.drawText(titleText, {
+  page.drawText(sanitizeTextForWinAnsi(titleText), {
     x: margin + (contentWidth - titleWidth) / 2,
     y,
     font: fonts.helveticaBold,
@@ -93,7 +94,7 @@ export function drawHeaderPdf(
     height: 14,
     color: PDF_COLORS.navy,
   });
-  page.drawText(nr13Text, {
+  page.drawText(sanitizeTextForWinAnsi(nr13Text), {
     x: subX + 6,
     y,
     font: fonts.helveticaBold,
@@ -102,7 +103,7 @@ export function drawHeaderPdf(
   });
 
   // Equipment type
-  page.drawText(equipType, {
+  page.drawText(sanitizeTextForWinAnsi(equipType), {
     x: subX + nr13Width + 20,
     y,
     font: fonts.helvetica,
@@ -132,14 +133,14 @@ export function drawHeaderPdf(
   for (let i = 0; i < zone3Items.length; i++) {
     const item = zone3Items[i];
     const colX = margin + i * colWidth;
-    page.drawText(item.label, {
+    page.drawText(sanitizeTextForWinAnsi(item.label), {
       x: colX,
       y: zone3Y,
       font: fonts.helveticaBold,
       size: 7,
       color: PDF_COLORS.gray400,
     });
-    page.drawText(item.value, {
+    page.drawText(sanitizeTextForWinAnsi(item.value), {
       x: colX,
       y: zone3Y - 12,
       font: fonts.helveticaBold,
@@ -177,7 +178,7 @@ export function drawHeaderPdf(
     const item = bandItems[i];
     const colX = margin + i * bandColWidth + 8;
 
-    page.drawText(item.label, {
+    page.drawText(sanitizeTextForWinAnsi(item.label), {
       x: colX,
       y: y - 10,
       font: fonts.helveticaBold,
@@ -192,7 +193,7 @@ export function drawHeaderPdf(
     }
     if (displayValue !== item.value) displayValue += '…';
 
-    page.drawText(displayValue, {
+    page.drawText(sanitizeTextForWinAnsi(displayValue), {
       x: colX,
       y: y - 22,
       font: fonts.helveticaBold,
@@ -231,7 +232,7 @@ export function drawCompactHeaderPdf(
     height: 22,
     color: PDF_COLORS.navy,
   });
-  page.drawText('ES', {
+  page.drawText(sanitizeTextForWinAnsi('ES'), {
     x: margin + 5,
     y: y - 16,
     font: fonts.helveticaBold,
@@ -240,7 +241,7 @@ export function drawCompactHeaderPdf(
   });
 
   // Company name
-  page.drawText(company.name, {
+  page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin + 28,
     y: y - 10,
     font: fonts.helveticaBold,
@@ -251,7 +252,7 @@ export function drawCompactHeaderPdf(
   // Center: report title
   const centerTitle = `Laudo Técnico ${identification.reportNumber}`;
   const centerTitleWidth = fonts.helvetica.widthOfTextAtSize(centerTitle, 9);
-  page.drawText(centerTitle, {
+  page.drawText(sanitizeTextForWinAnsi(centerTitle), {
     x: margin + (contentWidth - centerTitleWidth) / 2,
     y: y - 10,
     font: fonts.helvetica,
@@ -260,7 +261,7 @@ export function drawCompactHeaderPdf(
   });
   const centerSub = `NR-13 — v${identification.version}`;
   const centerSubWidth = fonts.helvetica.widthOfTextAtSize(centerSub, 8);
-  page.drawText(centerSub, {
+  page.drawText(sanitizeTextForWinAnsi(centerSub), {
     x: margin + (contentWidth - centerSubWidth) / 2,
     y: y - 22,
     font: fonts.helvetica,
@@ -271,7 +272,7 @@ export function drawCompactHeaderPdf(
   // Right: page number
   const pageText = `${pageNumber} / ${totalPages}`;
   const pageTextWidth = fonts.helvetica.widthOfTextAtSize(pageText, 9);
-  page.drawText(pageText, {
+  page.drawText(sanitizeTextForWinAnsi(pageText), {
     x: margin + contentWidth - pageTextWidth,
     y: y - 10,
     font: fonts.helvetica,

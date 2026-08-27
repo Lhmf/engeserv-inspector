@@ -6,6 +6,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   const { page, margin, contentWidth, fonts, report } = ctx;
@@ -15,11 +16,11 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   y = drawSectionTitle(ctx, 12, 'RESPONSABILIDADE TÉCNICA', y);
 
   // Intro text
-  page.drawText('O presente laudo técnico é de responsabilidade dos profissionais abaixo assinados,', {
+  page.drawText(sanitizeTextForWinAnsi('O presente laudo técnico é de responsabilidade dos profissionais abaixo assinados,'), {
     x: margin, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
   });
   y -= 10;
-  page.drawText('conforme legislação vigente e normas técnicas aplicáveis.', {
+  page.drawText(sanitizeTextForWinAnsi('conforme legislação vigente e normas técnicas aplicáveis.'), {
     x: margin, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
   });
   y -= 16;
@@ -68,7 +69,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     });
 
     // Role
-    page.drawText(block.role, {
+    page.drawText(sanitizeTextForWinAnsi(block.role), {
       x: blockX, y: y - 14, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
     });
 
@@ -77,23 +78,23 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
 
     // Name
     if (isSigned) {
-      page.drawText(block.name, {
+      page.drawText(sanitizeTextForWinAnsi(block.name), {
         x: blockX + 6, y: y - 52, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray800,
       });
     } else {
-      page.drawText('______________________________________', {
+      page.drawText(sanitizeTextForWinAnsi('______________________________________'), {
         x: blockX + 6, y: y - 52, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray400,
       });
     }
 
     // Title
-    page.drawText(block.title, {
+    page.drawText(sanitizeTextForWinAnsi(block.title), {
       x: blockX + 6, y: y - 62, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
 
     // Registration
     if (block.registration) {
-      page.drawText(block.registration, {
+      page.drawText(sanitizeTextForWinAnsi(block.registration), {
         x: blockX + 6, y: y - 70, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray600,
       });
     }
@@ -102,7 +103,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     const dateText = isSigned && block.signature?.signedAt
       ? `Data: ${formatDateBR(block.signature.signedAt)}`
       : 'Data: ____/____/________';
-    page.drawText(dateText, {
+    page.drawText(sanitizeTextForWinAnsi(dateText), {
       x: blockX + 6, y: y - 78, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });
 
@@ -112,7 +113,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
         x: blockX + blockWidth - 50, y: y - 14, width: 44, height: 10,
         color: PDF_COLORS.green100,
       });
-      page.drawText('✓ Assinado', {
+      page.drawText(sanitizeTextForWinAnsi('✓ Assinado'), {
         x: blockX + blockWidth - 48, y: y - 12, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
       });
     } else {
@@ -120,7 +121,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
         x: blockX + blockWidth - 40, y: y - 14, width: 34, height: 10,
         color: PDF_COLORS.gray100,
       });
-      page.drawText('Pendente', {
+      page.drawText(sanitizeTextForWinAnsi('Pendente'), {
         x: blockX + blockWidth - 38, y: y - 12, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
       });
     }
@@ -141,7 +142,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     });
 
     const artX = (ctx.pageWidth - fonts.helveticaBold.widthOfTextAtSize(fullArtText, 8)) / 2;
-    page.drawText(fullArtText, {
+    page.drawText(sanitizeTextForWinAnsi(fullArtText), {
       x: artX, y: y, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
     });
     y -= 14;

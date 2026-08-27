@@ -10,6 +10,7 @@ import {
   PDF_COLORS, drawText, drawRect, drawLine,
   formatDateLong, getStatusDisplay, getStatusColors,
 } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 export function drawCoverPdf(ctx: PdfRenderingContext): void {
   const { page, pageWidth, pageHeight, margin, contentWidth, fonts, report, company } = ctx;
@@ -32,7 +33,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     borderWidth: 1,
     opacity: 0.5,
   });
-  page.drawText('ES', {
+  page.drawText(sanitizeTextForWinAnsi('ES'), {
     x: margin + 14,
     y: pageHeight - 58,
     font: fonts.helveticaBold,
@@ -41,14 +42,14 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   });
 
   // Company name
-  page.drawText(company.name, {
+  page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin + 60,
     y: pageHeight - 45,
     font: fonts.helveticaBold,
     size: 16,
     color: PDF_COLORS.white,
   });
-  page.drawText(company.tagline, {
+  page.drawText(sanitizeTextForWinAnsi(company.tagline), {
     x: margin + 60,
     y: pageHeight - 60,
     font: fonts.helvetica,
@@ -57,7 +58,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   });
 
   // Document type
-  page.drawText('DOCUMENTO TÉCNICO', {
+  page.drawText(sanitizeTextForWinAnsi('DOCUMENTO TÉCNICO'), {
     x: pageWidth - margin - fonts.helvetica.widthOfTextAtSize('DOCUMENTO TÉCNICO', 9),
     y: pageHeight - 50,
     font: fonts.helvetica,
@@ -71,7 +72,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   let y = pageHeight - brandBarHeight - 80;
 
   // Title
-  page.drawText('LAUDO TÉCNICO', {
+  page.drawText(sanitizeTextForWinAnsi('LAUDO TÉCNICO'), {
     x: margin,
     y,
     font: fonts.helveticaBold,
@@ -79,7 +80,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     color: PDF_COLORS.navy,
   });
   y -= 38;
-  page.drawText('DE INSPEÇÃO', {
+  page.drawText(sanitizeTextForWinAnsi('DE INSPEÇÃO'), {
     x: margin,
     y,
     font: fonts.helveticaBold,
@@ -99,7 +100,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     height: 30,
     color: PDF_COLORS.navy,
   });
-  page.drawText(badgeText, {
+  page.drawText(sanitizeTextForWinAnsi(badgeText), {
     x: badgeX + 20,
     y: y,
     font: fonts.helveticaBold,
@@ -135,34 +136,34 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
 
   // Column 1
   let leftY = y;
-  page.drawText('LAUDO N°', { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
+  page.drawText(sanitizeTextForWinAnsi('LAUDO N°'), { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
   leftY -= 14;
-  page.drawText(identification.reportNumber, { x: col1X, y: leftY, font: fonts.courierBold, size: valueSize, color: PDF_COLORS.navy });
+  page.drawText(sanitizeTextForWinAnsi(identification.reportNumber), { x: col1X, y: leftY, font: fonts.courierBold, size: valueSize, color: PDF_COLORS.navy });
   leftY -= 28;
-  page.drawText('CLIENTE', { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
+  page.drawText(sanitizeTextForWinAnsi('CLIENTE'), { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
   leftY -= 14;
   const clientLines = wrapText(client.name, fonts.helvetica, valueSize, contentWidth / 2 - 10);
   for (const line of clientLines) {
-    page.drawText(line, { x: col1X, y: leftY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
+    page.drawText(sanitizeTextForWinAnsi(line), { x: col1X, y: leftY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
     leftY -= 16;
   }
 
   // Column 2
   let rightY = y;
-  page.drawText('DATA DA INSPEÇÃO', { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
+  page.drawText(sanitizeTextForWinAnsi('DATA DA INSPEÇÃO'), { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
   rightY -= 14;
-  page.drawText(formatDateLong(identification.inspectionDate), { x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
+  page.drawText(sanitizeTextForWinAnsi(formatDateLong(identification.inspectionDate)), { x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
   rightY -= 28;
-  page.drawText('EQUIPAMENTO', { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
+  page.drawText(sanitizeTextForWinAnsi('EQUIPAMENTO'), { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
   rightY -= 14;
-  page.drawText(`${equipment.tag} — ${equipment.type.replace(/_/g, ' ')}`, {
+  page.drawText(sanitizeTextForWinAnsi(`${equipment.tag} — ${equipment.type.replace(/_/g, ' ')}`), {
     x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800,
   });
   rightY -= 20;
   if (equipment.description) {
     const descLines = wrapText(equipment.description, fonts.helvetica, 9, contentWidth / 2 - 10);
     for (const line of descLines) {
-      page.drawText(line, { x: col2X, y: rightY, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500 });
+      page.drawText(sanitizeTextForWinAnsi(line), { x: col2X, y: rightY, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500 });
       rightY -= 12;
     }
   }
@@ -190,7 +191,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   });
 
   // Status label
-  page.drawText('STATUS GERAL DO EQUIPAMENTO', {
+  page.drawText(sanitizeTextForWinAnsi('STATUS GERAL DO EQUIPAMENTO'), {
     x: statusBlockX,
     y: y - 16,
     font: fonts.helveticaBold,
@@ -214,7 +215,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     borderColor: statusColors.border,
     borderWidth: 1,
   });
-  page.drawText(statusInfo.label, {
+  page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
     x: statusBadgeX + statusBadgePadX,
     y: badgeY + 8,
     font: fonts.helveticaBold,
@@ -235,18 +236,18 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     color: PDF_COLORS.navy,
   });
 
-  page.drawText(company.name, {
+  page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin, y: coverFooterY,
     font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
   });
   if (company.cnpj) {
-    page.drawText(`CNPJ: ${company.cnpj}`, {
+    page.drawText(sanitizeTextForWinAnsi(`CNPJ: ${company.cnpj}`), {
       x: margin + 200, y: coverFooterY,
       font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
     });
   }
   if (company.address) {
-    page.drawText(company.address, {
+    page.drawText(sanitizeTextForWinAnsi(company.address), {
       x: margin + 380, y: coverFooterY,
       font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
     });
@@ -258,7 +259,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   if (company.email) contactParts.push(`Email: ${company.email}`);
   if (company.website) contactParts.push(company.website);
   if (contactParts.length > 0) {
-    page.drawText(contactParts.join('   |   '), {
+    page.drawText(sanitizeTextForWinAnsi(contactParts.join('   |   ')), {
       x: margin, y: contactY,
       font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });

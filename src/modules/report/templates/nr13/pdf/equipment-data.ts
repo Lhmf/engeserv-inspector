@@ -6,6 +6,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawSectionTitle, drawRect, drawLine } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 interface TableRow {
   label: string;
@@ -62,7 +63,7 @@ function drawTableGroup(
   const { page, margin, contentWidth, fonts } = ctx;
 
   // Table group title
-  page.drawText(title, {
+  page.drawText(sanitizeTextForWinAnsi(title), {
     x: margin + 6,
     y,
     font: fonts.helveticaBold,
@@ -118,19 +119,19 @@ function drawTableRow2Col(
   });
 
   // Label 1
-  page.drawText(truncateText(label1, fonts.helveticaBold, 8, halfWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, 8, halfWidth - 8)), {
     x: margin + 4, y: y + 2, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
   });
   // Value 1
-  page.drawText(truncateText(value1, fonts.helvetica, 9, halfWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(value1, fonts.helvetica, 9, halfWidth - 8)), {
     x: margin + halfWidth + 4, y: y + 2, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
   });
   // Label 2
-  page.drawText(truncateText(label2, fonts.helveticaBold, 8, halfWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 8, halfWidth - 8)), {
     x: margin + halfWidth + 4, y: y - 12, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
   });
   // Value 2
-  page.drawText(truncateText(value2, fonts.helvetica, 9, halfWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(value2, fonts.helvetica, 9, halfWidth - 8)), {
     x: margin + 4, y: y - 12, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
   });
 }
@@ -155,11 +156,11 @@ function drawTableRowFull(
   });
 
   // Label
-  page.drawText(truncateText(label, fonts.helveticaBold, 8, labelWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, 8, labelWidth - 8)), {
     x: margin + 4, y: y + 2, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
   });
   // Value
-  page.drawText(truncateText(value, fonts.helvetica, 9, valueWidth - 8), {
+  page.drawText(sanitizeTextForWinAnsi(truncateText(value, fonts.helvetica, 9, valueWidth - 8)), {
     x: margin + labelWidth + 4, y: y + 2, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
   });
 }

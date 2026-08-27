@@ -7,6 +7,7 @@
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR } from './context';
 import { addNewPage } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 const PHOTOS_PER_PAGE = 4;
 
@@ -18,7 +19,7 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
   y = drawSectionTitle(ctx, 8, 'REGISTRO FOTOGRÁFICO', y);
 
   if (!photos || photos.length === 0) {
-    page.drawText('Nenhum registro fotográfico disponível para esta inspeção.', {
+    page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotográfico disponível para esta inspeção.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     return y - 20;
@@ -27,7 +28,8 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
   const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
 
   // Intro text
-  page.drawText(`Total de ${photos.length} registro(s) fotográfico(s) ${totalPages > 1 ? `distribuídos em ${totalPages} páginas` : ''}.`, {
+  const introText = `Total de ${photos.length} registro(s) fotografico(s)${totalPages > 1 ? ` distribuidos em ${totalPages} paginas` : ''}.`;
+  page.drawText(sanitizeTextForWinAnsi(introText), {
     x: margin, y, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
   });
   y -= 16;
@@ -48,7 +50,7 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
 
       // Page continuation label
       const pageIdx = Math.floor(i / PHOTOS_PER_PAGE);
-      page.drawText(`Continuação — Página ${pageIdx + 1} de ${totalPages}`, {
+      page.drawText(sanitizeTextForWinAnsi(`Continuação — Página ${pageIdx + 1} de ${totalPages}`), {
         x: margin, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray400,
       });
       drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, PDF_COLORS.gray200);
@@ -71,11 +73,11 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
     drawRect(ctx, cardX, cardCurrentY - 50, cardWidth, 50, PDF_COLORS.gray100);
 
     // Camera icon placeholder
-    page.drawText('📷', {
+    page.drawText(sanitizeTextForWinAnsi('📷'), {
       x: cardX + cardWidth / 2 - 8, y: cardCurrentY - 35,
       font: fonts.helvetica, size: 16, color: PDF_COLORS.gray400,
     });
-    page.drawText(`Foto ${photoIdx}`, {
+    page.drawText(sanitizeTextForWinAnsi(`Foto ${photoIdx}`), {
       x: cardX + cardWidth / 2 - 15, y: cardCurrentY - 20,
       font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
     });
@@ -84,7 +86,7 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
     const infoY = cardCurrentY - 58;
 
     // Photo number
-    page.drawText(`Foto ${photoIdx}`, {
+    page.drawText(sanitizeTextForWinAnsi(`Foto ${photoIdx}`), {
       x: cardX + 6, y: infoY,
       font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
     });
@@ -96,19 +98,19 @@ export function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): numbe
       x: cardX + cardWidth - catWidth - 4, y: infoY - 2, width: catWidth, height: 10,
       color: PDF_COLORS.gray100,
     });
-    page.drawText(catText, {
+    page.drawText(sanitizeTextForWinAnsi(catText), {
       x: cardX + cardWidth - catWidth, y: infoY, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray500,
     });
 
     // Description
     const desc = truncateText(photo.caption || 'Sem descrição', fonts.helvetica, 8, cardWidth - 12);
-    page.drawText(desc, {
+    page.drawText(sanitizeTextForWinAnsi(desc), {
       x: cardX + 6, y: infoY - 14, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
     });
 
     // Date
     if (photo.takenAt) {
-      page.drawText(`📅 ${formatDateBR(photo.takenAt)}`, {
+      page.drawText(sanitizeTextForWinAnsi(`📅 ${formatDateBR(photo.takenAt)}`), {
         x: cardX + 6, y: infoY - 24, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
       });
     }

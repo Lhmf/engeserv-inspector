@@ -6,6 +6,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawLine } from './context';
+import { sanitizeTextForWinAnsi } from './context';
 
 /**
  * Draw the standardized footer on the current page.
@@ -26,7 +27,7 @@ export function drawFooterPdf(
 
   // Left: company name | document
   const leftText = `${company.name} | ${identification.reportNumber} — v${identification.version}`;
-  page.drawText(leftText, {
+  page.drawText(sanitizeTextForWinAnsi(leftText), {
     x: margin, y: footerY,
     font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
   });
@@ -36,7 +37,7 @@ export function drawFooterPdf(
   const statusText = identification.status ? ` | ${identification.status}` : '';
   const rightText = pageText + statusText;
   const rightWidth = fonts.helvetica.widthOfTextAtSize(rightText, 7);
-  page.drawText(rightText, {
+  page.drawText(sanitizeTextForWinAnsi(rightText), {
     x: pageWidth - margin - rightWidth, y: footerY,
     font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
   });
@@ -65,7 +66,7 @@ export function stampAllFooters(
 
     // Left
     const leftText = `${ctx.company.name} | ${ctx.report.identification.reportNumber} — v${ctx.report.identification.version}`;
-    page.drawText(leftText, {
+    page.drawText(sanitizeTextForWinAnsi(leftText), {
       x: ctx.margin, y: footerY,
       font: ctx.fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });
@@ -75,7 +76,7 @@ export function stampAllFooters(
     const statusText = ctx.report.identification.status ? ` | ${ctx.report.identification.status}` : '';
     const rightText = pageText + statusText;
     const rightWidth = ctx.fonts.helvetica.widthOfTextAtSize(rightText, 7);
-    page.drawText(rightText, {
+    page.drawText(sanitizeTextForWinAnsi(rightText), {
       x: ctx.pageWidth - ctx.margin - rightWidth, y: footerY,
       font: ctx.fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });
