@@ -26,6 +26,9 @@ import {
 interface SignaturePanelProps {
   signatures: TechnicalReport["signatures"];
   onSign: (action: string) => void;
+  reportStatus?: string;
+  manualSignatureMode?: boolean;
+  onToggleManualSignature?: () => void;
 }
 
 const roleConfig = {
@@ -35,15 +38,17 @@ const roleConfig = {
   QUALITY: { label: "Qualidade", icon: ShieldCheck, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200", desc: "Validou qualidade" },
 } as const;
 
-export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
+export function SignaturePanel({ signatures, onSign, reportStatus, manualSignatureMode, onToggleManualSignature }: SignaturePanelProps) {
   const requiredRoles = ["INSPECTOR", "ENGINEER", "MANAGER", "QUALITY"] as const;
   
   const getSignature = (role: keyof typeof roleConfig) => signatures[role.toLowerCase() as keyof typeof signatures];
   
-  const isComplete = requiredRoles.every(role => {
+  const isComplete = manualSignatureMode || requiredRoles.every(role => {
     const sig = signatures[role.toLowerCase() as keyof typeof signatures];
     return sig && typeof sig === 'object' && 'status' in sig && sig.status === "APPROVED";
   });
+  const canSubmitReview = !reportStatus || reportStatus === 'DRAFT';
+  const canPublish = isComplete && reportStatus !== 'PUBLISHED';
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -82,16 +87,16 @@ export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-slate-700">Progresso</span>
           <span className="text-sm text-slate-500">
-            {requiredRoles.filter(r => {
+            {manualSignatureMode ? '4/4 (manual)' : `${requiredRoles.filter(r => {
               const sig = signatures[r.toLowerCase() as keyof typeof signatures];
               return sig && typeof sig === 'object' && 'status' in sig && sig.status === "APPROVED";
-            }).length} / 4 assinaturas
+            }).length} / 4 assinaturas`}
           </span>
         </div>
         <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
           <div 
             className="h-full bg-gradient-to-r from-navy to-emerald transition-all duration-300"
-            style={{ width: `${(requiredRoles.filter(r => {
+            style={{ width: manualSignatureMode ? '100%' : `${(requiredRoles.filter(r => {
               const sig = signatures[r.toLowerCase() as keyof typeof signatures];
               return sig && typeof sig === 'object' && 'status' in sig && sig.status === "APPROVED";
             }).length / 4) * 100}%` }}
@@ -226,6 +231,21 @@ export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
 
       {/* Summary Actions */}
       <div className="p-4 border-t border-slate-200 bg-slate-50 rounded-b-xl">
+        {/* Manual Signature Toggle */}
+        <div className="flex items-center gap-3 mb-3 p-3 bg-white rounded-lg border border-slate-200">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!!manualSignatureMode}
+              onChange={() => onToggleManualSignature?.()}
+              className="w-4 h-4 rounded border-slate-300 text-navy focus:ring-navy"
+            />
+            <span className="text-sm font-medium text-slate-700">Assinatura Manual (a caneta)</span>
+          </label>
+          <span className="text-xs text-slate-400 ml-auto">
+            Marca todas as assinaturas como concluídas
+          </span>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onSign("save-draft")}
@@ -235,27 +255,29 @@ export function SignaturePanel({ signatures, onSign }: SignaturePanelProps) {
           </button>
           <button
             onClick={() => onSign("submit-review")}
-            className="flex-1 sm:flex-none px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy/90 transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canSubmitReview}
           >
             Enviar para Revisão
           </button>
           <button
             onClick={() => onSign("approve-report")}
-            className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
-            disabled={!isComplete}
+            className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!isComplete || reportStatus === 'PUBLISHED'}
           >
             Aprovar Laudo
           </button>
           <button
             onClick={() => onSign("reject-report")}
-            className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={reportStatus === 'PUBLISHED'}
           >
             Rejeitar
           </button>
           <button
             onClick={() => onSign("publish-report")}
-            className="flex-1 sm:flex-none px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
-            disabled={!isComplete}
+            className="flex-1 sm:flex-none px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canPublish}
           >
             Publicar
           </button>

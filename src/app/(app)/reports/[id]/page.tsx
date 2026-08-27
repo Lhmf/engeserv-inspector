@@ -129,6 +129,7 @@ export default function ReportPage() {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isDownloadingData, setIsDownloadingData] = useState(false);
   const [workflowAction, setWorkflowAction] = useState<{ loading: boolean; stepId: string | null }>({ loading: false, stepId: null });
+  const [manualSignatureMode, setManualSignatureMode] = useState(false);
 
   useEffect(() => {
     loadReport();
@@ -299,6 +300,22 @@ export default function ReportPage() {
           setWorkflowAction({ loading: true, stepId });
     
           try {
+            // Prevent redundant transitions (e.g., already UNDER_REVIEW → UNDER_REVIEW)
+            const currentStatus = report?.identification?.status;
+            const targetStatusMap: Record<string, string | null> = {
+              "draft": "UNDER_REVIEW",
+              "review": null,
+              "validation": "APPROVED",
+              "approval": "PUBLISHED",
+              "published": null,
+            };
+            const targetStatus = targetStatusMap[stepId];
+            if (targetStatus && targetStatus === currentStatus) {
+              alert(`O laudo já está no status "${statusLabel[currentStatus] || currentStatus}".`);
+              setWorkflowAction({ loading: false, stepId: null });
+              return;
+            }
+
             // Mapear workflow step para status do TechnicalReport
             // A máquina de estados real é: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED
             // A UI tem 5 passos visuais, mas o backend só tem 4 status reais.
@@ -444,6 +461,10 @@ export default function ReportPage() {
                 break;
 
               case "submit-review":
+                if (report.identification.status !== "DRAFT") {
+                  alert(`O laudo já está em "${statusLabel[report.identification.status] || report.identification.status}".`);
+                  return;
+                }
                 await handleWorkflowAction("complete-draft");
                 break;
 
@@ -561,13 +582,13 @@ export default function ReportPage() {
                 <div className="w-px h-6 bg-slate-200" />
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wider">Laudo Técnico</p>
-                  <p className="font-mono font-semibold text-slate-800">{report.identification.reportNumber}</p>
+                  <p className="font-mono font-semibold text-slate-800">{report.identification?.reportNumber || '—'}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                               <span className="hidden sm:block px-3 py-1 bg-slate-100 text-slate-700 text-sm font-medium rounded-full">
-                                v{report.identification.version}
+                                v{report.identification?.version || 1}
                               </span>
                               <button
                                                                                             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
@@ -600,8 +621,8 @@ export default function ReportPage() {
                     <p className="text-navy-200 text-sm">Laudo Técnico de Inspeção</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-mono text-lg font-bold">{report.identification.reportNumber}</p>
-                    <p className="text-navy-200 text-xs">Versão {report.identification.version}</p>
+                    <p className="text-white font-mono text-lg font-bold">{report.identification?.reportNumber || '—'}</p>
+                    <p className="text-navy-200 text-xs">Versão {report.identification?.version || 1}</p>
                   </div>
                 </div>
 
@@ -611,30 +632,30 @@ export default function ReportPage() {
                     <Badge
                       variant="outline"
                       className={cn(
-                        report.identification.status === "PUBLISHED"
+                        report.identification?.status === "PUBLISHED"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : report.identification.status === "APPROVED"
+                          : report.identification?.status === "APPROVED"
                           ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : report.identification.status === "UNDER_REVIEW"
+                          : report.identification?.status === "UNDER_REVIEW"
                           ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : report.identification.status === "REJECTED"
+                          : report.identification?.status === "REJECTED"
                           ? "bg-rose-50 text-rose-700 border-rose-200"
                           : "bg-slate-100 text-slate-600 border-slate-200"
                       )}
                     >
-                      {statusLabel[report.identification.status] || report.identification.status}
+                      {statusLabel[report.identification?.status || ''] || report.identification?.status || '—'}
                     </Badge>
                     <span className="px-3 py-1 bg-navy/10 text-navy text-sm font-medium rounded-lg">
-                      {report.identification.type}
+                      {report.identification?.type || '—'}
                     </span>
-                    {report.identification.artNumber && (
+                    {report.identification?.artNumber && (
                       <span className="text-xs text-slate-500">ART: {report.identification.artNumber}</span>
                     )}
                   </div>
                   <div className="text-sm text-slate-500">
-                    Emissão: {report.identification.issuedAt
+                    Emissão: {report.identification?.issuedAt
                       ? formatDate(report.identification.issuedAt)
-                      : formatDate(report.identification.createdAt)}
+                      : formatDate(report.identification?.createdAt)}
                   </div>
                 </div>
 
@@ -646,15 +667,15 @@ export default function ReportPage() {
                       <Building2 className="w-5 h-5 text-navy" />
                       <h3 className="font-semibold text-slate-800">Cliente</h3>
                     </div>
-                    <p className="text-slate-900 font-medium">{report.client.name}</p>
-                    {report.client.cnpj && <p className="text-sm text-slate-500">CNPJ: {report.client.cnpj}</p>}
-                    {report.client.address && <p className="text-sm text-slate-500 mt-1">{report.client.address}</p>}
-                    {report.client.city && report.client.state && (
+                    <p className="text-slate-900 font-medium">{report.client?.name || '—'}</p>
+                    {report.client?.cnpj && <p className="text-sm text-slate-500">CNPJ: {report.client.cnpj}</p>}
+                    {report.client?.address && <p className="text-sm text-slate-500 mt-1">{report.client.address}</p>}
+                    {report.client?.city && report.client?.state && (
                       <p className="text-sm text-slate-500">
                         {report.client.city}, {report.client.state}
                       </p>
                     )}
-                    {report.client.responsibleTechnicalName && (
+                    {report.client?.responsibleTechnicalName && (
                       <p className="text-xs text-slate-500 mt-2">
                         Resp. Técnico: {report.client.responsibleTechnicalName}
                       </p>
@@ -668,31 +689,31 @@ export default function ReportPage() {
                       <h3 className="font-semibold text-slate-800">Equipamento</h3>
                     </div>
                     <p className="text-slate-900 font-medium">
-                      {report.equipment.tag} — {report.equipment.type.replace(/_/g, " ")}
+                      {report.equipment?.tag || '—'} — {(report.equipment?.type || '').replace(/_/g, " ")}
                     </p>
-                    {report.equipment.description && (
+                    {report.equipment?.description && (
                       <p className="text-sm text-slate-600 mt-1">{report.equipment.description}</p>
                     )}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                      {report.equipment.manufacturer && (
+                      {report.equipment?.manufacturer && (
                         <>
                           <span>Fabricante:</span>
                           <span className="text-slate-700">{report.equipment.manufacturer}</span>
                         </>
                       )}
-                      {report.equipment.serialNumber && (
+                      {report.equipment?.serialNumber && (
                         <>
                           <span>N/S:</span>
                           <span className="text-slate-700">{report.equipment.serialNumber}</span>
                         </>
                       )}
-                      {report.equipment.manufactureYear && (
+                      {report.equipment?.manufactureYear && (
                         <>
                           <span>Ano fab.:</span>
                           <span className="text-slate-700">{report.equipment.manufactureYear}</span>
                         </>
                       )}
-                      {report.equipment.designCode && (
+                      {report.equipment?.designCode && (
                         <>
                           <span>Norma:</span>
                           <span className="text-slate-700">{report.equipment.designCode}</span>
@@ -710,15 +731,15 @@ export default function ReportPage() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                       <span className="text-slate-500">Tipo:</span>
                       <span className="text-slate-700 font-medium">
-                        {report.inspectionData.inspection.type || "PERIODICA"}
+                        {report.inspectionData?.inspection?.type || "PERIODICA"}
                       </span>
                       <span className="text-slate-500">Data:</span>
                       <span className="text-slate-700">
-                        {formatDate(report.identification.inspectionDate)}
+                        {formatDate(report.identification?.inspectionDate)}
                       </span>
                       <span className="text-slate-500">Inspetor:</span>
-                      <span className="text-slate-700">{report.identification.inspectorName}</span>
-                      {report.identification.engineerName && (
+                      <span className="text-slate-700">{report.identification?.inspectorName || '—'}</span>
+                      {report.identification?.engineerName && (
                         <>
                           <span className="text-slate-500">Engenheiro:</span>
                           <span className="text-slate-700">{report.identification.engineerName}</span>
@@ -729,7 +750,7 @@ export default function ReportPage() {
                 </div>
 
                 {/* Design Parameters (collapsible) */}
-                <DesignParamsPanel equipment={report.equipment} />
+                <DesignParamsPanel equipment={report.equipment as any} />
               </div>
 
               {/* Report Body */}
@@ -746,14 +767,14 @@ export default function ReportPage() {
                 <div className="space-y-6">                   {activeSection === "resumo" && (
                     <ExecutiveSummary
                       report={report}
-                      onVerdictChange={report.identification.status !== "PUBLISHED" ? async (newStatus) => {
+                      onVerdictChange={report.identification?.status !== "PUBLISHED" ? async (newStatus) => {
                         try {
                           const updatedSummary = { ...report.executiveSummary, overallStatus: newStatus };
                           const response = await fetch(`/api/reports/${technicalReportId}`, {
                             method: "PATCH",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                              status: report.identification.status,
+                              status: report.identification?.status,
                               action: "update-verdict",
                               stepId: "verdict",
                               executiveSummary: updatedSummary,
@@ -776,26 +797,26 @@ export default function ReportPage() {
                   )}
                   {activeSection === "inspecao" && (
                     <InspectionDataCard
-                      inspection={report.inspectionData.inspection}
-                      equipment={report.inspectionData.equipment}
-                      client={report.inspectionData.client}
-                      stats={report.inspectionData.measurementStats}
+                      inspection={report.inspectionData?.inspection as any}
+                      equipment={report.inspectionData?.equipment as any}
+                      client={report.inspectionData?.client as any}
+                      stats={report.inspectionData?.measurementStats as any}
                     />
                   )}
                   {activeSection === "fotos" && (
-                    <Attachments photos={report.attachments.photos} documents={report.attachments.documents} />
+                    <Attachments photos={report.attachments?.photos || []} documents={report.attachments?.documents || []} />
                   )}
                   {activeSection === "medicoes" && (
                     <MeasurementTable
-                      measurements={report.inspectionData.measurements}
-                      stats={report.inspectionData.measurementStats}
+                      measurements={report.inspectionData?.measurements || []}
+                      stats={report.inspectionData?.measurementStats as any}
                     />
                   )}
                   {activeSection === "engenharia" && (
                     <EngineeringAnalysisCard
-                      analysis={report.engineeringResults.integrityAnalysis}
-                      calculations={report.engineeringResults.calculations}
-                      simulations={report.engineeringResults.simulations}
+                      analysis={report.engineeringResults?.integrityAnalysis as any}
+                      calculations={report.engineeringResults?.calculations || []}
+                      simulations={report.engineeringResults?.simulations as any}
                     />
                   )}
                   {activeSection === "conclusao" && <TechnicalConclusion conclusion={report.technicalConclusion} />}
@@ -803,17 +824,23 @@ export default function ReportPage() {
                     <Recommendations recommendations={report.recommendations} nextInspection={report.nextInspection} />
                   )}
                   {activeSection === "anexos" && (
-                    <Attachments photos={report.attachments.photos} documents={report.attachments.documents} />
+                    <Attachments photos={report.attachments?.photos || []} documents={report.attachments?.documents || []} />
                   )}
-                  {activeSection === "historico" && <HistoryTimeline history={report.history} />}
+                  {activeSection === "historico" && <HistoryTimeline history={report.history as any} />}
                   {activeSection === "assinaturas" && (
-                    <SignaturePanel signatures={report.signatures} onSign={handleSignAction} />
+                    <SignaturePanel
+                      signatures={report.signatures}
+                      onSign={handleSignAction}
+                      reportStatus={report.identification.status}
+                      manualSignatureMode={manualSignatureMode}
+                      onToggleManualSignature={() => setManualSignatureMode(!manualSignatureMode)}
+                    />
                   )}
                 </div>
 
                 {/* Footer */}
                 <div className="text-center text-xs text-slate-400 py-8 border-t border-slate-200">
-                  <p>EngeServ Inspector — Laudo Técnico {report.identification.reportNumber}</p>
+                  <p>EngeServ Inspector — Laudo Técnico {report.identification?.reportNumber || '—'}</p>
                   <p>
                     Gerado em {formatDate(new Date())} — Documento válido somente com assinatura do responsável
                     técnico
@@ -831,8 +858,9 @@ export default function ReportPage() {
 // ============================================
 // Design Parameters Panel
 // ============================================
-function DesignParamsPanel({ equipment }: { equipment: TechnicalReport["equipment"] }) {
+function DesignParamsPanel({ equipment }: { equipment: any }) {
   const [open, setOpen] = useState(false);
+  if (!equipment) return null;
 
   return (
     <div className="border-t border-slate-200">

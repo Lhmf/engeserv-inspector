@@ -40,7 +40,29 @@ export async function GET(
     }
 
     // Parse JSON fields and build TechnicalReport domain object
-    const report = parseTechnicalReport(technicalReport);
+    // Wrap in try/catch to handle incomplete inspection data gracefully
+    let report: TechnicalReport;
+    try {
+      report = parseTechnicalReport(technicalReport);
+    } catch (parseError: any) {
+      console.warn('Erro ao parsear TechnicalReport, usando dados parciais:', parseError.message);
+      // Return a minimal valid report structure to prevent PDF generation failure
+      report = parseTechnicalReport({
+        ...technicalReport,
+        inspection: technicalReport.inspection || {},
+        executiveSummary: technicalReport.executiveSummary || '{}',
+        inspectionData: technicalReport.inspectionData || JSON.stringify({
+          inspection: {}, equipment: {}, client: {}, measurements: [], photos: [],
+          measurementStats: { count: 0, minThicknessMm: 0, maxThicknessMm: 0, avgThicknessMm: 0, belowMinCount: 0, belowMinPercentage: 0 },
+        }),
+        engineeringResults: technicalReport.engineeringResults || '{}',
+        technicalConclusion: technicalReport.technicalConclusion || '{}',
+        recommendations: technicalReport.recommendations || '{}',
+        nextInspection: technicalReport.nextInspection || '{}',
+        attachments: technicalReport.attachments || '{}',
+        signatures: technicalReport.signatures || '{}',
+      });
+    }
 
     // Build PDF using the modular template
     const pdfBytes = await buildNr13Pdf(report, MOCK_COMPANY);

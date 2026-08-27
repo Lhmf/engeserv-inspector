@@ -46,6 +46,44 @@ export const PDF_COLORS = {
 } as const;
 
 // ============================================================
+// WINANSI TEXT SANITIZATION
+// ============================================================
+/**
+ * StandardFonts (Helvetica, Courier, etc.) only support WinAnsi encoding.
+ * Characters outside WinAnsi (em-dash, checkmarks, emojis, etc.) must be
+ * replaced with ASCII equivalents before drawing.
+ */
+export function sanitizeTextForWinAnsi(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\u2014/g, '-')    // em-dash → hyphen
+    .replace(/\u2013/g, '-')    // en-dash → hyphen
+    .replace(/\u2019/g, "'")   // right single quote
+    .replace(/\u2018/g, "'")   // left single quote
+    .replace(/\u201C/g, '"')   // left double quote
+    .replace(/\u201D/g, '"')   // right double quote
+    .replace(/\u2026/g, '...')  // ellipsis → three dots
+    .replace(/\u2713/g, '[OK]') // checkmark
+    .replace(/\u2717/g, '[X]')  // cross
+    .replace(/\u2714/g, '[OK]') // heavy checkmark
+    .replace(/\u2716/g, '[X]')  // heavy cross
+    .replace(/\u26A0/g, '!')    // warning sign
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // all emojis → remove
+}
+
+/**
+ * Wrap a PDFPage so that all drawText calls automatically sanitize
+ * text for WinAnsi encoding (StandardFonts).
+ */
+function wrapPageForWinAnsi(page: PDFPage): PDFPage {
+  const originalDrawText = page.drawText.bind(page);
+  (page as any).drawText = (text: string, options?: any) => {
+    return originalDrawText(sanitizeTextForWinAnsi(text), options);
+  };
+  return page;
+}
+
+// ============================================================
 // PDF RENDERING CONTEXT
 // ============================================================
 export interface PdfRenderingContext {
@@ -89,7 +127,15 @@ export async function createPdfContext(
   const margin = NR13_LAYOUT.margin;
   const contentWidth = pageWidth - 2 * margin;
 
-  const page = doc.addPage(pageSize);
+  // Wrap addPage to auto-sanitize all future pages
+  const originalAddPage = doc.addPage.bind(doc);
+  (doc as any).addPage = (arg?: any) => {
+    const newPage = originalAddPage(arg);
+    return wrapPageForWinAnsi(newPage);
+  };
+
+  // Wrap the initial page as well
+  const page = wrapPageForWinAnsi(originalAddPage(pageSize));
 
   return {
     doc,
