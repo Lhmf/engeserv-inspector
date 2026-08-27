@@ -16,7 +16,7 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   const { recommendations: recs } = report;
 
   // Section title
-  y = drawSectionTitle(ctx, 9, 'RECOMENDAÇÕES', y);
+  y = drawSectionTitle(ctx, 6, 'RECOMENDAÇÕES', y);
 
   const allSections = [
     { title: 'Ações Imediatas (Críticas)', items: recs.immediate, color: PDF_COLORS.red700, bgColor: PDF_COLORS.red50 },
@@ -123,7 +123,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   const { technicalConclusion } = report;
 
   // Section title
-  y = drawSectionTitle(ctx, 10, 'CONCLUSÃO TÉCNICA', y);
+  y = drawSectionTitle(ctx, 7, 'CONCLUSÃO TÉCNICA', y);
 
   // Conclusion status
   const statusInfo = getStatusDisplay(technicalConclusion.conclusion);

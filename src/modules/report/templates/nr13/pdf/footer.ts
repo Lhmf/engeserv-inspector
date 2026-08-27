@@ -32,10 +32,8 @@ export function drawFooterPdf(
     font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
   });
 
-  // Right: page number | status
-  const pageText = `Página ${pageNumber} de ${totalPages}`;
-  const statusText = identification.status ? ` | ${identification.status}` : '';
-  const rightText = pageText + statusText;
+  // Right: page number only (no internal status exposed to client)
+  const rightText = `Pagina ${pageNumber} de ${totalPages}`;
   const rightWidth = fonts.helvetica.widthOfTextAtSize(rightText, 7);
   page.drawText(sanitizeTextForWinAnsi(rightText), {
     x: pageWidth - margin - rightWidth, y: footerY,
@@ -71,10 +69,8 @@ export function stampAllFooters(
       font: ctx.fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });
 
-    // Right
-    const pageText = `Página ${i + 1} de ${totalPages}`;
-    const statusText = ctx.report.identification.status ? ` | ${ctx.report.identification.status}` : '';
-    const rightText = pageText + statusText;
+    // Right — page number only (no internal status exposed to client)
+    const rightText = `Pagina ${i + 1} de ${totalPages}`;
     const rightWidth = ctx.fonts.helvetica.widthOfTextAtSize(rightText, 7);
     page.drawText(sanitizeTextForWinAnsi(rightText), {
       x: ctx.pageWidth - ctx.margin - rightWidth, y: footerY,

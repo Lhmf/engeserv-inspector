@@ -67,7 +67,7 @@ export async function buildNr13Pdf(
   addNewPage(ctx);
   y = ctx.y;
   y = drawCompactHeaderPdf(ctx, 4, totalPages, y);
-  y = drawPhotoRegisterPdf(ctx, y);
+  y = await drawPhotoRegisterPdf(ctx, y);
 
   // ============================================================
   // PÁGINA 5 — CONCLUSÃO E ASSINATURAS

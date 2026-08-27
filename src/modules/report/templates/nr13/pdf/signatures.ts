@@ -13,7 +13,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   const { signatures, identification } = report;
 
   // Section title
-  y = drawSectionTitle(ctx, 12, 'RESPONSABILIDADE TÉCNICA', y);
+  y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TÉCNICA', y);
 
   // Intro text
   page.drawText(sanitizeTextForWinAnsi('O presente laudo técnico é de responsabilidade dos profissionais abaixo assinados,'), {
@@ -127,7 +127,7 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     }
   }
 
-  y -= blockHeight + 10;
+  y -= blockHeight + 20;
 
   // ART badge
   if (identification.artNumber) {

@@ -118,21 +118,19 @@ function drawTableRow2Col(
     thickness: 0.5, color: PDF_COLORS.gray200,
   });
 
-  // Label 1
+  // Left cell: Label 1 on top, Value 1 below
   page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, 8, halfWidth - 8)), {
     x: margin + 4, y: y + 2, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
   });
-  // Value 1
   page.drawText(sanitizeTextForWinAnsi(truncateText(value1, fonts.helvetica, 9, halfWidth - 8)), {
-    x: margin + halfWidth + 4, y: y + 2, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
-  });
-  // Label 2
-  page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 8, halfWidth - 8)), {
-    x: margin + halfWidth + 4, y: y - 12, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
-  });
-  // Value 2
-  page.drawText(sanitizeTextForWinAnsi(truncateText(value2, fonts.helvetica, 9, halfWidth - 8)), {
     x: margin + 4, y: y - 12, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
+  });
+  // Right cell: Label 2 on top, Value 2 below
+  page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 8, halfWidth - 8)), {
+    x: margin + halfWidth + 4, y: y + 2, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
+  });
+  page.drawText(sanitizeTextForWinAnsi(truncateText(value2, fonts.helvetica, 9, halfWidth - 8)), {
+    x: margin + halfWidth + 4, y: y - 12, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray800,
   });
 }
 

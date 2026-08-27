@@ -49,16 +49,20 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     color: statusColors.badgeBg,
   });
 
-  // Icon symbol
-  const iconSymbol = statusInfo.color === 'green' ? '✓' : statusInfo.color === 'yellow' ? '!' : '✗';
-  const iconSymWidth = fonts.helveticaBold.widthOfTextAtSize(iconSymbol, 16);
-  page.drawText(sanitizeTextForWinAnsi(iconSymbol), {
-    x: iconX - iconSymWidth / 2,
-    y: iconY - 6,
-    font: fonts.helveticaBold,
-    size: 16,
-    color: statusColors.text,
-  });
+  // Icon symbol — draw as vector shapes instead of Unicode text
+  if (statusInfo.color === 'green') {
+    // Checkmark: two lines forming a V shape
+    ctx.page.drawLine({ start: { x: iconX - 7, y: iconY }, end: { x: iconX - 2, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.green700 });
+    ctx.page.drawLine({ start: { x: iconX - 2, y: iconY - 6 }, end: { x: iconX + 8, y: iconY + 5 }, thickness: 2.5, color: PDF_COLORS.green700 });
+  } else if (statusInfo.color === 'red') {
+    // X mark: two crossing lines
+    ctx.page.drawLine({ start: { x: iconX - 6, y: iconY + 6 }, end: { x: iconX + 6, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.red700 });
+    ctx.page.drawLine({ start: { x: iconX + 6, y: iconY + 6 }, end: { x: iconX - 6, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.red700 });
+  } else {
+    // Exclamation: vertical line + dot
+    ctx.page.drawLine({ start: { x: iconX, y: iconY + 5 }, end: { x: iconX, y: iconY - 2 }, thickness: 2.5, color: PDF_COLORS.yellow700 });
+    ctx.page.drawCircle({ x: iconX, y: iconY - 6, size: 1.5, color: PDF_COLORS.yellow700 });
+  }
 
   // Status text
   const textX = margin + 55;
@@ -148,10 +152,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   const summaries = [
     { label: 'Pontos Medidos', value: String(stats.count), isDanger: false },
-    { label: 'Abaixo do Mínimo', value: String(stats.belowMinCount), isDanger: stats.belowMinCount > 0 },
-    { label: '% Abaixo Mínimo', value: `${stats.belowMinPercentage?.toFixed(1) || '0'}%`, isDanger: stats.belowMinPercentage > 0 },
-    { label: 'Margem sobre Mínimo',
-      value: equipment.minThicknessMm ? `${((stats.minThicknessMm - equipment.minThicknessMm) / equipment.minThicknessMm * 100).toFixed(1)}%` : '—',
+    { label: 'Abaixo do Min.', value: String(stats.belowMinCount), isDanger: stats.belowMinCount > 0 },
+    { label: '% Abaixo Min.', value: `${stats.belowMinPercentage?.toFixed(1) || '0'}%`, isDanger: (stats.belowMinPercentage || 0) > 0 },
+    { label: 'Margem s/ Minimo',
+      value: equipment.minThicknessMm && stats.minThicknessMm ? `${Math.max(0, (stats.minThicknessMm - equipment.minThicknessMm) / equipment.minThicknessMm * 100).toFixed(1)}%` : '—',
       isDanger: false },
   ];
 

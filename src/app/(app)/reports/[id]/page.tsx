@@ -304,8 +304,8 @@ export default function ReportPage() {
             const currentStatus = report?.identification?.status;
             const targetStatusMap: Record<string, string | null> = {
               "draft": "UNDER_REVIEW",
-              "review": null,
-              "validation": "APPROVED",
+              "review": "APPROVED",
+              "validation": "PUBLISHED",
               "approval": "PUBLISHED",
               "published": null,
             };
@@ -318,14 +318,13 @@ export default function ReportPage() {
 
             // Mapear workflow step para status do TechnicalReport
             // A máquina de estados real é: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED
-            // A UI tem 5 passos visuais, mas o backend só tem 4 status reais.
-            // O passo "review" (Em Revisão) não muda status — é tracking interno.
+            // Cada passo da UI avança para o próximo status real.
             const stepStatusMap: Record<string, string | null> = {
               "draft": "UNDER_REVIEW",
-              "review": null,       // Sem transição de status — só registra no histórico
-              "validation": "APPROVED",
-              "approval": "PUBLISHED",
-              "published": null,    // Já publicado — sem transição
+              "review": "APPROVED",      // Em Revisão → Validação Engenharia (muda para APPROVED)
+              "validation": "PUBLISHED", // Validação Engenharia → Aprovação Gestor (muda para PUBLISHED)
+              "approval": "PUBLISHED",    // Aprovação Gestor → Publicado (já em PUBLISHED)
+              "published": null,           // Já publicado — sem transição
             };
       
             const newStatus = stepStatusMap[stepId];
@@ -469,7 +468,11 @@ export default function ReportPage() {
                 break;
 
               case "approve-report":
-                await handleWorkflowAction("complete-validation");
+                if (report.identification.status !== "UNDER_REVIEW") {
+                  alert(`Nao e possivel aprovar: o laudo esta em "${statusLabel[report.identification.status] || report.identification.status}".`);
+                  return;
+                }
+                await handleWorkflowAction("complete-review");
                 break;
 
               case "reject-report": {
@@ -491,7 +494,11 @@ export default function ReportPage() {
               }
 
               case "publish-report":
-                await handleWorkflowAction("complete-approval");
+                if (report.identification.status !== "APPROVED") {
+                  alert(`Nao e possivel publicar: o laudo esta em "${statusLabel[report.identification.status] || report.identification.status}".`);
+                  return;
+                }
+                await handleWorkflowAction("complete-validation");
                 break;
 
               default:

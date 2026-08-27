@@ -19,7 +19,7 @@ export function drawMeasurementsPdf(
   const stats = report.inspectionData.measurementStats;
 
   // Section title
-  y = drawSectionTitle(ctx, 6, 'MEDIÇÕES TÉCNICAS', y);
+  y = drawSectionTitle(ctx, 4, 'MEDIÇÕES TÉCNICAS', y);
 
   if (!measurements || measurements.length === 0) {
     page.drawText(sanitizeTextForWinAnsi('Nenhuma medição registrada para esta inspeção.'), {

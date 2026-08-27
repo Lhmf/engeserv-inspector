@@ -48,7 +48,8 @@ export function SignaturePanel({ signatures, onSign, reportStatus, manualSignatu
     return sig && typeof sig === 'object' && 'status' in sig && sig.status === "APPROVED";
   });
   const canSubmitReview = !reportStatus || reportStatus === 'DRAFT';
-  const canPublish = isComplete && reportStatus !== 'PUBLISHED';
+  const canApprove = isComplete && reportStatus === 'UNDER_REVIEW';
+  const canPublish = isComplete && reportStatus === 'APPROVED';
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -263,7 +264,7 @@ export function SignaturePanel({ signatures, onSign, reportStatus, manualSignatu
           <button
             onClick={() => onSign("approve-report")}
             className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!isComplete || reportStatus === 'PUBLISHED'}
+            disabled={!canApprove}
           >
             Aprovar Laudo
           </button>
@@ -276,7 +277,7 @@ export function SignaturePanel({ signatures, onSign, reportStatus, manualSignatu
           </button>
           <button
             onClick={() => onSign("publish-report")}
-            className="flex-1 sm:flex-none px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!canPublish}
           >
             Publicar

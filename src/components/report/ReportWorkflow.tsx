@@ -56,22 +56,23 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
   ];
 
   const getStepStatus = (stepStatus: string) => {
-    // A máquina de estados real: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED
-    // A UI tem 5 passos visuais, mas o status real do backend só tem 4 valores.
-    // Mapeamento visual:
-    //   draft → DRAFT
-    //   review → UNDER_REVIEW  (Em Revisão)
-    //   validation → APPROVED  (Validação Engenharia — status muda para APPROVED)
-    //   approval → PUBLISHED   (Aprovação Gestor — status muda para PUBLISHED)
-    //   published → PUBLISHED  (já publicado)
-    const statusOrder = ["DRAFT", "UNDER_REVIEW", "APPROVED", "PUBLISHED"];
+    // Map workflow step statuses to real backend statuses
+    const stepToBackend: Record<string, string> = {
+      'DRAFT': 'DRAFT',
+      'UNDER_REVIEW': 'UNDER_REVIEW',
+      'VALIDATION': 'APPROVED',
+      'APPROVAL': 'PUBLISHED',
+      'PUBLISHED': 'PUBLISHED',
+    };
+    const backendStatus = stepToBackend[stepStatus];
+    if (!backendStatus) return 'pending';
+    const statusOrder = ['DRAFT', 'UNDER_REVIEW', 'APPROVED', 'PUBLISHED'];
     const currentIndex = statusOrder.indexOf(report.identification.status);
-    const stepIndex = statusOrder.indexOf(stepStatus);
-    
-    if (stepIndex < 0) return "pending";
-    if (stepIndex < currentIndex) return "completed";
-    if (stepIndex === currentIndex) return "current";
-    return "pending";
+    const stepIndex = statusOrder.indexOf(backendStatus);
+    if (stepIndex < 0) return 'pending';
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'current';
+    return 'pending';
   };
 
   return (
