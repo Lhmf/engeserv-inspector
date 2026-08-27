@@ -64,30 +64,6 @@ export async function GET(
       });
     }
 
-    // Debug: scan all text fields for non-ASCII characters
-    const scanObj = (obj: any, path = ''): string[] => {
-      const issues: string[] = [];
-      if (typeof obj === 'string') {
-        for (const ch of obj) {
-          const code = ch.charCodeAt(0);
-          if (code > 127 && code < 0x2000) { // Latin extended + misc symbols
-            issues.push(`${path}: U+${code.toString(16).toUpperCase()} '${ch}'`);
-          }
-        }
-      } else if (Array.isArray(obj)) {
-        obj.forEach((item, i) => issues.push(...scanObj(item, `${path}[${i}]`)));
-      } else if (obj && typeof obj === 'object') {
-        for (const [k, v] of Object.entries(obj)) {
-          issues.push(...scanObj(v, `${path}.${k}`));
-        }
-      }
-      return issues;
-    };
-    const nonAsciiIssues = scanObj(report);
-    if (nonAsciiIssues.length > 0) {
-      console.warn('Non-ASCII chars in report data:', nonAsciiIssues.slice(0, 20));
-    }
-
     // Build PDF using the modular template
     const pdfBytes = await buildNr13Pdf(report, MOCK_COMPANY);
 
