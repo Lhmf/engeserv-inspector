@@ -14,6 +14,10 @@ const ExecutiveSummary = dynamic(
   () => import("@/components/report/ExecutiveSummary").then((m) => m.ExecutiveSummary),
   { loading: () => <SectionSkeleton /> }
 );
+const ReportPreview = dynamic(
+  () => import("@/components/report/ReportPreview").then((m) => m.ReportPreview),
+  { loading: () => <SectionSkeleton /> }
+);
 const InspectionDataCard = dynamic(
   () => import("@/components/report/InspectionDataCard").then((m) => m.InspectionDataCard),
   { loading: () => <SectionSkeleton /> }
@@ -87,6 +91,7 @@ import { cn, formatDate } from "@/lib/utils";
 
 const SECTIONS = [
   { id: "resumo", label: "Resumo", icon: FileText },
+  { id: "preview", label: "Preview", icon: FileOutput },
   { id: "inspecao", label: "Inspeção", icon: ClipboardList },
   { id: "fotos", label: "Fotos", icon: Image },
   { id: "medicoes", label: "Medições", icon: Ruler },
@@ -607,6 +612,13 @@ export default function ReportPage() {
                 {/* Main Sections */}
                 <div className="space-y-6">
                   {activeSection === "resumo" && <ExecutiveSummary report={report} />}
+                  {activeSection === "preview" && (
+                    <ReportPreview
+                      report={report}
+                      onExportPdf={handleExportPdf}
+                      isExportingPdf={isExportingPdf}
+                    />
+                  )}
                   {activeSection === "inspecao" && (
                     <InspectionDataCard
                       inspection={report.inspectionData.inspection}
