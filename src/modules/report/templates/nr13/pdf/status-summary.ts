@@ -18,7 +18,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const stats = inspectionData.measurementStats;
 
   // Section title
-  y = drawSectionTitle(ctx, 3, 'STATUS GERAL E RESULTADOS TÉCNICOS', y);
+  y = drawSectionTitle(ctx, 3, 'STATUS GERAL E RESULTADOS TECNICOS', y);
 
   // ============================================================
   // STATUS HIGHLIGHT BOX
@@ -51,22 +51,19 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // Icon symbol — draw as vector shapes instead of Unicode text
   if (statusInfo.color === 'green') {
-    // Checkmark: two lines forming a V shape
     ctx.page.drawLine({ start: { x: iconX - 7, y: iconY }, end: { x: iconX - 2, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.green700 });
     ctx.page.drawLine({ start: { x: iconX - 2, y: iconY - 6 }, end: { x: iconX + 8, y: iconY + 5 }, thickness: 2.5, color: PDF_COLORS.green700 });
   } else if (statusInfo.color === 'red') {
-    // X mark: two crossing lines
     ctx.page.drawLine({ start: { x: iconX - 6, y: iconY + 6 }, end: { x: iconX + 6, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.red700 });
     ctx.page.drawLine({ start: { x: iconX + 6, y: iconY + 6 }, end: { x: iconX - 6, y: iconY - 6 }, thickness: 2.5, color: PDF_COLORS.red700 });
   } else {
-    // Exclamation: vertical line + dot
     ctx.page.drawLine({ start: { x: iconX, y: iconY + 5 }, end: { x: iconX, y: iconY - 2 }, thickness: 2.5, color: PDF_COLORS.yellow700 });
     ctx.page.drawCircle({ x: iconX, y: iconY - 6, size: 1.5, color: PDF_COLORS.yellow700 });
   }
 
   // Status text
   const textX = margin + 55;
-  page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPEÇÃO'), {
+  page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPECAO'), {
     x: textX, y: y - 14, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
   });
   page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
@@ -89,31 +86,23 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   y -= boxHeight + 15;
 
   // ============================================================
-  // INDICADORES TÉCNICOS (4 columns)
+  // INDICADORES TÉCNICOS (8 cards, 2 rows x 4 cols)
   // ============================================================
-  page.drawText(sanitizeTextForWinAnsi('Indicadores Técnicos'), {
+  page.drawText(sanitizeTextForWinAnsi('Indicadores Tecnicos'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
 
   const indicators = [
-    { label: 'Esp. Nominal', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '—' },
-    { label: 'Esp. Mínima Req.', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '—' },
-    { label: 'Menor Esp. Encontrada', value: stats.minThicknessMm ? `${stats.minThicknessMm.toFixed(2)} mm` : '—' },
-    { label: 'Espessura Média', value: stats.avgThicknessMm ? `${stats.avgThicknessMm.toFixed(2)} mm` : '—' },
+    { label: 'Esp. Nominal', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '-' },
+    { label: 'Esp. Minima Req.', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '-' },
+    { label: 'Menor Esp. Encontrada', value: stats.minThicknessMm ? `${stats.minThicknessMm.toFixed(2)} mm` : '-' },
+    { label: 'Espessura Media', value: stats.avgThicknessMm ? `${stats.avgThicknessMm.toFixed(2)} mm` : '-' },
+    { label: 'Taxa Corrosao', value: '- ' },
+    { label: 'Vida Util Rem.', value: '- ' },
+    { label: 'PMTA Calculada', value: '- ' },
+    { label: '% Abaixo Min.', value: `${(stats.belowMinPercentage || 0).toFixed(1)}%` },
   ];
-
-  // Find calc values
-  const calcCorrosion = engineeringResults.calculations?.find((c: any) => c.id === 'calc-cr-001');
-  const calcRemaining = engineeringResults.calculations?.find((c: any) => c.id === 'calc-rl-001');
-  const calcMawp = engineeringResults.calculations?.find((c: any) => c.id === 'calc-mawp-001');
-
-  indicators.push(
-    { label: 'Taxa Corrosão', value: calcCorrosion ? `${calcCorrosion.value} ${calcCorrosion.unit}` : '—' },
-    { label: 'Vida Útil Rem.', value: calcRemaining ? `${calcRemaining.value} ${calcRemaining.unit}` : '—' },
-    { label: 'PMTA Calculada', value: calcMawp ? `${calcMawp.value} ${calcMawp.unit}` : '—' },
-    { label: '% Abaixo Mínimo', value: `${stats.belowMinPercentage?.toFixed(1) || '0'}%` },
-  );
 
   const cardWidth = contentWidth / 4;
   const cardHeight = 36;
@@ -145,7 +134,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // ============================================================
   // RESUMO DAS MEDIÇÕES (4 summary cards)
   // ============================================================
-  page.drawText(sanitizeTextForWinAnsi('Resumo das Medições'), {
+  page.drawText(sanitizeTextForWinAnsi('Resumo das Medicoes'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
@@ -153,9 +142,9 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const summaries = [
     { label: 'Pontos Medidos', value: String(stats.count), isDanger: false },
     { label: 'Abaixo do Min.', value: String(stats.belowMinCount), isDanger: stats.belowMinCount > 0 },
-    { label: '% Abaixo Min.', value: `${stats.belowMinPercentage?.toFixed(1) || '0'}%`, isDanger: (stats.belowMinPercentage || 0) > 0 },
+    { label: '% Abaixo Min.', value: `${(stats.belowMinPercentage || 0).toFixed(1)}%`, isDanger: (stats.belowMinPercentage || 0) > 0 },
     { label: 'Margem s/ Minimo',
-      value: equipment.minThicknessMm && stats.minThicknessMm ? `${Math.max(0, (stats.minThicknessMm - equipment.minThicknessMm) / equipment.minThicknessMm * 100).toFixed(1)}%` : '—',
+      value: equipment.minThicknessMm && stats.minThicknessMm ? `${Math.max(0, (stats.minThicknessMm - equipment.minThicknessMm) / equipment.minThicknessMm * 100).toFixed(1)}%` : '-',
       isDanger: false },
   ];
 
@@ -187,7 +176,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   // ============================================================
   // PRÓXIMA INSPEÇÃO
   // ============================================================
-  page.drawText(sanitizeTextForWinAnsi('Próxima Inspeção Recomendada'), {
+  page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao Recomendada'), {
     x: margin + 6, y, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray700,
   });
   y -= 14;
@@ -200,7 +189,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   const nextItems = [
     { label: 'Data Recomendada:', value: formatDateLong(nextInspection.recommendedDate) },
-    { label: 'Intervalo Máximo:', value: `${nextInspection.maxIntervalMonths} meses` },
+    { label: 'Intervalo Maximo:', value: `${nextInspection.maxIntervalMonths} meses` },
     { label: 'Tipo:', value: nextInspection.type },
   ];
 
@@ -221,8 +210,8 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 function truncateText(text: string, font: any, size: number, maxWidth: number): string {
   if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
   let truncated = text;
-  while (truncated.length > 3 && font.widthOfTextAtSize(truncated + '…', size) > maxWidth) {
+  while (truncated.length > 3 && font.widthOfTextAtSize(truncated + '...', size) > maxWidth) {
     truncated = truncated.slice(0, -1);
   }
-  return truncated + '…';
+  return truncated + '...';
 }

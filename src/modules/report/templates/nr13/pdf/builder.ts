@@ -2,17 +2,16 @@
  * NR-13 PDF Template — Builder (Orquestrador Principal)
  *
  * Orquestra todos os módulos de seção PDF para gerar o laudo completo.
- * Mesma estrutura de 5 páginas do preview HTML:
- *   Página 1: Capa
- *   Página 2: Cabeçalho 3 zonas + Faixa técnica + Dados técnicos
- *   Página 3: Cabeçalho compacto + Status + Medições
- *   Página 4: Cabeçalho compacto + Registro fotográfico
- *   Página 5: Cabeçalho compacto + Recomendações + Conclusão + Assinaturas
+ * Two-pass architecture:
+ *   Pass 1: Render all content (cover + sections) without headers on pages 2-5
+ *   Pass 2: Stamp headers (with correct page count) and footers on all pages
+ *
+ * This ensures header "X / Y" and footer "Pagina X de Y" always agree.
  */
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
 import { MOCK_COMPANY } from '../mock-data';
-import { createPdfContext, addNewPage, PdfRenderingContext } from './context';
+import { createPdfContext, addNewPage, PdfRenderingContext, PDF_COLORS, drawLine, sanitizeTextForWinAnsi, drawRect } from './context';
 import { drawCoverPdf } from './cover';
 import { drawHeaderPdf, drawCompactHeaderPdf } from './header';
 import { drawEquipmentDataPdf } from './equipment-data';
@@ -22,6 +21,7 @@ import { drawPhotoRegisterPdf } from './photo-register';
 import { drawRecommendationsPdf, drawConclusionPdf } from './conclusion';
 import { drawSignaturesPdf } from './signatures';
 import { stampAllFooters } from './footer';
+import { stampAllHeaders } from './header';
 
 /**
  * Build the complete NR-13 PDF from a TechnicalReport.
@@ -37,52 +37,47 @@ export async function buildNr13Pdf(
   // Create context with fonts and initial page
   const ctx = await createPdfContext(report, company);
 
-  const totalPages = estimatePageCount(report);
+  // ============================================================
+  // PASS 1: RENDER ALL CONTENT
+  // ============================================================
 
-  // ============================================================
-  // PÁGINA 1 — CAPA
-  // ============================================================
+  // Página 1 — CAPA (no header needed — cover is its own design)
   drawCoverPdf(ctx);
 
-  // ============================================================
-  // PÁGINA 2 — IDENTIFICAÇÃO E DADOS TÉCNICOS
-  // ============================================================
+  // Página 2 — IDENTIFICAÇÃO E DADOS TÉCNICOS
+  // Draw content only (header will be stamped in pass 2)
   addNewPage(ctx);
-  let y = ctx.y;
-  y = drawHeaderPdf(ctx, 2, totalPages, y);
+  const page2ContentStart = ctx.y;
+  let y = page2ContentStart;
   y = drawEquipmentDataPdf(ctx, y);
 
-  // ============================================================
-  // PÁGINA 3 — STATUS GERAL E RESULTADOS TÉCNICOS
-  // ============================================================
+  // Página 3 — STATUS GERAL E RESULTADOS TÉCNICOS
   addNewPage(ctx);
   y = ctx.y;
-  y = drawCompactHeaderPdf(ctx, 3, totalPages, y);
   y = drawStatusSummaryPdf(ctx, y);
   y = drawMeasurementsPdf(ctx, y);
 
-  // ============================================================
-  // PÁGINA 4 — REGISTRO FOTOGRÁFICO
-  // ============================================================
+  // Página 4 — REGISTRO FOTOGRÁFICO
   addNewPage(ctx);
   y = ctx.y;
-  y = drawCompactHeaderPdf(ctx, 4, totalPages, y);
   y = await drawPhotoRegisterPdf(ctx, y);
 
-  // ============================================================
-  // PÁGINA 5 — CONCLUSÃO E ASSINATURAS
-  // ============================================================
+  // Página 5 — CONCLUSÃO E ASSINATURAS
   addNewPage(ctx);
   y = ctx.y;
-  y = drawCompactHeaderPdf(ctx, 5, totalPages, y);
   y = drawRecommendationsPdf(ctx, y);
   y = drawConclusionPdf(ctx, y);
   y = drawSignaturesPdf(ctx, y);
 
   // ============================================================
-  // STAMP FOOTERS ON ALL PAGES
+  // PASS 2: STAMP HEADERS + FOOTERS WITH CORRECT PAGE COUNT
   // ============================================================
   const actualTotalPages = ctx.doc.getPages().length;
+
+  // Stamp headers on pages 2-5 (page 1 is cover — no header)
+  stampAllHeaders(ctx, actualTotalPages);
+
+  // Stamp footers on all pages
   stampAllFooters(ctx, actualTotalPages);
 
   // ============================================================
@@ -90,22 +85,4 @@ export async function buildNr13Pdf(
   // ============================================================
   const pdfBytes = await ctx.doc.save();
   return pdfBytes;
-}
-
-/**
- * Estimate the total number of pages.
- * Used for page numbering in headers/footers.
- */
-function estimatePageCount(report: TechnicalReport): number {
-  let pages = 5; // Base: cover + identification + status + photos + conclusion
-
-  // Extra measurement pages if many measurements
-  const measCount = report.inspectionData?.measurements?.length || 0;
-  if (measCount > 15) pages += Math.ceil((measCount - 15) / 15);
-
-  // Extra photo pages
-  const photoCount = report.attachments?.photos?.length || 0;
-  if (photoCount > 4) pages += Math.ceil((photoCount - 4) / 4);
-
-  return pages;
 }

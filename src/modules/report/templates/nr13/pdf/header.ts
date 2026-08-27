@@ -288,3 +288,35 @@ export function drawCompactHeaderPdf(
 
   return y;
 }
+
+/**
+ * Stamp headers on all content pages (pages 2-N) with correct page count.
+ * Called in pass 2 after all content is rendered.
+ */
+export function stampAllHeaders(
+  ctx: PdfRenderingContext,
+  totalPages: number
+): void {
+  const pages = ctx.doc.getPages();
+  // Page 1 is cover (index 0) — no header. Pages 2+ (index 1+) get headers.
+  for (let i = 1; i < pages.length; i++) {
+    const pageNum = i + 1; // 1-indexed page number
+    const page = pages[i];
+
+    // Save current page reference
+    const origPage = ctx.page;
+    ctx.page = page;
+    let y = ctx.pageHeight - ctx.margin;
+
+    if (pageNum === 2) {
+      // Full header for page 2
+      y = drawHeaderPdf(ctx, pageNum, totalPages, y);
+    } else {
+      // Compact header for pages 3+
+      y = drawCompactHeaderPdf(ctx, pageNum, totalPages, y);
+    }
+
+    // Restore original page
+    ctx.page = origPage;
+  }
+}
