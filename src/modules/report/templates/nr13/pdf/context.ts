@@ -210,7 +210,7 @@ export function drawText(
       const testLine = line + (line ? ' ' : '') + word;
       const width = font.widthOfTextAtSize(testLine, size);
       if (width > maxWidth && line) {
-        ctx.page.drawText(line, { x, y: currentY, font, size, color });
+        ctx.page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font, size, color });
         currentY -= size * 1.3;
         line = word;
         if (currentY < ctx.margin) {
@@ -222,13 +222,13 @@ export function drawText(
       }
     }
     if (line) {
-      ctx.page.drawText(line, { x, y: currentY, font, size, color });
+      ctx.page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font, size, color });
       currentY -= size * 1.3;
     }
     return currentY;
   }
 
-  ctx.page.drawText(text, { x, y, font, size, color });
+  ctx.page.drawText(sanitizeTextForWinAnsi(text), { x, y, font, size, color });
   return y - size * 1.3;
 }
 
@@ -254,7 +254,7 @@ export function drawSectionTitle(
     size: 10,
     color: PDF_COLORS.navy,
   });
-  ctx.page.drawText(`${number}`, {
+  ctx.page.drawText(sanitizeTextForWinAnsi(`${number}`), {
     x: circleX + 7,
     y: y + 1,
     font: ctx.fonts.helveticaBold,
@@ -263,7 +263,7 @@ export function drawSectionTitle(
   });
 
   // Title text
-  ctx.page.drawText(title, {
+  ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: circleX + 25,
     y: y,
     font: ctx.fonts.helveticaBold,
@@ -302,7 +302,7 @@ export function drawSubsectionTitle(
     color: PDF_COLORS.navy,
   });
 
-  ctx.page.drawText(title, {
+  ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: ctx.margin + 8,
     y,
     font: ctx.fonts.helveticaBold,
