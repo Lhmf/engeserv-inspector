@@ -374,7 +374,7 @@ export class InspectionReportPipeline {
     const warnings: string[] = [];
     
     if (!rawData.measurements || rawData.measurements.length === 0) {
-      errors.push('Nenhuma medição encontrada para a inspeção');
+      warnings.push('Nenhuma medição encontrada para a inspeção — laudo será gerado sem dados de medição');
     } else {
       const thicknessValues = rawData.measurements.map(m => m.thicknessMm);
       const minThickness = Math.min(...thicknessValues);
@@ -398,6 +398,10 @@ export class InspectionReportPipeline {
     
     if (errors.length > 0) {
       throw new Error(`Validação das medições falhou: ${errors.join('; ')}`);
+    }
+
+    if (warnings.length > 0) {
+      console.warn(`[Pipeline] Avisos na validação de medições: ${warnings.join('; ')}`);
     }
 
     return { warnings };

@@ -300,19 +300,42 @@ export default function ReportPage() {
     
           try {
             // Mapear workflow step para status do TechnicalReport
-            const stepStatusMap: Record<string, string> = {
+            // A máquina de estados real é: DRAFT → UNDER_REVIEW → APPROVED → PUBLISHED
+            // A UI tem 5 passos visuais, mas o backend só tem 4 status reais.
+            // O passo "review" (Em Revisão) não muda status — é tracking interno.
+            const stepStatusMap: Record<string, string | null> = {
               "draft": "UNDER_REVIEW",
-              "review": "APPROVED", 
+              "review": null,       // Sem transição de status — só registra no histórico
               "validation": "APPROVED",
               "approval": "PUBLISHED",
-              "published": "PUBLISHED",
+              "published": null,    // Já publicado — sem transição
             };
       
             const newStatus = stepStatusMap[stepId];
-            if (!newStatus) {
+            if (newStatus === undefined) {
               throw new Error(`Etapa desconhecida: ${stepId}`);
             }
       
+            // Se newStatus é null, só registrar no histórico (sem mudar status)
+            if (newStatus === null) {
+              const currentStatus = report?.identification?.status || "DRAFT";
+              const response = await fetch(`/api/reports/${technicalReportId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  status: currentStatus,
+                  action: type === "complete" ? "complete" : "skip",
+                  stepId,
+                }),
+              });
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+                throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+              }
+              await loadReport();
+              return;
+            }
+
             // Chamar API para atualizar status do TechnicalReport
             const response = await fetch(`/api/reports/${technicalReportId}`, {
               method: "PATCH",
@@ -346,6 +369,116 @@ export default function ReportPage() {
             alert(`Erro ao ${type === "complete" ? "concluir" : "pular"} etapa: ${err.message}`);
           } finally {
             setWorkflowAction({ loading: false, stepId: null });
+          }
+        }
+
+        // ============================================================
+        // SIGNATURE ACTIONS (Bug 3)
+        // ============================================================
+        async function handleSignAction(action: string) {
+          if (!technicalReportId || !report) return;
+
+          try {
+            // Parse action: "sign-{role}-approve", "sign-{role}-reject", "save-draft", etc.
+            const parts = action.split("-");
+
+            if (parts[0] === "sign" && parts.length >= 3) {
+              // Signature action: sign-inspector-approve, sign-engineer-reject, etc.
+              const role = parts[1]; // inspector, engineer, manager, quality
+              const decision = parts[2]; // approve, reject
+
+              const roleKey = role as keyof typeof report.signatures;
+              const currentSig = report.signatures[roleKey];
+
+              // Build updated signature
+              const newSignature = {
+                id: `sig-${role}-${Date.now()}`,
+                role: role.toUpperCase() as any,
+                userId: "",
+                userName: role === "inspector" ? report.identification.inspectorName : 
+                         role === "engineer" ? report.identification.engineerName || "Engenheiro" :
+                         role === "manager" ? report.identification.managerName || "Gestor" :
+                         "Qualidade",
+                userRegistration: "",
+                signedAt: new Date(),
+                status: decision === "approve" ? "APPROVED" : "REJECTED",
+                comments: decision === "reject" ? "Rejeitado via interface" : undefined,
+              };
+
+              const updatedSignatures = { ...report.signatures, [roleKey]: newSignature };
+
+              const response = await fetch(`/api/reports/${technicalReportId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  status: report.identification.status,
+                  action: `sign-${role}`,
+                  stepId: `sign-${role}`,
+                  signatures: updatedSignatures,
+                }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+                throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+              }
+
+              await loadReport();
+              return;
+            }
+
+            // Workflow actions from signature panel
+            switch (action) {
+              case "save-draft":
+                // Just save without changing status
+                await fetch(`/api/reports/${technicalReportId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    status: report.identification.status,
+                    action: "save-draft",
+                    stepId: "save-draft",
+                  }),
+                });
+                await loadReport();
+                break;
+
+              case "submit-review":
+                await handleWorkflowAction("complete-draft");
+                break;
+
+              case "approve-report":
+                await handleWorkflowAction("complete-validation");
+                break;
+
+              case "reject-report": {
+                const reason = prompt("Informe o motivo da rejeição:");
+                if (reason !== null) {
+                  await fetch(`/api/reports/${technicalReportId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      status: "REJECTED",
+                      action: "reject",
+                      stepId: "reject",
+                      rejectionReason: reason,
+                    }),
+                  });
+                  await loadReport();
+                }
+                break;
+              }
+
+              case "publish-report":
+                await handleWorkflowAction("complete-approval");
+                break;
+
+              default:
+                console.warn(`Ação desconhecida: ${action}`);
+            }
+          } catch (err: any) {
+            console.error("Erro na ação de assinatura:", err);
+            alert(`Erro: ${err.message}`);
           }
         }
 
@@ -610,8 +743,30 @@ export default function ReportPage() {
                                 />
 
                 {/* Main Sections */}
-                <div className="space-y-6">
-                  {activeSection === "resumo" && <ExecutiveSummary report={report} />}
+                <div className="space-y-6">                   {activeSection === "resumo" && (
+                    <ExecutiveSummary
+                      report={report}
+                      onVerdictChange={report.identification.status !== "PUBLISHED" ? async (newStatus) => {
+                        try {
+                          const updatedSummary = { ...report.executiveSummary, overallStatus: newStatus };
+                          const response = await fetch(`/api/reports/${technicalReportId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              status: report.identification.status,
+                              action: "update-verdict",
+                              stepId: "verdict",
+                              executiveSummary: updatedSummary,
+                            }),
+                          });
+                          if (!response.ok) throw new Error("Erro ao atualizar veredito");
+                          await loadReport();
+                        } catch (err: any) {
+                          alert(`Erro: ${err.message}`);
+                        }
+                      } : undefined}
+                    />
+                  )}
                   {activeSection === "preview" && (
                     <ReportPreview
                       report={report}
@@ -652,7 +807,7 @@ export default function ReportPage() {
                   )}
                   {activeSection === "historico" && <HistoryTimeline history={report.history} />}
                   {activeSection === "assinaturas" && (
-                    <SignaturePanel signatures={report.signatures} onSign={() => {}} />
+                    <SignaturePanel signatures={report.signatures} onSign={handleSignAction} />
                   )}
                 </div>
 

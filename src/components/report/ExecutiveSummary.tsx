@@ -5,9 +5,10 @@ import { AlertCircle, CheckCircle2, FileText, TrendingUp, AlertTriangle, CheckCi
 
 interface ExecutiveSummaryProps {
   report: TechnicalReport;
+  onVerdictChange?: (newStatus: string) => void;
 }
 
-export function ExecutiveSummary({ report }: { report: TechnicalReport }) {
+export function ExecutiveSummary({ report, onVerdictChange }: ExecutiveSummaryProps) {
   const { executiveSummary } = report;
 
   const statusColors = {
@@ -67,14 +68,28 @@ export function ExecutiveSummary({ report }: { report: TechnicalReport }) {
                 }[report.executiveSummary.overallStatus] || <HelpCircle className="w-6 h-6 text-slate-600" />)}
               </div>
               <div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Status Geral</p>
-                <p className="font-semibold text-slate-800 capitalize">{({
-                  INTEGRO: "Íntegro",
-                  ACEITAVEL_COM_RESTRICOES: "Aceitável com Restrições",
-                  REQUER_REPARO: "Requer Reparo",
-                  CONDENADO: "Condenado",
-                  INDETERMINADO: "Indeterminado",
-                }[report.executiveSummary.overallStatus] || report.executiveSummary.overallStatus)}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider">Veredito Técnico</p>
+                {onVerdictChange ? (
+                  <select
+                    value={report.executiveSummary.overallStatus}
+                    onChange={(e) => onVerdictChange(e.target.value)}
+                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm focus:border-navy focus:outline-none focus:ring-1 focus:ring-navy"
+                  >
+                    <option value="INTEGRO">Aprovado (Íntegro)</option>
+                    <option value="ACEITAVEL_COM_RESTRICOES">Aprovado com Restrições</option>
+                    <option value="REQUER_REPARO">Reprovado (Requer Reparo)</option>
+                    <option value="CONDENADO">Reprovado (Condenado)</option>
+                    <option value="INDETERMINADO">Indeterminado</option>
+                  </select>
+                ) : (
+                  <p className="font-semibold text-slate-800 capitalize">{({
+                    INTEGRO: "Aprovado",
+                    ACEITAVEL_COM_RESTRICOES: "Aprovado com Restrições",
+                    REQUER_REPARO: "Reprovado",
+                    CONDENADO: "Reprovado",
+                    INDETERMINADO: "Indeterminado",
+                  }[report.executiveSummary.overallStatus] || report.executiveSummary.overallStatus)}</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-4">

@@ -21,7 +21,7 @@ export async function PATCH(
     );
   }
 
-  const { status, action, stepId } = body;
+  const { status, action, stepId, signatures: newSignatures, rejectionReason, executiveSummary: newExecSummary } = body;
 
   // Validar status
   const validStatuses = ["DRAFT", "UNDER_REVIEW", "APPROVED", "REJECTED", "PUBLISHED", "ARCHIVED"];
@@ -111,14 +111,32 @@ export async function PATCH(
     totalVersions: newVersion,
   };
 
+  // Preparar dados de atualização
+  const updateData: any = {
+    status,
+    history: JSON.stringify(updatedHistory),
+    updatedAt: new Date(),
+  };
+
+  // Atualizar assinaturas se fornecidas
+  if (newSignatures) {
+    updateData.signatures = JSON.stringify(newSignatures);
+  }
+
+  // Registrar motivo de rejeção
+  if (rejectionReason && status === 'REJECTED') {
+    updateData.rejectionReason = rejectionReason;
+  }
+
+  // Atualizar executiveSummary se fornecido (veredito técnico)
+  if (newExecSummary) {
+    updateData.executiveSummary = JSON.stringify(newExecSummary);
+  }
+
   // Atualizar o laudo
   const technicalReport = await prisma.technicalReport.update({
     where: { id },
-    data: {
-      status,
-      history: JSON.stringify(updatedHistory),
-      updatedAt: new Date(),
-    },
+    data: updateData,
     include: {
       inspection: {
         include: {
