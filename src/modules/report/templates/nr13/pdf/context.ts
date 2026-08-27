@@ -4,7 +4,7 @@
  * Provides fonts, colors, helper functions and page management
  * for all PDF section modules.
  */
-import { PDFDocument, PDFPage, rgb, StandardFonts, PageSizes, RGB, PDFDict } from 'pdf-lib';
+import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, PageSizes, RGB, PDFDict } from 'pdf-lib';
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
 import { NR13_COLORS, NR13_LAYOUT } from '../types';
@@ -20,6 +20,13 @@ PDFPage.prototype.drawText = function (text: any, options?: any) {
     text = sanitizeTextForWinAnsi(text);
   }
   return _origDrawText.call(this, text, options);
+};
+const _origWidthOfTextAtSize = PDFFont.prototype.widthOfTextAtSize;
+PDFFont.prototype.widthOfTextAtSize = function (text: any, size?: any) {
+  if (typeof text === 'string') {
+    text = sanitizeTextForWinAnsi(text);
+  }
+  return _origWidthOfTextAtSize.call(this, text, size);
 };
 
 // ============================================================
