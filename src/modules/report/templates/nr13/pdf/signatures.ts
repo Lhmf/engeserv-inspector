@@ -107,22 +107,22 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
       x: blockX + 6, y: y - 78, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
     });
 
-    // Status badge
+    // Status badge — placed under the role title, within block bounds
     if (isSigned) {
       ctx.page.drawRectangle({
-        x: blockX + blockWidth - 50, y: y - 14, width: 44, height: 10,
+        x: blockX + 6, y: y - 26, width: 44, height: 10,
         color: PDF_COLORS.green100,
       });
-      page.drawText(sanitizeTextForWinAnsi('✓ Assinado'), {
-        x: blockX + blockWidth - 48, y: y - 12, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
+      page.drawText(sanitizeTextForWinAnsi('Assinado'), {
+        x: blockX + 10, y: y - 24, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
       });
     } else {
       ctx.page.drawRectangle({
-        x: blockX + blockWidth - 40, y: y - 14, width: 34, height: 10,
+        x: blockX + 6, y: y - 26, width: 34, height: 10,
         color: PDF_COLORS.gray100,
       });
       page.drawText(sanitizeTextForWinAnsi('Pendente'), {
-        x: blockX + blockWidth - 38, y: y - 12, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+        x: blockX + 10, y: y - 24, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
       });
     }
   }
