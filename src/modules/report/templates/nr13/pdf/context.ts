@@ -17,20 +17,7 @@ import { NR13_COLORS, NR13_LAYOUT } from '../types';
 const _origDrawText = PDFPage.prototype.drawText;
 PDFPage.prototype.drawText = function (text: any, options?: any) {
   if (typeof text === 'string') {
-    text = text
-      .replace(/\u2014/g, '-')    // em-dash
-      .replace(/\u2013/g, '-')    // en-dash
-      .replace(/\u2019/g, "'")   // right single quote
-      .replace(/\u2018/g, "'")   // left single quote
-      .replace(/\u201C/g, '"')   // left double quote
-      .replace(/\u201D/g, '"')   // right double quote
-      .replace(/\u2026/g, '...')  // ellipsis
-      .replace(/\u2713/g, '[OK]') // checkmark
-      .replace(/\u2717/g, '[X]')  // cross
-      .replace(/\u2714/g, '[OK]') // heavy checkmark
-      .replace(/\u2716/g, '[X]')  // heavy cross
-      .replace(/\u26A0/g, '!')    // warning sign
-      .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // emojis
+    text = sanitizeTextForWinAnsi(text);
   }
   return _origDrawText.call(this, text, options);
 };
@@ -86,20 +73,32 @@ export const PDF_COLORS = {
  */
 export function sanitizeTextForWinAnsi(text: string): string {
   if (!text) return '';
-  return text
-    .replace(/\u2014/g, '-')    // em-dash
-    .replace(/\u2013/g, '-')    // en-dash
-    .replace(/\u2019/g, "'")   // right single quote
-    .replace(/\u2018/g, "'")   // left single quote
-    .replace(/\u201C/g, '"')   // left double quote
-    .replace(/\u201D/g, '"')   // right double quote
-    .replace(/\u2026/g, '...')  // ellipsis
-    .replace(/\u2713/g, '[OK]') // checkmark
-    .replace(/\u2717/g, '[X]')  // cross
-    .replace(/\u2714/g, '[OK]') // heavy checkmark
-    .replace(/\u2716/g, '[X]')  // heavy cross
-    .replace(/\u26A0/g, '!')    // warning sign
-    .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // emojis
+  // Use String.fromCharCode for reliable Unicode replacement.
+  // StandardFonts (Helvetica, Courier, etc.) only support WinAnsi (Latin-1).
+  const replacements: [string, string][] = [
+    ['\u2014', '-'],   // em-dash
+    ['\u2013', '-'],   // en-dash
+    ['\u2019', "'"],  // right single quote
+    ['\u2018', "'"],  // left single quote
+    ['\u201C', '"'],  // left double quote
+    ['\u201D', '"'],  // right double quote
+    ['\u2026', '...'], // ellipsis
+    ['\u2713', '[OK]'],// checkmark
+    ['\u2717', '[X]'], // cross
+    ['\u2714', '[OK]'],// heavy checkmark
+    ['\u2716', '[X]'], // heavy cross
+    ['\u26A0', '!'],   // warning sign
+    ['\u26A1', '!'],   // lightning
+    ['\u00D7', 'x'],   // multiplication sign
+    ['\u00F7', '/'],   // division sign
+  ];
+  let result = text;
+  for (const [char, replacement] of replacements) {
+    result = result.split(char).join(replacement);
+  }
+  // Remove all emoji characters (U+1F000 to U+1FFFF)
+  result = result.replace(/[\u{1F000}-\u{1FFFF}]/gu, '');
+  return result;
 }
 
 // ============================================================
