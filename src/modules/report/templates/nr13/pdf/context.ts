@@ -10,6 +10,32 @@ import type { CompanyInfo } from '../types';
 import { NR13_COLORS, NR13_LAYOUT } from '../types';
 
 // ============================================================
+// GLOBAL WINANSI PROTOTYPE PATCH
+// Applied once when this module is first imported. Intercepts all
+// PDFPage.drawText calls to sanitize text for WinAnsi encoding.
+// ============================================================
+const _origDrawText = PDFPage.prototype.drawText;
+PDFPage.prototype.drawText = function (text: any, options?: any) {
+  if (typeof text === 'string') {
+    text = text
+      .replace(/\u2014/g, '-')    // em-dash
+      .replace(/\u2013/g, '-')    // en-dash
+      .replace(/\u2019/g, "'")   // right single quote
+      .replace(/\u2018/g, "'")   // left single quote
+      .replace(/\u201C/g, '"')   // left double quote
+      .replace(/\u201D/g, '"')   // right double quote
+      .replace(/\u2026/g, '...')  // ellipsis
+      .replace(/\u2713/g, '[OK]') // checkmark
+      .replace(/\u2717/g, '[X]')  // cross
+      .replace(/\u2714/g, '[OK]') // heavy checkmark
+      .replace(/\u2716/g, '[X]')  // heavy cross
+      .replace(/\u26A0/g, '!')    // warning sign
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // emojis
+  }
+  return _origDrawText.call(this, text, options);
+};
+
+// ============================================================
 // PDF-RGB COLORS (converted from hex in NR13_COLORS)
 // ============================================================
 export const PDF_COLORS = {
@@ -53,34 +79,27 @@ export const PDF_COLORS = {
  * Characters outside WinAnsi (em-dash, checkmarks, emojis, etc.) must be
  * replaced with ASCII equivalents before drawing.
  */
+/**
+ * Explicit text sanitization utility for WinAnsi encoding.
+ * The prototype patch handles most cases, but this can be used
+ * for widthOfTextAtSize calculations that need matching text.
+ */
 export function sanitizeTextForWinAnsi(text: string): string {
   if (!text) return '';
   return text
-    .replace(/\u2014/g, '-')    // em-dash → hyphen
-    .replace(/\u2013/g, '-')    // en-dash → hyphen
+    .replace(/\u2014/g, '-')    // em-dash
+    .replace(/\u2013/g, '-')    // en-dash
     .replace(/\u2019/g, "'")   // right single quote
     .replace(/\u2018/g, "'")   // left single quote
     .replace(/\u201C/g, '"')   // left double quote
     .replace(/\u201D/g, '"')   // right double quote
-    .replace(/\u2026/g, '...')  // ellipsis → three dots
+    .replace(/\u2026/g, '...')  // ellipsis
     .replace(/\u2713/g, '[OK]') // checkmark
     .replace(/\u2717/g, '[X]')  // cross
     .replace(/\u2714/g, '[OK]') // heavy checkmark
     .replace(/\u2716/g, '[X]')  // heavy cross
     .replace(/\u26A0/g, '!')    // warning sign
-    .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // all emojis → remove
-}
-
-/**
- * Wrap a PDFPage so that all drawText calls automatically sanitize
- * text for WinAnsi encoding (StandardFonts).
- */
-function wrapPageForWinAnsi(page: PDFPage): PDFPage {
-  const originalDrawText = page.drawText.bind(page);
-  (page as any).drawText = (text: string, options?: any) => {
-    return originalDrawText(sanitizeTextForWinAnsi(text), options);
-  };
-  return page;
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, ''); // emojis
 }
 
 // ============================================================
@@ -127,15 +146,7 @@ export async function createPdfContext(
   const margin = NR13_LAYOUT.margin;
   const contentWidth = pageWidth - 2 * margin;
 
-  // Wrap addPage to auto-sanitize all future pages
-  const originalAddPage = doc.addPage.bind(doc);
-  (doc as any).addPage = (arg?: any) => {
-    const newPage = originalAddPage(arg);
-    return wrapPageForWinAnsi(newPage);
-  };
-
-  // Wrap the initial page as well
-  const page = wrapPageForWinAnsi(originalAddPage(pageSize));
+  const page = doc.addPage(pageSize);
 
   return {
     doc,
