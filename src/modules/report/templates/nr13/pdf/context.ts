@@ -98,6 +98,19 @@ export function sanitizeTextForWinAnsi(text: string): string {
     ['\u26A1', '!'],   // lightning
     ['\u00D7', 'x'],   // multiplication sign
     ['\u00F7', '/'],   // division sign
+    ['\u2265', '>='],  // greater-than-or-equal
+    ['\u2264', '<='],  // less-than-or-equal
+    ['\u2260', '!='],  // not-equal
+    ['\u2248', '~'],   // approximately equal
+    ['\u221E', 'inf'], // infinity
+    ['\u00B2', '2'],   // superscript 2
+    ['\u00B3', '3'],   // superscript 3
+    ['\u00B0', ' deg'],// degree sign
+    ['\u00BA', 'o'],   // masculine ordinal
+    ['\u00AA', 'a'],   // feminine ordinal
+    ['\u00BC', '1/4'], // fraction 1/4
+    ['\u00BD', '1/2'], // fraction 1/2
+    ['\u00BE', '3/4'], // fraction 3/4
   ];
   let result = text;
   for (const [char, replacement] of replacements) {
