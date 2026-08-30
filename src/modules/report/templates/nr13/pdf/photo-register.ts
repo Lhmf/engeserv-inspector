@@ -24,11 +24,11 @@ const ROW_GAP = 8;
 const MIN_SPACE_FOR_ROW = CARD_HEIGHT + ROW_GAP;
 
 export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): Promise<number> {
-  const { doc, page, margin, contentWidth, fonts, report } = ctx;
+  const { doc, margin, contentWidth, fonts, report } = ctx;
   const photos = report.attachments.photos;
 
-  // Section title — check space first
-  if (getAvailableHeight(ctx) < SECTION_TITLE_HEIGHT + 20) {
+  // Section title — check space first using local y (ctx.y may be stale)
+  if ((y - LAYOUT.footerReserve) < SECTION_TITLE_HEIGHT + 20) {
     addNewPage(ctx);
     y = ctx.y;
   }
@@ -36,7 +36,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
   y = drawSectionTitle(ctx, 5, 'REGISTRO FOTOGRAFICO', y);
 
   if (!photos || photos.length === 0) {
-    page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotografico disponivel para esta inspecao.'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotografico disponivel para esta inspecao.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     return y - 20;
@@ -44,7 +44,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
   // Intro text
   const introText = `Total de ${photos.length} registro(s) fotografico(s).`;
-  page.drawText(sanitizeTextForWinAnsi(introText), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(introText), {
     x: margin, y, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
   });
   y -= 16;
@@ -81,7 +81,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
     if (isNewRow) {
       // Check space for this row
-      if (getAvailableHeight(ctx) < MIN_SPACE_FOR_ROW) {
+      if ((y - LAYOUT.footerReserve) < MIN_SPACE_FOR_ROW) {
         addNewPage(ctx);
         y = ctx.y;
         pageNum++;

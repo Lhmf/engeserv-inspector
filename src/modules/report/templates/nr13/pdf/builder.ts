@@ -69,41 +69,41 @@ export async function buildNr13Pdf(
   }
   let y = ctx.y;
   y = drawEquipmentDataPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync with local y
 
   // --- Status Summary ---
-  // Check if status summary fits on current page
   const statusHeight = estimateStatusSummaryHeight(ctx);
   if (getAvailableHeight(ctx) < statusHeight) {
     addNewPage(ctx);
     y = ctx.y;
   }
   y = drawStatusSummaryPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync
 
   // --- Measurements ---
   // Measurements handle their own internal pagination.
-  // The measurements module needs: title(26) + header(18) + 2 rows(32) + buffer(40) = 116pt minimum.
-  // Check this BEFORE calling drawMeasurementsPdf to avoid orphaned titles.
   const measurements = report.inspectionData.measurements;
   if (measurements && measurements.length > 0) {
-    const minMeasureHeight = SECTION_TITLE_HEIGHT + 58 + 40; // title + header + rows + buffer
+    const minMeasureHeight = SECTION_TITLE_HEIGHT + 58 + 40;
     if (getAvailableHeight(ctx) < minMeasureHeight) {
       addNewPage(ctx);
       y = ctx.y;
     }
   }
   y = drawMeasurementsPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync
 
   // --- Photo Register ---
-  // Photos handle their own internal pagination (2-col grid)
   const photos = report.attachments.photos;
   if (photos && photos.length > 0) {
-    const photoHeight = 50; // title + intro text
+    const photoHeight = 50;
     if (getAvailableHeight(ctx) < photoHeight) {
       addNewPage(ctx);
       y = ctx.y;
     }
   }
   y = await drawPhotoRegisterPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync
 
   // --- Recommendations ---
   const recsHeight = estimateRecommendationsHeight(ctx);
@@ -112,6 +112,7 @@ export async function buildNr13Pdf(
     y = ctx.y;
   }
   y = drawRecommendationsPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync
 
   // --- Conclusion ---
   const conclusionHeight = estimateConclusionHeight(ctx);
@@ -120,15 +121,16 @@ export async function buildNr13Pdf(
     y = ctx.y;
   }
   y = drawConclusionPdf(ctx, y);
+  ctx.y = y; // Keep ctx.y in sync
 
   // --- Signatures (keep-together: move entire block if needed) ---
   const sigHeight = estimateSignaturesHeight(ctx);
   if (getAvailableHeight(ctx) < sigHeight) {
-    // Move entire signatures block to next page
     addNewPage(ctx);
     y = ctx.y;
   }
   y = drawSignaturesPdf(ctx, y);
+  ctx.y = y;
 
   // ============================================================
   // PASS 2: STAMP HEADERS + FOOTERS

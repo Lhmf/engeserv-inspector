@@ -45,7 +45,7 @@ export function estimateEquipmentDataHeight(ctx: PdfRenderingContext): number {
 }
 
 export function drawEquipmentDataPdf(ctx: PdfRenderingContext, y: number): number {
-  const { page, margin, contentWidth, fonts, report } = ctx;
+  const { margin, contentWidth, fonts, report } = ctx;
   const { equipment } = report;
 
   y = drawSectionTitle(ctx, 2, 'DADOS TECNICOS DO EQUIPAMENTO', y);
@@ -91,17 +91,17 @@ function drawTableGroup(
   rows: TableRow[],
   y: number
 ): number {
-  const { page, margin, contentWidth, fonts } = ctx;
+  const { margin, contentWidth, fonts } = ctx;
 
-  // Check space for title + at least 2 rows
+  // Check space for title + at least 2 rows using local y (ctx.y may be stale)
   const needed = GROUP_TITLE_HEIGHT + Math.min(rows.length, 2) * TABLE_ROW_HEIGHT + 4;
-  if (getAvailableHeight(ctx) < needed) {
+  if ((y - LAYOUT.footerReserve) < needed) {
     addNewPage(ctx);
     y = ctx.y;
   }
 
   drawRect(ctx, margin, y - 1, 3, 12, PDF_COLORS.navy);
-  page.drawText(sanitizeTextForWinAnsi(title), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: margin + 8, y,
     font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
   });
@@ -109,7 +109,7 @@ function drawTableGroup(
 
   for (let idx = 0; idx < rows.length; idx++) {
     const row = rows[idx];
-    if (getAvailableHeight(ctx) < TABLE_ROW_HEIGHT) {
+    if ((y - LAYOUT.footerReserve) < TABLE_ROW_HEIGHT) {
       addNewPage(ctx);
       y = ctx.y;
     }
@@ -131,7 +131,7 @@ function drawTableRow2Col(
   label2: string, value2: string,
   y: number, isEven: boolean
 ): number {
-  const { page, margin, contentWidth, fonts } = ctx;
+  const { margin, contentWidth, fonts } = ctx;
   const halfWidth = contentWidth / 2;
   const bgColor = isEven ? PDF_COLORS.white : PDF_COLORS.gray50;
 
@@ -140,12 +140,12 @@ function drawTableRow2Col(
   ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: PDF_COLORS.gray200, borderWidth: 0.5 });
   ctx.page.drawLine({ start: { x: margin + halfWidth, y: y - ROW_HEIGHT + 4 }, end: { x: margin + halfWidth, y: y + 4 }, thickness: 0.5, color: PDF_COLORS.gray200 });
 
-  page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, 7, halfWidth - 8)), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, 7, halfWidth - 8)), {
     x: margin + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
   });
   drawValueCell(ctx, margin + 4, y - 12, halfWidth - 8, value1);
 
-  page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 7, halfWidth - 8)), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 7, halfWidth - 8)), {
     x: margin + halfWidth + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
   });
   drawValueCell(ctx, margin + halfWidth + 4, y - 12, halfWidth - 8, value2);
@@ -158,7 +158,7 @@ function drawTableRowFull(
   label: string, value: string,
   y: number, isEven: boolean
 ): number {
-  const { page, margin, contentWidth, fonts } = ctx;
+  const { margin, contentWidth, fonts } = ctx;
   const labelWidth = contentWidth * 0.30;
   const valueWidth = contentWidth * 0.70;
   const bgColor = isEven ? PDF_COLORS.white : PDF_COLORS.gray50;
@@ -167,7 +167,7 @@ function drawTableRowFull(
   drawRect(ctx, margin + labelWidth, y - ROW_HEIGHT + 4, valueWidth, ROW_HEIGHT, bgColor);
   ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: PDF_COLORS.gray200, borderWidth: 0.5 });
 
-  page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, 7, labelWidth - 8)), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, 7, labelWidth - 8)), {
     x: margin + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
   });
   drawValueCell(ctx, margin + labelWidth + 4, y, valueWidth - 8, value);
@@ -176,13 +176,13 @@ function drawTableRowFull(
 }
 
 function drawValueCell(ctx: PdfRenderingContext, x: number, y: number, maxWidth: number, value: string): void {
-  const { page, fonts } = ctx;
+  const { fonts } = ctx;
   if (!value || value === '') {
-    page.drawText(sanitizeTextForWinAnsi('nao informado'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('nao informado'), {
       x, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray300,
     });
   } else {
-    page.drawText(sanitizeTextForWinAnsi(truncateText(value, fonts.helvetica, 8, maxWidth)), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(value, fonts.helvetica, 8, maxWidth)), {
       x, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
     });
   }

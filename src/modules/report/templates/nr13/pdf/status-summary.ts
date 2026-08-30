@@ -33,7 +33,7 @@ export function estimateStatusSummaryHeight(ctx: PdfRenderingContext): number {
 }
 
 export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): number {
-  const { page, margin, contentWidth, fonts, report } = ctx;
+  const { margin, contentWidth, fonts, report } = ctx;
   const { executiveSummary, inspectionData, equipment, nextInspection } = report;
   const stats = inspectionData.measurementStats;
 
@@ -66,10 +66,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   }
 
   const textX = margin + 50;
-  page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPECAO'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPECAO'), {
     x: textX, y: y - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
   });
-  page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
     x: textX, y: y - 28, font: fonts.helveticaBold, size: 16, color: statusColors.text,
   });
 
@@ -78,7 +78,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const critWidth = fonts.helveticaBold.widthOfTextAtSize(critText, 7) + 14;
   const critX = margin + contentWidth - critWidth - 8;
   ctx.page.drawRectangle({ x: critX, y: y - boxHeight + 8, width: critWidth, height: 14, color: critColors.bg });
-  page.drawText(sanitizeTextForWinAnsi(critText), {
+  ctx.page.drawText(sanitizeTextForWinAnsi(critText), {
     x: critX + 7, y: y - boxHeight + 11, font: fonts.helveticaBold, size: 7, color: critColors.text,
   });
 
@@ -86,11 +86,11 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // === INDICATORS ===
   const indicatorsHeight = 12 + 2 * (INDICATOR_CARD_HEIGHT + 4) + 10;
-  if (getAvailableHeight(ctx) < indicatorsHeight) {
+  if ((y - LAYOUT.footerReserve) < indicatorsHeight) {
     addNewPage(ctx); y = ctx.y;
   }
 
-  page.drawText(sanitizeTextForWinAnsi('Indicadores Tecnicos'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Indicadores Tecnicos'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
   });
   y -= 12;
@@ -118,10 +118,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
       x: cardX + 2, y: cardY - INDICATOR_CARD_HEIGHT, width: cardWidth - 4, height: INDICATOR_CARD_HEIGHT,
       color: PDF_COLORS.gray50, borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
     });
-    page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].label, fonts.helveticaBold, 6, cardWidth - 10)), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].label, fonts.helveticaBold, 6, cardWidth - 10)), {
       x: cardX + 6, y: cardY - 10, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray400,
     });
-    page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].value, fonts.helveticaBold, 10, cardWidth - 10)), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].value, fonts.helveticaBold, 10, cardWidth - 10)), {
       x: cardX + 6, y: cardY - 24, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray800,
     });
   }
@@ -130,11 +130,11 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // === MEASUREMENT SUMMARIES ===
   const summaryHeight = 12 + SUMMARY_CARD_HEIGHT + 12;
-  if (getAvailableHeight(ctx) < summaryHeight) {
+  if ((y - LAYOUT.footerReserve) < summaryHeight) {
     addNewPage(ctx); y = ctx.y;
   }
 
-  page.drawText(sanitizeTextForWinAnsi('Resumo das Medicoes'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Resumo das Medicoes'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
   });
   y -= 12;
@@ -159,11 +159,11 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
       color: bgColor, borderColor: summaries[i].isDanger ? PDF_COLORS.red100 : PDF_COLORS.gray200, borderWidth: 0.5,
     });
     const valWidth = fonts.helveticaBold.widthOfTextAtSize(summaries[i].value, 18);
-    page.drawText(sanitizeTextForWinAnsi(summaries[i].value), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(summaries[i].value), {
       x: cardX + (cardWidth - valWidth) / 2, y: y - 20,
       font: fonts.helveticaBold, size: 18, color: textColor,
     });
-    page.drawText(sanitizeTextForWinAnsi(truncateText(summaries[i].label, fonts.helvetica, 6, cardWidth - 10)), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(summaries[i].label, fonts.helvetica, 6, cardWidth - 10)), {
       x: cardX + 6, y: y - 30, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray500,
     });
   }
@@ -172,11 +172,11 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // === NEXT INSPECTION ===
   const nextHeight = 12 + NEXT_INSPECTION_HEIGHT + 38;
-  if (getAvailableHeight(ctx) < nextHeight) {
+  if ((y - LAYOUT.footerReserve) < nextHeight) {
     addNewPage(ctx); y = ctx.y;
   }
 
-  page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao Recomendada'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao Recomendada'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
   });
   y -= 12;
@@ -194,10 +194,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   for (let i = 0; i < nextItems.length; i++) {
     const itemX = margin + 8 + i * (contentWidth / 3);
-    page.drawText(sanitizeTextForWinAnsi(nextItems[i].label), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(nextItems[i].label), {
       x: itemX, y: y - 10, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray500,
     });
-    page.drawText(sanitizeTextForWinAnsi(truncateText(nextItems[i].value, fonts.helvetica, 8, contentWidth / 3 - 10)), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(nextItems[i].value, fonts.helvetica, 8, contentWidth / 3 - 10)), {
       x: itemX, y: y - 20, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
     });
   }

@@ -25,12 +25,14 @@ const LEGEND_HEIGHT = 16;
 const REF_HEIGHT = 14;
 
 export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number {
-  const { page, margin, contentWidth, fonts, report } = ctx;
+  // NOTE: Do NOT destructure `page` here — ctx.page changes after addNewPage.
+  const { margin, contentWidth, fonts, report } = ctx;
   const measurements = report.inspectionData.measurements;
   const minThickness = report.equipment.minThicknessMm;
 
   // Check space BEFORE drawing the title to avoid orphaned titles at page bottom
-  if (getAvailableHeight(ctx) < SECTION_TITLE_HEIGHT + HEADER_HEIGHT + 2 * ROW_HEIGHT + 40) {
+  // Use local y for accurate space calculation (ctx.y may be stale)
+  if ((y - LAYOUT.footerReserve) < SECTION_TITLE_HEIGHT + HEADER_HEIGHT + 2 * ROW_HEIGHT + 40) {
     addNewPage(ctx);
     y = ctx.y;
   }
@@ -38,14 +40,14 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   y = drawSectionTitle(ctx, 4, 'MEDICOES TECNICAS', y);
 
   // After drawing the title, verify we have enough space for table header + rows.
-  if (getAvailableHeight(ctx) < HEADER_HEIGHT + 2 * ROW_HEIGHT) {
+  if ((y - LAYOUT.footerReserve) < HEADER_HEIGHT + 2 * ROW_HEIGHT) {
     addNewPage(ctx);
     y = ctx.y;
     y = drawSectionTitle(ctx, 4, 'MEDICOES TECNICAS', y);
   }
 
   if (!measurements || measurements.length === 0) {
-    page.drawText(sanitizeTextForWinAnsi('Nenhuma medicao registrada para esta inspecao.'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma medicao registrada para esta inspecao.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     return y - 20;
@@ -66,7 +68,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
         const tw = fonts.helveticaBold.widthOfTextAtSize(headers[i], 8);
         textX = hx + (colWidths[i] - tw) / 2;
       }
-      page.drawText(sanitizeTextForWinAnsi(headers[i]), {
+      ctx.page.drawText(sanitizeTextForWinAnsi(headers[i]), {
         x: textX, y: startY - HEADER_HEIGHT + 10,
         font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
       });
@@ -79,15 +81,18 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   y = drawTableHeader(y);
 
   // Draw rows with internal pagination
+  // IMPORTANT: We use local `y` for space calculations, NOT getAvailableHeight(ctx)
+  // because ctx.y is stale inside this loop — only local `y` tracks position.
   for (let idx = 0; idx < measurements.length; idx++) {
     const m = measurements[idx];
 
-    // Check space: need at least one row + legend (if last)
+    // Check space using LOCAL y (not ctx.y which is stale)
+    const availableHeight = y - LAYOUT.footerReserve;
     const remainingMeasurements = measurements.length - idx;
     const isLast = remainingMeasurements === 1;
     const neededForThisRow = ROW_HEIGHT + (isLast ? LEGEND_HEIGHT + REF_HEIGHT + 20 : 0);
 
-    if (getAvailableHeight(ctx) < neededForThisRow) {
+    if (availableHeight < neededForThisRow) {
       // Page break
       addNewPage(ctx);
       y = ctx.y;
@@ -107,7 +112,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
 
     // Point (centered)
     const pointWidth = fonts.helvetica.widthOfTextAtSize(m.point || '', 8);
-    page.drawText(sanitizeTextForWinAnsi(m.point || ''), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(m.point || ''), {
       x: x + (colWidths[0] - pointWidth) / 2, y: cellY,
       font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
     });
@@ -115,7 +120,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
 
     // Location/Notes
     const notes = truncateText(m.notes || '', fonts.helvetica, 8, colWidths[1] - 8);
-    page.drawText(sanitizeTextForWinAnsi(notes || ''), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(notes || ''), {
       x: x + 4, y: cellY,
       font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
     });
@@ -124,7 +129,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
     // Thickness (centered, monospace)
     const thickText = m.thicknessMm ? m.thicknessMm.toFixed(2) : '-';
     const thickWidth = fonts.courier.widthOfTextAtSize(thickText, 8);
-    page.drawText(sanitizeTextForWinAnsi(thickText), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(thickText), {
       x: x + (colWidths[2] - thickWidth) / 2, y: cellY,
       font: fonts.courier, size: 8, color: PDF_COLORS.gray800,
     });
@@ -137,7 +142,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
     const badgeWidth = fonts.helveticaBold.widthOfTextAtSize(condition.label, 7) + 10;
     const badgeX = x + (colWidths[3] - badgeWidth) / 2;
     ctx.page.drawRectangle({ x: badgeX, y: cellY - 2, width: badgeWidth, height: 12, color: badgeColors.bg });
-    page.drawText(sanitizeTextForWinAnsi(condition.label), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(condition.label), {
       x: badgeX + 5, y: cellY, font: fonts.helveticaBold, size: 7, color: badgeColors.text,
     });
 
@@ -147,7 +152,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   y -= 6;
 
   // === LEGEND (only after all rows) ===
-  if (getAvailableHeight(ctx) < LEGEND_HEIGHT + REF_HEIGHT + 20) {
+  if ((y - LAYOUT.footerReserve) < LEGEND_HEIGHT + REF_HEIGHT + 20) {
     addNewPage(ctx);
     y = ctx.y;
   }
@@ -162,10 +167,10 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   for (const leg of legends) {
     const badgeW = fonts.helveticaBold.widthOfTextAtSize(leg.label, 7) + 8;
     ctx.page.drawRectangle({ x: legendX, y: y - 2, width: badgeW, height: 10, color: leg.color });
-    page.drawText(sanitizeTextForWinAnsi(leg.label), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(leg.label), {
       x: legendX + 4, y: y, font: fonts.helveticaBold, size: 7, color: leg.textColor,
     });
-    page.drawText(sanitizeTextForWinAnsi(leg.desc), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(leg.desc), {
       x: legendX + badgeW + 4, y: y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
     legendX += badgeW + fonts.helvetica.widthOfTextAtSize(leg.desc, 7) + 20;
@@ -177,13 +182,13 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   if (minThickness) {
     ctx.page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 14, color: PDF_COLORS.gray50 });
     const refText = `Espessura minima admissivel: ${minThickness} mm`;
-    page.drawText(sanitizeTextForWinAnsi(refText), {
+    ctx.page.drawText(sanitizeTextForWinAnsi(refText), {
       x: margin + 6, y: y, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
     });
     if (report.equipment.originalThicknessMm) {
       const origText = ` | Espessura original: ${report.equipment.originalThicknessMm} mm`;
       const refWidth = fonts.helveticaBold.widthOfTextAtSize(refText, 8);
-      page.drawText(sanitizeTextForWinAnsi(origText), {
+      ctx.page.drawText(sanitizeTextForWinAnsi(origText), {
         x: margin + 6 + refWidth, y: y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
       });
     }
