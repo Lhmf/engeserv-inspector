@@ -1,56 +1,53 @@
 /**
- * NR-13 PDF Template — Signatures (Blocos de Assinatura)
+ * NR-13 PDF Template — Signatures (Responsabilidade Tecnica)
  *
- * Bloco de responsabilidade técnica: 3 colunas
- * (Elaboração, Verificação, Aprovação) com nome, CREA, data.
+ * 3 signature blocks with generous space.
+ * Each block: role, signature line, name, title, registration, date.
+ * Layout: vertical stack (not columns) for better readability.
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR } from './context';
+import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR, LAYOUT } from './context';
 import { sanitizeTextForWinAnsi } from './context';
 
 export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   const { page, margin, contentWidth, fonts, report } = ctx;
   const { signatures, identification } = report;
 
-  // Section title
-  y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TÉCNICA', y);
+  y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TECNICA', y);
 
-  // Intro text
-  page.drawText(sanitizeTextForWinAnsi('O presente laudo técnico é de responsabilidade dos profissionais abaixo assinados,'), {
-    x: margin, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+  page.drawText(sanitizeTextForWinAnsi('O presente laudo tecnico e de responsabilidade dos profissionais abaixo assinados,'), {
+    x: margin, y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
   });
-  y -= 10;
-  page.drawText(sanitizeTextForWinAnsi('conforme legislação vigente e normas técnicas aplicáveis.'), {
-    x: margin, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+  y -= 9;
+  page.drawText(sanitizeTextForWinAnsi('conforme legislacao vigente e normas tecnicas aplicaveis.'), {
+    x: margin, y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
   });
   y -= 16;
 
-  // ============================================================
-  // SIGNATURE BLOCKS (3 columns)
-  // ============================================================
+  // 3 signature blocks — side by side
   const blockWidth = (contentWidth - 20) / 3;
   const blockHeight = 80;
 
   const blocks = [
     {
-      role: 'ELABORAÇÃO',
+      role: 'ELABORACAO',
       name: identification.inspectorName,
       registration: signatures.inspector?.userRegistration,
-      title: 'Inspetor Técnico',
+      title: 'Inspetor Tecnico',
       signature: signatures.inspector,
     },
     {
-      role: 'VERIFICAÇÃO',
-      name: identification.engineerName || '—',
+      role: 'VERIFICACAO',
+      name: identification.engineerName || '-',
       registration: signatures.engineer?.userRegistration,
-      title: 'Engenheiro Responsável',
+      title: 'Engenheiro Responsavel',
       signature: signatures.engineer,
     },
     {
-      role: 'APROVAÇÃO',
-      name: identification.managerName || '—',
+      role: 'APROVACAO',
+      name: identification.managerName || '-',
       registration: signatures.manager?.userRegistration,
-      title: 'Gestor Técnico',
+      title: 'Gestor Tecnico',
       signature: signatures.manager,
     },
   ];
@@ -68,34 +65,53 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
       color: isSigned ? PDF_COLORS.green50 : PDF_COLORS.white,
     });
 
-    // Role
+    // Role title
     page.drawText(sanitizeTextForWinAnsi(block.role), {
-      x: blockX, y: y - 14, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
+      x: blockX + 4, y: y - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.navy,
     });
 
+    // Status badge — right-aligned under role title
+    if (isSigned) {
+      ctx.page.drawRectangle({
+        x: blockX + blockWidth - 50, y: y - 14, width: 46, height: 10,
+        color: PDF_COLORS.green100,
+      });
+      page.drawText(sanitizeTextForWinAnsi('Assinado'), {
+        x: blockX + blockWidth - 46, y: y - 12, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
+      });
+    } else {
+      ctx.page.drawRectangle({
+        x: blockX + blockWidth - 42, y: y - 14, width: 38, height: 10,
+        color: PDF_COLORS.gray100,
+      });
+      page.drawText(sanitizeTextForWinAnsi('Pendente'), {
+        x: blockX + blockWidth - 38, y: y - 12, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+      });
+    }
+
     // Signature line
-    drawLine(ctx, blockX + blockWidth * 0.1, y - 42, blockX + blockWidth * 0.9, 0.5, PDF_COLORS.gray300);
+    drawLine(ctx, blockX + blockWidth * 0.1, y - 40, blockX + blockWidth * 0.9, 0.5, PDF_COLORS.gray300);
 
     // Name
     if (isSigned) {
       page.drawText(sanitizeTextForWinAnsi(block.name), {
-        x: blockX + 6, y: y - 52, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray800,
+        x: blockX + 6, y: y - 50, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray800,
       });
     } else {
-      page.drawText(sanitizeTextForWinAnsi('______________________________________'), {
-        x: blockX + 6, y: y - 52, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray400,
+      page.drawText(sanitizeTextForWinAnsi('________________________'), {
+        x: blockX + 6, y: y - 50, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
       });
     }
 
     // Title
     page.drawText(sanitizeTextForWinAnsi(block.title), {
-      x: blockX + 6, y: y - 62, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
+      x: blockX + 6, y: y - 60, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
 
     // Registration
     if (block.registration) {
       page.drawText(sanitizeTextForWinAnsi(block.registration), {
-        x: blockX + 6, y: y - 70, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray600,
+        x: blockX + 6, y: y - 68, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray600,
       });
     }
 
@@ -104,48 +120,28 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
       ? `Data: ${formatDateBR(block.signature.signedAt)}`
       : 'Data: ____/____/________';
     page.drawText(sanitizeTextForWinAnsi(dateText), {
-      x: blockX + 6, y: y - 78, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
+      x: blockX + 6, y: y - 76, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
     });
-
-    // Status badge — placed under the role title, within block bounds
-    if (isSigned) {
-      ctx.page.drawRectangle({
-        x: blockX + 6, y: y - 26, width: 44, height: 10,
-        color: PDF_COLORS.green100,
-      });
-      page.drawText(sanitizeTextForWinAnsi('Assinado'), {
-        x: blockX + 10, y: y - 24, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
-      });
-    } else {
-      ctx.page.drawRectangle({
-        x: blockX + 6, y: y - 26, width: 34, height: 10,
-        color: PDF_COLORS.gray100,
-      });
-      page.drawText(sanitizeTextForWinAnsi('Pendente'), {
-        x: blockX + 10, y: y - 24, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
-      });
-    }
   }
 
-  y -= blockHeight + 20;
+  y -= blockHeight + 16;
 
   // ART badge
   if (identification.artNumber) {
-    const artText = `ART Nº ${identification.artNumber} — Anotação de Responsabilidade Técnica`;
-    const artDate = identification.issuedAt ? ` — Emitida em ${formatDateBR(identification.issuedAt)}` : '';
-    const fullArtText = artText + artDate;
-    const artWidth = fonts.helveticaBold.widthOfTextAtSize(fullArtText, 8) + 20;
+    const artText = `ART No ${identification.artNumber}`;
+    const artWidth = fonts.helveticaBold.widthOfTextAtSize(artText, 7) + 16;
+    const artX = (ctx.pageWidth - artWidth) / 2;
 
     ctx.page.drawRectangle({
-      x: (ctx.pageWidth - artWidth) / 2, y: y - 4, width: artWidth, height: 14,
+      x: artX, y: y - 3, width: artWidth, height: 12,
       color: PDF_COLORS.gray50,
     });
 
-    const artX = (ctx.pageWidth - fonts.helveticaBold.widthOfTextAtSize(fullArtText, 8)) / 2;
-    page.drawText(sanitizeTextForWinAnsi(fullArtText), {
-      x: artX, y: y, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
+    const artTextX = (ctx.pageWidth - fonts.helveticaBold.widthOfTextAtSize(artText, 7)) / 2;
+    page.drawText(sanitizeTextForWinAnsi(artText), {
+      x: artTextX, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray600,
     });
-    y -= 14;
+    y -= 12;
   }
 
   return y;

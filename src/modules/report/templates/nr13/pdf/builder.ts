@@ -1,19 +1,19 @@
 /**
  * NR-13 PDF Template — Builder (Orquestrador Principal)
  *
- * Orquestra todos os módulos de seção PDF para gerar o laudo completo.
- * Two-pass architecture:
- *   Pass 1: Render all content (cover + sections) without headers on pages 2-5
- *   Pass 2: Stamp headers (with correct page count) and footers on all pages
+ * Flow-based pagination architecture:
+ *   Pass 1: Render all content, respecting header/footer zones
+ *   Pass 2: Stamp headers and footers with correct page count
  *
- * This ensures header "X / Y" and footer "Pagina X de Y" always agree.
+ * Key principle: content is drawn BELOW the header zone.
+ * Page 1 (cover) has no header. Pages 2+ reserve header space.
+ * When content exceeds available space, a page break occurs.
  */
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
 import { MOCK_COMPANY } from '../mock-data';
-import { createPdfContext, addNewPage, PdfRenderingContext, PDF_COLORS, drawLine, sanitizeTextForWinAnsi, drawRect } from './context';
+import { createPdfContext, addNewPage, PdfRenderingContext, LAYOUT, getAvailableHeight } from './context';
 import { drawCoverPdf } from './cover';
-import { drawHeaderPdf, drawCompactHeaderPdf } from './header';
 import { drawEquipmentDataPdf } from './equipment-data';
 import { drawStatusSummaryPdf } from './status-summary';
 import { drawMeasurementsPdf } from './measurements';
@@ -25,10 +25,6 @@ import { stampAllHeaders } from './header';
 
 /**
  * Build the complete NR-13 PDF from a TechnicalReport.
- *
- * @param report - The technical report data (from database or mock)
- * @param company - Company info (defaults to MOCK_COMPANY)
- * @returns The PDF document bytes
  */
 export async function buildNr13Pdf(
   report: TechnicalReport,
@@ -41,28 +37,39 @@ export async function buildNr13Pdf(
   // PASS 1: RENDER ALL CONTENT
   // ============================================================
 
-  // Página 1 — CAPA (no header needed — cover is its own design)
+  // PAGE 1 — COVER (no header needed)
   drawCoverPdf(ctx);
 
-  // Página 2 — IDENTIFICAÇÃO E DADOS TÉCNICOS
-  // Draw content only (header will be stamped in pass 2)
-  addNewPage(ctx);
-  const page2ContentStart = ctx.y;
-  let y = page2ContentStart;
+  // PAGE 2 — EQUIPMENT DATA (full header will be stamped later)
+  // Content starts below where the full header will be drawn
+  addNewPage(ctx, true); // withHeader=true reserves space
+  let y = ctx.y;
   y = drawEquipmentDataPdf(ctx, y);
 
-  // Página 3 — STATUS GERAL E RESULTADOS TÉCNICOS
-  addNewPage(ctx);
-  y = ctx.y;
+  // If equipment data didn't fill the page, check if status+measurements fit
+  // on the same page. If yes, continue. If no, new page.
+  const availableForStatus = getAvailableHeight(ctx);
+  // Estimate status summary height: ~320pt for typical data
+  const estimatedStatusHeight = 340;
+
+  if (availableForStatus < estimatedStatusHeight) {
+    // Status summary needs its own page
+    addNewPage(ctx);
+    y = ctx.y;
+  }
+
+  // STATUS + MEASUREMENTS — may span 1-2 pages
   y = drawStatusSummaryPdf(ctx, y);
+
+  // Measurements continue on current page (may cause page break internally)
   y = drawMeasurementsPdf(ctx, y);
 
-  // Página 4 — REGISTRO FOTOGRÁFICO
+  // PAGE — PHOTO REGISTER
   addNewPage(ctx);
   y = ctx.y;
   y = await drawPhotoRegisterPdf(ctx, y);
 
-  // Página 5 — CONCLUSÃO E ASSINATURAS
+  // PAGE — RECOMMENDATIONS + CONCLUSION + SIGNATURES
   addNewPage(ctx);
   y = ctx.y;
   y = drawRecommendationsPdf(ctx, y);
@@ -74,7 +81,7 @@ export async function buildNr13Pdf(
   // ============================================================
   const actualTotalPages = ctx.doc.getPages().length;
 
-  // Stamp headers on pages 2-5 (page 1 is cover — no header)
+  // Stamp headers on pages 2-N (page 1 is cover)
   stampAllHeaders(ctx, actualTotalPages);
 
   // Stamp footers on all pages

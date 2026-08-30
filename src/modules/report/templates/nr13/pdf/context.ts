@@ -1,18 +1,22 @@
 /**
  * NR-13 PDF Template — Shared Rendering Context
  *
- * Provides fonts, colors, helper functions and page management
+ * Provides fonts, colors, layout engine, helper functions and page management
  * for all PDF section modules.
+ *
+ * Layout Engine:
+ * - PaginationContext tracks available space per page
+ * - Sections can estimate their height before drawing
+ * - Automatic page breaks when content exceeds available space
+ * - Headers and footers are reserved space, never overlapping content
  */
-import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, PageSizes, RGB, PDFDict } from 'pdf-lib';
+import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, PageSizes, RGB } from 'pdf-lib';
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
 import { NR13_COLORS, NR13_LAYOUT } from '../types';
 
 // ============================================================
 // GLOBAL WINANSI PROTOTYPE PATCH
-// Applied once when this module is first imported. Intercepts all
-// PDFPage.drawText calls to sanitize text for WinAnsi encoding.
 // ============================================================
 const _origDrawText = PDFPage.prototype.drawText;
 PDFPage.prototype.drawText = function (text: any, options?: any) {
@@ -30,65 +34,70 @@ PDFFont.prototype.widthOfTextAtSize = function (text: any, size?: any) {
 };
 
 // ============================================================
-// PDF-RGB COLORS (converted from hex in NR13_COLORS)
+// LAYOUT CONSTANTS
+// ============================================================
+export const LAYOUT = {
+  pageWidth: 595.28,
+  pageHeight: 841.89,
+  margin: 45,
+  headerHeight: 70,      // compact header on pages 3+
+  headerHeightFull: 88,  // full header on page 2
+  footerHeight: 30,
+  get contentWidth() { return this.pageWidth - 2 * this.margin; },
+  get contentHeightFull() { return this.pageHeight - this.headerHeightFull - this.footerHeight - 2 * this.margin; },
+  get contentHeight() { return this.pageHeight - this.headerHeight - this.footerHeight - 2 * this.margin; },
+  sectionGap: 16,
+  subsectionGap: 10,
+} as const;
+
+// ============================================================
+// PDF-RGB COLORS
 // ============================================================
 export const PDF_COLORS = {
-  navy: rgb(0.102, 0.153, 0.267),          // #1a2744
-  navyLight: rgb(0.165, 0.247, 0.431),     // #2a3f6e
+  navy: rgb(0.102, 0.153, 0.267),
+  navyLight: rgb(0.165, 0.247, 0.431),
   white: rgb(1, 1, 1),
-  gray50: rgb(0.973, 0.984, 0.992),        // #f8fafc
-  gray100: rgb(0.945, 0.961, 0.976),       // #f1f5f9
-  gray200: rgb(0.886, 0.906, 0.937),       // #e2e8f0
-  gray300: rgb(0.796, 0.835, 0.878),       // #cbd5e1
-  gray400: rgb(0.580, 0.639, 0.722),       // #94a3b8
-  gray500: rgb(0.392, 0.455, 0.545),       // #64748b
-  gray600: rgb(0.278, 0.337, 0.412),       // #475569
-  gray700: rgb(0.200, 0.255, 0.333),       // #334155
-  gray800: rgb(0.118, 0.161, 0.231),       // #1e293b
-  green50: rgb(0.941, 0.988, 0.957),       // #f0fdf4
-  green100: rgb(0.859, 0.973, 0.898),      // #dcfce7
-  green500: rgb(0.133, 0.773, 0.369),      // #22c55e
-  green600: rgb(0.086, 0.639, 0.290),      // #16a34a
-  green700: rgb(0.082, 0.502, 0.239),      // #15803d
-  yellow50: rgb(0.996, 0.988, 0.910),      // #fefce8
-  yellow100: rgb(0.992, 0.976, 0.765),     // #fef9c3
-  yellow500: rgb(0.918, 0.702, 0.031),     // #eab308
-  yellow600: rgb(0.792, 0.541, 0.016),     // #ca8a04
-  yellow700: rgb(0.631, 0.384, 0.027),     // #a16207
-  red50: rgb(0.992, 0.949, 0.949),         // #fef2f2
-  red100: rgb(0.980, 0.890, 0.890),        // #fee2e2
-  red500: rgb(0.937, 0.267, 0.267),        // #ef4444
-  red600: rgb(0.863, 0.149, 0.149),        // #dc2626
-  red700: rgb(0.725, 0.106, 0.106),        // #b91c1c
-  blue50: rgb(0.941, 0.969, 1.0),          // #eff6ff
-  blue500: rgb(0.231, 0.510, 0.965),       // #3b82f6
-  blue600: rgb(0.145, 0.388, 0.922),       // #2563eb
+  gray50: rgb(0.973, 0.984, 0.992),
+  gray100: rgb(0.945, 0.961, 0.976),
+  gray200: rgb(0.886, 0.906, 0.937),
+  gray300: rgb(0.796, 0.835, 0.878),
+  gray400: rgb(0.580, 0.639, 0.722),
+  gray500: rgb(0.392, 0.455, 0.545),
+  gray600: rgb(0.278, 0.337, 0.412),
+  gray700: rgb(0.200, 0.255, 0.333),
+  gray800: rgb(0.118, 0.161, 0.231),
+  green50: rgb(0.941, 0.988, 0.957),
+  green100: rgb(0.859, 0.973, 0.898),
+  green500: rgb(0.133, 0.773, 0.369),
+  green600: rgb(0.086, 0.639, 0.290),
+  green700: rgb(0.082, 0.502, 0.239),
+  yellow50: rgb(0.996, 0.988, 0.910),
+  yellow100: rgb(0.992, 0.976, 0.765),
+  yellow500: rgb(0.918, 0.702, 0.031),
+  yellow600: rgb(0.792, 0.541, 0.016),
+  yellow700: rgb(0.631, 0.384, 0.027),
+  red50: rgb(0.992, 0.949, 0.949),
+  red100: rgb(0.980, 0.890, 0.890),
+  red500: rgb(0.937, 0.267, 0.267),
+  red600: rgb(0.863, 0.149, 0.149),
+  red700: rgb(0.725, 0.106, 0.106),
+  blue50: rgb(0.941, 0.969, 1.0),
+  blue500: rgb(0.231, 0.510, 0.965),
+  blue600: rgb(0.145, 0.388, 0.922),
 } as const;
 
 // ============================================================
 // WINANSI TEXT SANITIZATION
 // ============================================================
-/**
- * StandardFonts (Helvetica, Courier, etc.) only support WinAnsi encoding.
- * Characters outside WinAnsi (em-dash, checkmarks, emojis, etc.) must be
- * replaced with ASCII equivalents before drawing.
- */
-/**
- * Explicit text sanitization utility for WinAnsi encoding.
- * The prototype patch handles most cases, but this can be used
- * for widthOfTextAtSize calculations that need matching text.
- */
 export function sanitizeTextForWinAnsi(text: string): string {
   if (!text) return '';
-  // Use String.fromCharCode for reliable Unicode replacement.
-  // StandardFonts (Helvetica, Courier, etc.) only support WinAnsi (Latin-1).
   const replacements: [string, string][] = [
     ['\u2014', '-'],   // em-dash
     ['\u2013', '-'],   // en-dash
-    ['\u2019', "'"],  // right single quote
-    ['\u2018', "'"],  // left single quote
-    ['\u201C', '"'],  // left double quote
-    ['\u201D', '"'],  // right double quote
+    ['\u2019', "'"],   // right single quote
+    ['\u2018', "'"],   // left single quote
+    ['\u201C', '"'],   // left double quote
+    ['\u201D', '"'],   // right double quote
     ['\u2026', '...'], // ellipsis
     ['\u2713', '[OK]'],// checkmark
     ['\u2717', '[X]'], // cross
@@ -116,7 +125,6 @@ export function sanitizeTextForWinAnsi(text: string): string {
   for (const [char, replacement] of replacements) {
     result = result.split(char).join(replacement);
   }
-  // Remove all emoji characters (U+1F000 to U+1FFFF)
   result = result.replace(/[\u{1F000}-\u{1FFFF}]/gu, '');
   return result;
 }
@@ -129,19 +137,20 @@ export interface PdfRenderingContext {
   page: PDFPage;
   y: number;
   fonts: {
-    helvetica: typeof StandardFonts.Helvetica extends string ? any : never;
+    helvetica: any;
     helveticaBold: any;
     helveticaOblique: any;
     courier: any;
     courierBold: any;
   };
-  pageSize: [number, number];
   pageWidth: number;
   pageHeight: number;
   margin: number;
   contentWidth: number;
   report: TechnicalReport;
   company: CompanyInfo;
+  /** Current page number (1-indexed). Updated when addNewPage is called. */
+  pageNumber: number;
 }
 
 /**
@@ -159,49 +168,62 @@ export async function createPdfContext(
   const courier = await doc.embedFont(StandardFonts.Courier);
   const courierBold = await doc.embedFont(StandardFonts.CourierBold);
 
-  const pageSize = PageSizes.A4;
-  const pageWidth = pageSize[0];
-  const pageHeight = pageSize[1];
-  const margin = NR13_LAYOUT.margin;
-  const contentWidth = pageWidth - 2 * margin;
+  const pageWidth = LAYOUT.pageWidth;
+  const pageHeight = LAYOUT.pageHeight;
+  const margin = LAYOUT.margin;
 
-  const page = doc.addPage(pageSize);
+  const page = doc.addPage([pageWidth, pageHeight]);
 
   return {
     doc,
     page,
     y: pageHeight - margin,
     fonts: { helvetica, helveticaBold, helveticaOblique, courier, courierBold },
-    pageSize,
     pageWidth,
     pageHeight,
     margin,
-    contentWidth,
+    contentWidth: LAYOUT.contentWidth,
     report,
     company,
+    pageNumber: 1,
   };
 }
 
 /**
- * Add a new page to the document and reset y position.
+ * Add a new page. Content starts BELOW the header zone.
+ * For content pages (pages 2+), y starts at pageHeight - margin - headerHeight.
  */
-export function addNewPage(ctx: PdfRenderingContext): void {
-  ctx.page = ctx.doc.addPage(ctx.pageSize);
-  ctx.y = ctx.pageHeight - ctx.margin;
+export function addNewPage(ctx: PdfRenderingContext, withHeader: boolean = true): void {
+  ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
+  ctx.pageNumber++;
+  // Reserve space for header on content pages
+  const headerH = withHeader ? LAYOUT.headerHeightFull : 0;
+  ctx.y = ctx.pageHeight - ctx.margin - headerH;
 }
 
 /**
- * Check if there's enough space for `lines` lines. If not, add a new page.
+ * Check if there's enough vertical space. If not, add a new page.
+ * Returns the (possibly updated) y position.
  */
-export function ensureSpace(ctx: PdfRenderingContext, lines: number = 3, lineHeight: number = 13): void {
-  const needed = ctx.margin + lines * lineHeight;
-  if (ctx.y < needed) {
+export function ensureSpace(ctx: PdfRenderingContext, neededHeight: number): number {
+  const footerReserve = ctx.margin + LAYOUT.footerHeight;
+  if (ctx.y - neededHeight < footerReserve) {
     addNewPage(ctx);
+    return ctx.y;
   }
+  return ctx.y;
 }
 
 /**
- * Draw text and return the new y position.
+ * Get the usable content height on the current page.
+ */
+export function getAvailableHeight(ctx: PdfRenderingContext): number {
+  const footerReserve = ctx.margin + LAYOUT.footerHeight;
+  return ctx.y - footerReserve;
+}
+
+/**
+ * Draw text with automatic word wrapping. Returns new y.
  */
 export function drawText(
   ctx: PdfRenderingContext,
@@ -213,15 +235,16 @@ export function drawText(
     size?: number;
     color?: RGB;
     maxWidth?: number;
+    lineHeight?: number;
   }
 ): number {
   const font = options?.font || ctx.fonts.helvetica;
   const size = options?.size || 10;
   const color = options?.color || PDF_COLORS.gray800;
   const maxWidth = options?.maxWidth;
+  const lineHeight = options?.lineHeight || size * 1.35;
 
   if (maxWidth) {
-    // Word wrap
     const words = text.split(' ');
     let line = '';
     let currentY = y;
@@ -231,29 +254,55 @@ export function drawText(
       const width = font.widthOfTextAtSize(testLine, size);
       if (width > maxWidth && line) {
         ctx.page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font, size, color });
-        currentY -= size * 1.3;
+        currentY -= lineHeight;
         line = word;
-        if (currentY < ctx.margin) {
-          addNewPage(ctx);
-          currentY = ctx.y;
-        }
       } else {
         line = testLine;
       }
     }
     if (line) {
       ctx.page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font, size, color });
-      currentY -= size * 1.3;
+      currentY -= lineHeight;
     }
     return currentY;
   }
 
   ctx.page.drawText(sanitizeTextForWinAnsi(text), { x, y, font, size, color });
-  return y - size * 1.3;
+  return y - lineHeight;
+}
+
+/**
+ * Estimate the height needed for wrapped text.
+ */
+export function estimateWrappedTextHeight(
+  ctx: PdfRenderingContext,
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+  lineHeight?: number
+): number {
+  const font = ctx.fonts.helvetica;
+  const lh = lineHeight || fontSize * 1.35;
+  const words = text.split(' ');
+  let line = '';
+  let lines = 1;
+
+  for (const word of words) {
+    const testLine = line + (line ? ' ' : '') + word;
+    const width = font.widthOfTextAtSize(testLine, fontSize);
+    if (width > maxWidth && line) {
+      lines++;
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+  return lines * lh;
 }
 
 /**
  * Draw a section title with underline. Returns new y.
+ * Height: ~24pt
  */
 export function drawSectionTitle(
   ctx: PdfRenderingContext,
@@ -261,12 +310,7 @@ export function drawSectionTitle(
   title: string,
   y: number
 ): number {
-  if (y < ctx.margin + 40) {
-    addNewPage(ctx);
-    y = ctx.y;
-  }
-
-  // Number circle (simplified: just draw text)
+  // Navy circle with number
   const circleX = ctx.margin;
   ctx.page.drawCircle({
     x: circleX + 10,
@@ -285,9 +329,9 @@ export function drawSectionTitle(
   // Title text
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: circleX + 25,
-    y: y,
+    y,
     font: ctx.fonts.helveticaBold,
-    size: 12,
+    size: 11,
     color: PDF_COLORS.navy,
   });
 
@@ -306,14 +350,19 @@ export function drawSectionTitle(
 }
 
 /**
+ * Section title height (for estimation).
+ */
+export const SECTION_TITLE_HEIGHT = 24;
+
+/**
  * Draw a subsection title. Returns new y.
+ * Height: ~18pt
  */
 export function drawSubsectionTitle(
   ctx: PdfRenderingContext,
   title: string,
   y: number
 ): number {
-  // Left border
   ctx.page.drawRectangle({
     x: ctx.margin,
     y: y - 1,
@@ -326,12 +375,14 @@ export function drawSubsectionTitle(
     x: ctx.margin + 8,
     y,
     font: ctx.fonts.helveticaBold,
-    size: 10,
+    size: 9,
     color: PDF_COLORS.gray600,
   });
 
   return y - 18;
 }
+
+export const SUBSECTION_TITLE_HEIGHT = 18;
 
 /**
  * Draw a filled rectangle.
@@ -370,19 +421,19 @@ export function drawLine(
  * Format a Date to DD/MM/YYYY.
  */
 export function formatDateBR(date: Date | string | undefined): string {
-  if (!date) return '—';
+  if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) return '-';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 /**
- * Format a Date to long format (DD de Mês de YYYY).
+ * Format a Date to long format (DD de mes de YYYY).
  */
 export function formatDateLong(date: Date | string | undefined): string {
-  if (!date) return '—';
+  if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '—';
+  if (isNaN(d.getTime())) return '-';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
@@ -392,9 +443,9 @@ export function formatDateLong(date: Date | string | undefined): string {
 export function getStatusDisplay(status: string): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
   switch (status) {
     case 'INTEGRO': return { label: 'APROVADO', color: 'green' };
-    case 'ACEITAVEL_COM_RESTRICOES': return { label: 'APROVADO COM RESTRIÇÕES', color: 'yellow' };
+    case 'ACEITAVEL_COM_RESTRICOES': return { label: 'APROVADO COM RESTRICOES', color: 'yellow' };
     case 'REQUER_REPARO': return { label: 'REQUER REPARO', color: 'red' };
-    case 'CONDENADO': return { label: 'REPROVADO / NÃO CONFORME', color: 'red' };
+    case 'CONDENADO': return { label: 'REPROVADO / NAO CONFORME', color: 'red' };
     default: return { label: 'INDETERMINADO', color: 'gray' };
   }
 }
@@ -403,11 +454,7 @@ export function getStatusDisplay(status: string): { label: string; color: 'green
  * Get the background and text RGB colors for a status color key.
  */
 export function getStatusColors(colorKey: 'green' | 'yellow' | 'red' | 'gray'): {
-  bg: RGB;
-  text: RGB;
-  border: RGB;
-  badgeBg: RGB;
-  badgeText: RGB;
+  bg: RGB; text: RGB; border: RGB; badgeBg: RGB; badgeText: RGB;
 } {
   switch (colorKey) {
     case 'green':
@@ -456,4 +503,45 @@ export function getCriticalityColors(level: string): { bg: RGB; text: RGB } {
     case 'CRITICAL': return { bg: PDF_COLORS.red700, text: PDF_COLORS.white };
     default: return { bg: PDF_COLORS.gray100, text: PDF_COLORS.gray600 };
   }
+}
+
+/**
+ * Truncate text to fit within maxWidth, appending '...' if needed.
+ */
+export function truncateText(text: string, font: any, size: number, maxWidth: number): string {
+  if (!text) return '';
+  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
+  let truncated = text;
+  while (truncated.length > 3 && font.widthOfTextAtSize(truncated + '...', size) > maxWidth) {
+    truncated = truncated.slice(0, -1);
+  }
+  return truncated + '...';
+}
+
+/**
+ * Word-wrap text into lines that fit within maxWidth.
+ */
+export function wrapTextLines(text: string, font: any, size: number, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const test = line + (line ? ' ' : '') + word;
+    if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.length > 0 ? lines : [''];
+}
+
+/**
+ * Get a safe string value, returning empty string for null/undefined.
+ */
+export function safeStr(val: any): string {
+  if (val === null || val === undefined) return '';
+  return String(val);
 }

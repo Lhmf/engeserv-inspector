@@ -1,284 +1,198 @@
 /**
- * NR-13 PDF Template — Cover Page (Página 1)
+ * NR-13 PDF Template — Cover Page (Pagina 1)
  *
- * Capa profissional: brand bar navy, título, dados do laudo,
- * status badge, rodapé da capa.
+ * Clean professional cover with generous whitespace.
  */
 import { rgb } from 'pdf-lib';
 import type { PdfRenderingContext } from './context';
 import {
-  PDF_COLORS, drawText, drawRect, drawLine,
+  PDF_COLORS, drawRect, drawLine,
   formatDateLong, getStatusDisplay, getStatusColors,
+  wrapTextLines, sanitizeTextForWinAnsi, LAYOUT,
 } from './context';
-import { sanitizeTextForWinAnsi } from './context';
 
 export function drawCoverPdf(ctx: PdfRenderingContext): void {
   const { page, pageWidth, pageHeight, margin, contentWidth, fonts, report, company } = ctx;
   const { identification, client, equipment, executiveSummary } = report;
 
-  // ============================================================
-  // BRAND BAR (navy)
-  // ============================================================
-  const brandBarHeight = 100;
+  // BRAND BAR (navy) — 80pt
+  const brandBarHeight = 80;
   drawRect(ctx, 0, pageHeight - brandBarHeight, pageWidth, brandBarHeight, PDF_COLORS.navy);
 
-  // Logo icon
+  // Logo
   page.drawRectangle({
-    x: margin,
-    y: pageHeight - 75,
-    width: 50,
-    height: 50,
-    color: PDF_COLORS.navyLight,
-    borderColor: rgb(1, 1, 1),
-    borderWidth: 1,
-    opacity: 0.5,
+    x: margin, y: pageHeight - 60, width: 40, height: 40,
+    color: PDF_COLORS.navyLight, borderColor: rgb(1, 1, 1), borderWidth: 0.5,
   });
   page.drawText(sanitizeTextForWinAnsi('ES'), {
-    x: margin + 14,
-    y: pageHeight - 58,
-    font: fonts.helveticaBold,
-    size: 18,
-    color: PDF_COLORS.white,
+    x: margin + 11, y: pageHeight - 44,
+    font: fonts.helveticaBold, size: 14, color: PDF_COLORS.white,
   });
 
   // Company name
   page.drawText(sanitizeTextForWinAnsi(company.name), {
-    x: margin + 60,
-    y: pageHeight - 45,
-    font: fonts.helveticaBold,
-    size: 16,
-    color: PDF_COLORS.white,
+    x: margin + 50, y: pageHeight - 38,
+    font: fonts.helveticaBold, size: 14, color: PDF_COLORS.white,
   });
   page.drawText(sanitizeTextForWinAnsi(company.tagline), {
-    x: margin + 60,
-    y: pageHeight - 60,
-    font: fonts.helvetica,
-    size: 9,
-    color: rgb(0.7, 0.8, 1),
+    x: margin + 50, y: pageHeight - 50,
+    font: fonts.helvetica, size: 8, color: rgb(0.7, 0.8, 1),
   });
 
-  // Document type
-  page.drawText(sanitizeTextForWinAnsi('DOCUMENTO TÉCNICO'), {
-    x: pageWidth - margin - fonts.helvetica.widthOfTextAtSize('DOCUMENTO TÉCNICO', 9),
-    y: pageHeight - 50,
-    font: fonts.helvetica,
-    size: 9,
-    color: rgb(0.6, 0.7, 0.85),
-  });
-
-  // ============================================================
   // TITLE BLOCK
-  // ============================================================
-  let y = pageHeight - brandBarHeight - 80;
+  let y = pageHeight - brandBarHeight - 70;
 
-  // Title
-  page.drawText(sanitizeTextForWinAnsi('LAUDO TÉCNICO'), {
-    x: margin,
-    y,
-    font: fonts.helveticaBold,
-    size: 32,
-    color: PDF_COLORS.navy,
+  page.drawText(sanitizeTextForWinAnsi('LAUDO TECNICO'), {
+    x: margin, y, font: fonts.helveticaBold, size: 36, color: PDF_COLORS.navy,
   });
-  y -= 38;
-  page.drawText(sanitizeTextForWinAnsi('DE INSPEÇÃO'), {
-    x: margin,
-    y,
-    font: fonts.helveticaBold,
-    size: 32,
-    color: PDF_COLORS.navy,
+  y -= 42;
+  page.drawText(sanitizeTextForWinAnsi('DE INSPECAO'), {
+    x: margin, y, font: fonts.helveticaBold, size: 36, color: PDF_COLORS.navy,
   });
-  y -= 40;
+  y -= 46;
 
-  // NR-13 badge
+  // NR-13 badge — centered
   const badgeText = 'NR-13';
   const badgeWidth = fonts.helveticaBold.widthOfTextAtSize(badgeText, 18) + 40;
   const badgeX = (pageWidth - badgeWidth) / 2;
   page.drawRectangle({
-    x: badgeX,
-    y: y - 6,
-    width: badgeWidth,
-    height: 30,
-    color: PDF_COLORS.navy,
+    x: badgeX, y: y - 4, width: badgeWidth, height: 28, color: PDF_COLORS.navy,
   });
   page.drawText(sanitizeTextForWinAnsi(badgeText), {
-    x: badgeX + 20,
-    y: y,
-    font: fonts.helveticaBold,
-    size: 18,
-    color: PDF_COLORS.white,
+    x: badgeX + 20, y: y + 2,
+    font: fonts.helveticaBold, size: 18, color: PDF_COLORS.white,
   });
   y -= 50;
 
   // Decorative divider
-  const dividerWidth = contentWidth * 0.6;
+  const dividerWidth = contentWidth * 0.5;
   const dividerX = (pageWidth - dividerWidth) / 2;
   ctx.page.drawLine({
-    start: { x: dividerX, y },
-    end: { x: dividerX + dividerWidth, y },
-    thickness: 2,
-    color: PDF_COLORS.navy,
-  });
-  ctx.page.drawLine({
-    start: { x: dividerX + 10, y: y - 4 },
-    end: { x: dividerX + dividerWidth - 10, y: y - 4 },
-    thickness: 1,
-    color: PDF_COLORS.blue500,
+    start: { x: dividerX, y }, end: { x: dividerX + dividerWidth, y },
+    thickness: 2, color: PDF_COLORS.navy,
   });
   y -= 30;
 
-  // ============================================================
-  // INFO GRID (2 columns)
-  // ============================================================
+  // INFO BLOCK — 2 columns
   const col1X = margin;
   const col2X = margin + contentWidth / 2 + 10;
   const labelSize = 8;
-  const valueSize = 13;
+  const valueSize = 12;
 
   // Column 1
   let leftY = y;
-  page.drawText(sanitizeTextForWinAnsi('LAUDO N°'), { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
+  page.drawText(sanitizeTextForWinAnsi('CLIENTE'), {
+    x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray400,
+  });
   leftY -= 14;
-  page.drawText(sanitizeTextForWinAnsi(identification.reportNumber), { x: col1X, y: leftY, font: fonts.courierBold, size: valueSize, color: PDF_COLORS.navy });
-  leftY -= 28;
-  page.drawText(sanitizeTextForWinAnsi('CLIENTE'), { x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
-  leftY -= 14;
-  const clientLines = wrapText(client.name, fonts.helvetica, valueSize, contentWidth / 2 - 10);
+  const clientLines = wrapTextLines(client.name, fonts.helvetica, valueSize, contentWidth / 2 - 10);
   for (const line of clientLines) {
-    page.drawText(sanitizeTextForWinAnsi(line), { x: col1X, y: leftY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
+    page.drawText(sanitizeTextForWinAnsi(line), {
+      x: col1X, y: leftY, font: fonts.helveticaBold, size: valueSize, color: PDF_COLORS.gray800,
+    });
     leftY -= 16;
   }
+  leftY -= 10;
+  page.drawText(sanitizeTextForWinAnsi('LAUDO No'), {
+    x: col1X, y: leftY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray400,
+  });
+  leftY -= 14;
+  page.drawText(sanitizeTextForWinAnsi(identification.reportNumber), {
+    x: col1X, y: leftY, font: fonts.courierBold, size: valueSize, color: PDF_COLORS.navy,
+  });
 
   // Column 2
   let rightY = y;
-  page.drawText(sanitizeTextForWinAnsi('DATA DA INSPEÇÃO'), { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
-  rightY -= 14;
-  page.drawText(sanitizeTextForWinAnsi(formatDateLong(identification.inspectionDate)), { x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800 });
-  rightY -= 28;
-  page.drawText(sanitizeTextForWinAnsi('EQUIPAMENTO'), { x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray500 });
-  rightY -= 14;
-  page.drawText(sanitizeTextForWinAnsi(`${equipment.tag} — ${equipment.type.replace(/_/g, ' ')}`), {
-    x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800,
+  page.drawText(sanitizeTextForWinAnsi('EQUIPAMENTO'), {
+    x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray400,
   });
-  rightY -= 20;
+  rightY -= 14;
+  const equipText = `${equipment.tag} - ${equipment.type.replace(/_/g, ' ')}`;
+  page.drawText(sanitizeTextForWinAnsi(equipText), {
+    x: col2X, y: rightY, font: fonts.helveticaBold, size: valueSize, color: PDF_COLORS.gray800,
+  });
+  rightY -= 18;
   if (equipment.description) {
-    const descLines = wrapText(equipment.description, fonts.helvetica, 9, contentWidth / 2 - 10);
+    const descLines = wrapTextLines(equipment.description, fonts.helvetica, 9, contentWidth / 2 - 10);
     for (const line of descLines) {
-      page.drawText(sanitizeTextForWinAnsi(line), { x: col2X, y: rightY, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500 });
+      page.drawText(sanitizeTextForWinAnsi(line), {
+        x: col2X, y: rightY, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
+      });
       rightY -= 12;
     }
   }
+  rightY -= 10;
+  page.drawText(sanitizeTextForWinAnsi('DATA DA INSPECAO'), {
+    x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: PDF_COLORS.gray400,
+  });
+  rightY -= 14;
+  page.drawText(sanitizeTextForWinAnsi(formatDateLong(identification.inspectionDate)), {
+    x: col2X, y: rightY, font: fonts.helvetica, size: valueSize, color: PDF_COLORS.gray800,
+  });
 
-  y = Math.min(leftY, rightY) - 20;
+  y = Math.min(leftY, rightY) - 30;
 
-  // ============================================================
   // STATUS BLOCK
-  // ============================================================
   const statusInfo = getStatusDisplay(executiveSummary.overallStatus);
   const statusColors = getStatusColors(statusInfo.color);
-  const statusBlockHeight = 60;
-  const statusBlockWidth = contentWidth * 0.7;
-  const statusBlockX = (pageWidth - statusBlockWidth) / 2;
+  const blockWidth = contentWidth * 0.65;
+  const blockHeight = 55;
+  const blockX = (pageWidth - blockWidth) / 2;
 
-  // Border
   page.drawRectangle({
-    x: statusBlockX,
-    y: y - statusBlockHeight,
-    width: statusBlockWidth,
-    height: statusBlockHeight,
-    borderColor: PDF_COLORS.gray200,
-    borderWidth: 1,
-    color: PDF_COLORS.white,
+    x: blockX, y: y - blockHeight, width: blockWidth, height: blockHeight,
+    color: statusColors.bg, borderColor: statusColors.border, borderWidth: 1,
   });
 
-  // Status label
   page.drawText(sanitizeTextForWinAnsi('STATUS GERAL DO EQUIPAMENTO'), {
-    x: statusBlockX,
-    y: y - 16,
-    font: fonts.helveticaBold,
-    size: 8,
-    color: PDF_COLORS.gray500,
+    x: blockX, y: y - 14,
+    font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
   });
 
-  // Status badge
-  const statusBadgeTextWidth = fonts.helveticaBold.widthOfTextAtSize(statusInfo.label, 14);
-  const statusBadgePadX = 16;
-  const statusBadgeWidth = statusBadgeTextWidth + statusBadgePadX * 2;
-  const statusBadgeX = statusBlockX + (statusBlockWidth - statusBadgeWidth) / 2;
-  const badgeY = y - statusBlockHeight + 14;
+  const badgeTextWidth = fonts.helveticaBold.widthOfTextAtSize(statusInfo.label, 13);
+  const badgePadX = 14;
+  const statusBadgeWidth = badgeTextWidth + badgePadX * 2;
+  const statusBadgeX = blockX + (blockWidth - statusBadgeWidth) / 2;
+  const badgeY = y - blockHeight + 10;
 
   page.drawRectangle({
-    x: statusBadgeX,
-    y: badgeY,
-    width: statusBadgeWidth,
-    height: 28,
-    color: statusColors.badgeBg,
-    borderColor: statusColors.border,
-    borderWidth: 1,
+    x: statusBadgeX, y: badgeY, width: statusBadgeWidth, height: 24,
+    color: statusColors.badgeBg, borderColor: statusColors.border, borderWidth: 1,
   });
   page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
-    x: statusBadgeX + statusBadgePadX,
-    y: badgeY + 8,
-    font: fonts.helveticaBold,
-    size: 14,
-    color: statusColors.text,
+    x: statusBadgeX + badgePadX, y: badgeY + 6,
+    font: fonts.helveticaBold, size: 13, color: statusColors.text,
   });
 
-  y -= statusBlockHeight + 30;
-
-  // ============================================================
   // COVER FOOTER
-  // ============================================================
-  const coverFooterY = 60;
+  const coverFooterY = 50;
   ctx.page.drawLine({
-    start: { x: margin, y: coverFooterY + 20 },
-    end: { x: pageWidth - margin, y: coverFooterY + 20 },
-    thickness: 1.5,
-    color: PDF_COLORS.navy,
+    start: { x: margin, y: coverFooterY + 16 },
+    end: { x: pageWidth - margin, y: coverFooterY + 16 },
+    thickness: 1, color: PDF_COLORS.navy,
   });
 
   page.drawText(sanitizeTextForWinAnsi(company.name), {
-    x: margin, y: coverFooterY,
-    font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+    x: margin, y: coverFooterY, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
   });
   if (company.cnpj) {
     page.drawText(sanitizeTextForWinAnsi(`CNPJ: ${company.cnpj}`), {
-      x: margin + 200, y: coverFooterY,
-      font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+      x: margin + 180, y: coverFooterY, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
   }
   if (company.address) {
     page.drawText(sanitizeTextForWinAnsi(company.address), {
-      x: margin + 380, y: coverFooterY,
-      font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+      x: margin + 340, y: coverFooterY, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
     });
   }
 
-  let contactY = coverFooterY - 12;
   const contactParts: string[] = [];
   if (company.phone) contactParts.push(`Tel: ${company.phone}`);
-  if (company.email) contactParts.push(`Email: ${company.email}`);
+  if (company.email) contactParts.push(company.email);
   if (company.website) contactParts.push(company.website);
   if (contactParts.length > 0) {
-    page.drawText(sanitizeTextForWinAnsi(contactParts.join('   |   ')), {
-      x: margin, y: contactY,
-      font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
+    page.drawText(sanitizeTextForWinAnsi(contactParts.join('  |  ')), {
+      x: margin, y: coverFooterY - 10, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
     });
   }
-}
-
-function wrapText(text: string, font: any, size: number, maxWidth: number): string[] {
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let line = '';
-  for (const word of words) {
-    const test = line + (line ? ' ' : '') + word;
-    if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.length > 0 ? lines : [''];
 }
