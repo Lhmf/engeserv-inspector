@@ -1,21 +1,19 @@
 /**
- * NR-13 PDF Template — Header (Compact Institutional Header)
+ * NR-13 PDF Template — Header
  *
- * Design: 3 zones, max 70pt height
- * Zone 1: Logo + Company (22pt)
- * Zone 2: Document title (18pt)
- * Zone 3: Control data (14pt) + separator (2pt) + faixa tecnica (22pt)
+ * Compact header (pages 3+): 36pt
+ * Full header (page 2): 80pt
  *
- * Full header: page 2 only (88pt)
- * Compact header: pages 3+ (70pt)
+ * Content is stamped in pass 2 over the reserved zone.
+ * The reserved zone height is defined in LAYOUT constants.
  */
 import type { PdfRenderingContext } from './context';
 import { PDF_COLORS, drawRect, drawLine, LAYOUT } from './context';
-import { sanitizeTextForWinAnsi } from './context';
+import { sanitizeTextForWinAnsi, formatDateBR } from './context';
 
 /**
- * Draw compact header for content pages.
- * Returns new y position below the header.
+ * Compact header for pages 3+.
+ * Height: 36pt (logo + report info + separator).
  */
 export function drawCompactHeaderPdf(
   ctx: PdfRenderingContext,
@@ -24,84 +22,45 @@ export function drawCompactHeaderPdf(
   y: number
 ): number {
   const { page, margin, contentWidth, fonts, report, company } = ctx;
-  const { identification, equipment, client } = report;
+  const { identification } = report;
 
-  // ============================================================
-  // ZONE 1: Logo + Company + Report Info (22pt)
-  // ============================================================
-  // Logo square
-  page.drawRectangle({
-    x: margin,
-    y: y - 18,
-    width: 18,
-    height: 18,
-    color: PDF_COLORS.navy,
-  });
+  // Logo (16x16)
+  page.drawRectangle({ x: margin, y: y - 16, width: 16, height: 16, color: PDF_COLORS.navy });
   page.drawText(sanitizeTextForWinAnsi('ES'), {
-    x: margin + 4,
-    y: y - 13,
-    font: fonts.helveticaBold,
-    size: 7,
-    color: PDF_COLORS.white,
+    x: margin + 3, y: y - 12,
+    font: fonts.helveticaBold, size: 6, color: PDF_COLORS.white,
   });
 
   // Company name
   page.drawText(sanitizeTextForWinAnsi(company.name), {
-    x: margin + 22,
-    y: y - 10,
-    font: fonts.helveticaBold,
-    size: 9,
-    color: PDF_COLORS.navy,
+    x: margin + 20, y: y - 10,
+    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
   });
 
-  // Report number - centered
+  // Report number — centered
   const centerText = `Laudo Tecnico ${identification.reportNumber}`;
-  const centerWidth = fonts.helvetica.widthOfTextAtSize(centerText, 8);
+  const centerWidth = fonts.helvetica.widthOfTextAtSize(centerText, 7);
   page.drawText(sanitizeTextForWinAnsi(centerText), {
-    x: margin + (contentWidth - centerWidth) / 2,
-    y: y - 10,
-    font: fonts.helvetica,
-    size: 8,
-    color: PDF_COLORS.gray600,
+    x: margin + (contentWidth - centerWidth) / 2, y: y - 10,
+    font: fonts.helvetica, size: 7, color: PDF_COLORS.gray600,
   });
 
-  // NR-13 badge - small
+  // NR-13 badge
   const nr13Text = 'NR-13';
-  const nr13Width = fonts.helveticaBold.widthOfTextAtSize(nr13Text, 7) + 8;
+  const nr13Width = fonts.helveticaBold.widthOfTextAtSize(nr13Text, 6) + 6;
   const nr13X = margin + (contentWidth - nr13Width) / 2;
-  page.drawRectangle({
-    x: nr13X,
-    y: y - 21,
-    width: nr13Width,
-    height: 10,
-    color: PDF_COLORS.navy,
-  });
+  page.drawRectangle({ x: nr13X, y: y - 22, width: nr13Width, height: 9, color: PDF_COLORS.navy });
   page.drawText(sanitizeTextForWinAnsi(nr13Text), {
-    x: nr13X + 4,
-    y: y - 19,
-    font: fonts.helveticaBold,
-    size: 7,
-    color: PDF_COLORS.white,
+    x: nr13X + 3, y: y - 20,
+    font: fonts.helveticaBold, size: 6, color: PDF_COLORS.white,
   });
 
-  // Version
-  page.drawText(sanitizeTextForWinAnsi(`v${identification.version}`), {
-    x: nr13X + nr13Width + 6,
-    y: y - 19,
-    font: fonts.helvetica,
-    size: 7,
-    color: PDF_COLORS.gray400,
-  });
-
-  // Page number - right
+  // Page number — right
   const pageText = `${pageNumber} / ${totalPages}`;
-  const pageTextWidth = fonts.helvetica.widthOfTextAtSize(pageText, 9);
+  const pageTextWidth = fonts.helvetica.widthOfTextAtSize(pageText, 8);
   page.drawText(sanitizeTextForWinAnsi(pageText), {
-    x: margin + contentWidth - pageTextWidth,
-    y: y - 10,
-    font: fonts.helveticaBold,
-    size: 9,
-    color: PDF_COLORS.navy,
+    x: margin + contentWidth - pageTextWidth, y: y - 10,
+    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
   });
 
   y -= 24;
@@ -114,8 +73,8 @@ export function drawCompactHeaderPdf(
 }
 
 /**
- * Draw full header for page 2 (with faixa tecnica).
- * Returns new y position below the header.
+ * Full header for page 2.
+ * Height: 80pt (logo + title + control data + faixa tecnica).
  */
 export function drawFullHeaderPdf(
   ctx: PdfRenderingContext,
@@ -126,69 +85,39 @@ export function drawFullHeaderPdf(
   const { page, margin, contentWidth, fonts, report, company } = ctx;
   const { identification, equipment, client } = report;
 
-  // ============================================================
-  // ZONE 1: Logo + Company (22pt)
-  // ============================================================
-  page.drawRectangle({
-    x: margin,
-    y: y - 20,
-    width: 22,
-    height: 22,
-    color: PDF_COLORS.navy,
-  });
+  // Logo (20x20)
+  page.drawRectangle({ x: margin, y: y - 20, width: 20, height: 20, color: PDF_COLORS.navy });
   page.drawText(sanitizeTextForWinAnsi('ES'), {
-    x: margin + 5,
-    y: y - 14,
-    font: fonts.helveticaBold,
-    size: 9,
-    color: PDF_COLORS.white,
+    x: margin + 4, y: y - 14,
+    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
   });
 
   // Company name
   page.drawText(sanitizeTextForWinAnsi(company.name), {
-    x: margin + 28,
-    y: y - 12,
-    font: fonts.helveticaBold,
-    size: 11,
-    color: PDF_COLORS.navy,
+    x: margin + 26, y: y - 10,
+    font: fonts.helveticaBold, size: 10, color: PDF_COLORS.navy,
   });
-
-  // Tagline
   page.drawText(sanitizeTextForWinAnsi(company.tagline), {
-    x: margin + 28,
-    y: y - 22,
-    font: fonts.helvetica,
-    size: 7,
-    color: PDF_COLORS.gray400,
+    x: margin + 26, y: y - 19,
+    font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
   });
 
-  y -= 28;
-
-  // Separator
+  y -= 24;
   drawLine(ctx, margin, y, margin + contentWidth, 0.5, PDF_COLORS.gray200);
-  y -= 6;
+  y -= 4;
 
-  // ============================================================
-  // ZONE 2: Document Title (18pt)
-  // ============================================================
+  // Title
   const titleText = 'LAUDO TECNICO DE INSPECAO';
-  const titleWidth = fonts.helveticaBold.widthOfTextAtSize(titleText, 12);
+  const titleWidth = fonts.helveticaBold.widthOfTextAtSize(titleText, 11);
   page.drawText(sanitizeTextForWinAnsi(titleText), {
-    x: margin + (contentWidth - titleWidth) / 2,
-    y,
-    font: fonts.helveticaBold,
-    size: 12,
-    color: PDF_COLORS.navy,
+    x: margin + (contentWidth - titleWidth) / 2, y,
+    font: fonts.helveticaBold, size: 11, color: PDF_COLORS.navy,
   });
-  y -= 14;
-
-  // Separator
+  y -= 12;
   drawLine(ctx, margin, y, margin + contentWidth, 1.5, PDF_COLORS.navy);
-  y -= 6;
+  y -= 4;
 
-  // ============================================================
-  // ZONE 3: Control Data (14pt)
-  // ============================================================
+  // Control data (4 columns)
   const colWidth = contentWidth / 4;
   const controlItems = [
     { label: 'LAUDO No', value: identification.reportNumber },
@@ -198,37 +127,21 @@ export function drawFullHeaderPdf(
   ];
 
   for (let i = 0; i < controlItems.length; i++) {
-    const item = controlItems[i];
     const colX = margin + i * colWidth;
-    page.drawText(sanitizeTextForWinAnsi(item.label), {
-      x: colX,
-      y,
-      font: fonts.helveticaBold,
-      size: 6,
-      color: PDF_COLORS.gray400,
+    page.drawText(sanitizeTextForWinAnsi(controlItems[i].label), {
+      x: colX, y, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray400,
     });
-    page.drawText(sanitizeTextForWinAnsi(item.value), {
-      x: colX,
-      y: y - 10,
-      font: fonts.helveticaBold,
-      size: 8,
-      color: PDF_COLORS.gray800,
+    page.drawText(sanitizeTextForWinAnsi(controlItems[i].value), {
+      x: colX, y: y - 9, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray800,
     });
   }
-  y -= 18;
+  y -= 16;
 
-  // ============================================================
-  // FAIXA TECNICA (22pt)
-  // ============================================================
-  drawRect(ctx, margin, y - 22, contentWidth, 22, PDF_COLORS.gray100);
+  // Faixa tecnica
+  const bandHeight = 16;
   ctx.page.drawRectangle({
-    x: margin,
-    y: y - 22,
-    width: contentWidth,
-    height: 22,
-    borderColor: PDF_COLORS.gray200,
-    borderWidth: 0.5,
-    color: PDF_COLORS.gray100,
+    x: margin, y: y - bandHeight, width: contentWidth, height: bandHeight,
+    color: PDF_COLORS.gray100, borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
   });
 
   const bandItems = [
@@ -242,60 +155,41 @@ export function drawFullHeaderPdf(
   for (let i = 0; i < bandItems.length; i++) {
     const item = bandItems[i];
     const colX = margin + i * bandColWidth + 6;
-
     page.drawText(sanitizeTextForWinAnsi(item.label), {
-      x: colX,
-      y: y - 8,
-      font: fonts.helveticaBold,
-      size: 5,
-      color: PDF_COLORS.gray400,
+      x: colX, y: y - 6, font: fonts.helveticaBold, size: 5, color: PDF_COLORS.gray400,
     });
-
     let displayValue = item.value;
-    while (fonts.helvetica.widthOfTextAtSize(displayValue, 8) > bandColWidth - 16 && displayValue.length > 3) {
+    while (fonts.helvetica.widthOfTextAtSize(displayValue, 7) > bandColWidth - 16 && displayValue.length > 3) {
       displayValue = displayValue.slice(0, -1);
     }
     if (displayValue !== item.value) displayValue += '...';
-
     page.drawText(sanitizeTextForWinAnsi(displayValue), {
-      x: colX,
-      y: y - 17,
-      font: fonts.helveticaBold,
-      size: 8,
-      color: PDF_COLORS.gray800,
+      x: colX, y: y - 14, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray800,
     });
-
     if (i < 3) {
       ctx.page.drawLine({
-        start: { x: margin + (i + 1) * bandColWidth, y: y - 20 },
+        start: { x: margin + (i + 1) * bandColWidth, y: y - 14 },
         end: { x: margin + (i + 1) * bandColWidth, y: y - 2 },
-        thickness: 0.5,
-        color: PDF_COLORS.gray300,
+        thickness: 0.5, color: PDF_COLORS.gray300,
       });
     }
   }
 
-  y -= 28;
+  y -= bandHeight + 4;
   return y;
 }
 
 /**
- * Stamp headers on all content pages (pages 2-N) with correct page count.
- * Called in pass 2 after all content is rendered.
+ * Stamp headers on all content pages with correct page count.
  */
-export function stampAllHeaders(
-  ctx: PdfRenderingContext,
-  totalPages: number
-): void {
+export function stampAllHeaders(ctx: PdfRenderingContext, totalPages: number): void {
   const pages = ctx.doc.getPages();
   for (let i = 1; i < pages.length; i++) {
     const pageNum = i + 1;
     const page = pages[i];
-
     const origPage = ctx.page;
     const origY = ctx.y;
     ctx.page = page;
-    // Content starts below header
     let y = ctx.pageHeight - ctx.margin;
 
     if (pageNum === 2) {
@@ -307,11 +201,4 @@ export function stampAllHeaders(
     ctx.page = origPage;
     ctx.y = origY;
   }
-}
-
-function formatDateBR(date: Date | string | undefined): string {
-  if (!date) return '-';
-  const d = typeof date === 'string' ? new Date(date) : date;
-  if (isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }

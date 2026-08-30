@@ -1,36 +1,49 @@
 /**
- * NR-13 PDF Template — Photo Register (Registro Fotográfico)
+ * NR-13 PDF Template — Photo Register
  *
- * Página 4: Registro fotográfico dinâmico com suporte a múltiplas páginas.
- * Cada registro: número, categoria, descrição, foto real (se disponível).
+ * Space-aware 2-column photo grid.
+ * Each photo card: image + number + category + caption + date.
+ * Photos are fetched and embedded. Falls back to placeholder.
+ *
+ * Internal pagination:
+ * - Calculates space before each row of 2 photos
+ * - If not enough space, creates new page
+ * - Continuation label on new pages
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR } from './context';
-import { addNewPage } from './context';
+import {
+  PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR,
+  addNewPage, getAvailableHeight, LAYOUT, truncateText, SECTION_TITLE_HEIGHT,
+} from './context';
 import { sanitizeTextForWinAnsi } from './context';
 
-const PHOTOS_PER_PAGE = 4;
-const PHOTO_AREA_HEIGHT = 100;
-const CARD_HEIGHT = 130;
+const PHOTO_AREA_HEIGHT = 90;
+const CARD_INFO_HEIGHT = 30;
+const CARD_HEIGHT = PHOTO_AREA_HEIGHT + CARD_INFO_HEIGHT;
+const ROW_GAP = 8;
+const MIN_SPACE_FOR_ROW = CARD_HEIGHT + ROW_GAP;
 
 export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): Promise<number> {
   const { doc, page, margin, contentWidth, fonts, report } = ctx;
   const photos = report.attachments.photos;
 
-  // Section title
-  y = drawSectionTitle(ctx, 5, 'REGISTRO FOTOGRÁFICO', y);
+  // Section title — check space first
+  if (getAvailableHeight(ctx) < SECTION_TITLE_HEIGHT + 20) {
+    addNewPage(ctx);
+    y = ctx.y;
+  }
+
+  y = drawSectionTitle(ctx, 5, 'REGISTRO FOTOGRAFICO', y);
 
   if (!photos || photos.length === 0) {
-    page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotográfico disponível para esta inspeção.'), {
+    page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotografico disponivel para esta inspecao.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
     });
     return y - 20;
   }
 
-  const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
-
   // Intro text
-  const introText = `Total de ${photos.length} registro(s) fotografico(s)${totalPages > 1 ? ` distribuidos em ${totalPages} paginas` : ''}.`;
+  const introText = `Total de ${photos.length} registro(s) fotografico(s).`;
   page.drawText(sanitizeTextForWinAnsi(introText), {
     x: margin, y, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
   });
@@ -45,13 +58,11 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
         if (!response.ok) return null;
         const contentType = response.headers.get('content-type') || '';
         const buffer = Buffer.from(await response.arrayBuffer());
-
         if (contentType.includes('jpeg') || contentType.includes('jpg') || photo.url.match(/\.jpe?g$/i)) {
           return await doc.embedJpg(buffer);
         } else if (contentType.includes('png') || photo.url.match(/\.png$/i)) {
           return await doc.embedPng(buffer);
         }
-        // Try as JPEG by default
         return await doc.embedJpg(buffer);
       } catch (err) {
         console.warn(`[PDF] Falha ao carregar foto ${photo.id}: ${err}`);
@@ -60,33 +71,34 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
     })
   );
 
-  // Draw photos in grid (2 columns)
+  // Draw photos in 2-column grid with space-aware pagination
+  const cardWidth = (contentWidth - 10) / 2;
+  let pageNum = 1;
+
   for (let i = 0; i < photos.length; i++) {
     const col = i % 2;
-    const row = Math.floor((i % PHOTOS_PER_PAGE) / 2);
+    const isNewRow = col === 0;
 
-    // Check space for new photo card
-    const cardY = y - row * (CARD_HEIGHT + 10);
+    if (isNewRow) {
+      // Check space for this row
+      if (getAvailableHeight(ctx) < MIN_SPACE_FOR_ROW) {
+        addNewPage(ctx);
+        y = ctx.y;
+        pageNum++;
 
-    if (cardY - CARD_HEIGHT < ctx.margin + 40) {
-      // Need new page
-      addNewPage(ctx);
-      y = ctx.y;
-
-      // Page continuation label
-      const pageIdx = Math.floor(i / PHOTOS_PER_PAGE);
-      ctx.page.drawText(sanitizeTextForWinAnsi(`Continuacao -- Pagina ${pageIdx + 1} de ${totalPages}`), {
-        x: margin, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray400,
-      });
-      drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, PDF_COLORS.gray200);
-      y -= 16;
+        // Continuation label
+        ctx.page.drawText(sanitizeTextForWinAnsi(`Continuacao - Registro Fotografico`), {
+          x: margin, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray400,
+        });
+        drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, PDF_COLORS.gray200);
+        y -= 16;
+      }
     }
 
     const photo = photos[i];
     const photoIdx = i + 1;
-    const cardWidth = (contentWidth - 10) / 2;
     const cardX = margin + col * (cardWidth + 10);
-    const cardCurrentY = y - row * (CARD_HEIGHT + 10);
+    const cardCurrentY = y;
 
     // Card border
     ctx.page.drawRectangle({
@@ -96,9 +108,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
     // Photo area
     const embeddedImage = photoImages[i];
-
     if (embeddedImage) {
-      // Draw real image, scaled to fit within PHOTO_AREA_HEIGHT
       const imgWidth = embeddedImage.width;
       const imgHeight = embeddedImage.height;
       const maxW = cardWidth - 4;
@@ -117,16 +127,9 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
       const drawX = cardX + (cardWidth - drawW) / 2;
       const drawY = cardCurrentY - 2 - (PHOTO_AREA_HEIGHT - drawH) / 2 - drawH;
 
-      ctx.page.drawImage(embeddedImage, {
-        x: drawX,
-        y: drawY,
-        width: drawW,
-        height: drawH,
-      });
+      ctx.page.drawImage(embeddedImage, { x: drawX, y: drawY, width: drawW, height: drawH });
     } else {
-      // Placeholder (no image available)
       drawRect(ctx, cardX + 2, cardCurrentY - PHOTO_AREA_HEIGHT + 2, cardWidth - 4, PHOTO_AREA_HEIGHT - 4, PDF_COLORS.gray100);
-
       ctx.page.drawText(sanitizeTextForWinAnsi('Foto'), {
         x: cardX + cardWidth / 2 - 10, y: cardCurrentY - PHOTO_AREA_HEIGHT / 2,
         font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray400,
@@ -137,64 +140,47 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
       });
     }
 
-    // Photo info area
+    // Photo info
     const infoY = cardCurrentY - PHOTO_AREA_HEIGHT - 8;
 
-    // Photo number
     ctx.page.drawText(sanitizeTextForWinAnsi(`Foto ${photoIdx}`), {
       x: cardX + 6, y: infoY,
       font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
     });
 
-    // Category badge
     const catText = formatCategory(photo.category);
     const catWidth = fonts.helveticaBold.widthOfTextAtSize(catText, 6) + 8;
-    ctx.page.drawRectangle({
-      x: cardX + cardWidth - catWidth - 4, y: infoY - 2, width: catWidth, height: 10,
-      color: PDF_COLORS.gray100,
-    });
+    ctx.page.drawRectangle({ x: cardX + cardWidth - catWidth - 4, y: infoY - 2, width: catWidth, height: 10, color: PDF_COLORS.gray100 });
     ctx.page.drawText(sanitizeTextForWinAnsi(catText), {
       x: cardX + cardWidth - catWidth, y: infoY, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray500,
     });
 
-    // Description
     const desc = truncateText(photo.caption || 'Sem descricao', fonts.helvetica, 8, cardWidth - 12);
     ctx.page.drawText(sanitizeTextForWinAnsi(desc), {
       x: cardX + 6, y: infoY - 14, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
     });
 
-    // Date
     if (photo.takenAt) {
       ctx.page.drawText(sanitizeTextForWinAnsi(`Data: ${formatDateBR(photo.takenAt)}`), {
         x: cardX + 6, y: infoY - 24, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
       });
     }
+
+    // After right column photo, advance y
+    if (col === 1 || i === photos.length - 1) {
+      y -= CARD_HEIGHT + ROW_GAP;
+    }
   }
 
-  y -= Math.ceil(photos.length / PHOTOS_PER_PAGE) * (CARD_HEIGHT + 10) + 10;
+  ctx.y = y;
   return y;
 }
 
 function formatCategory(category: string): string {
   const map: Record<string, string> = {
-    'PLACA': 'Placa',
-    'CORROSAO': 'Corrosao',
-    'VALVULA': 'Valvula',
-    'MANOMETRO': 'Manometro',
-    'ULTRASSOM': 'Ultrassom',
-    'VISTA_GERAL': 'Vista Geral',
-    'SOLDA': 'Solda',
-    'TRINCA': 'Trinca',
-    'REPARO': 'Reparo',
+    'PLACA': 'Placa', 'CORROSAO': 'Corrosao', 'VALVULA': 'Valvula',
+    'MANOMETRO': 'Manometro', 'ULTRASSOM': 'Ultrassom', 'VISTA_GERAL': 'Vista Geral',
+    'SOLDA': 'Solda', 'TRINCA': 'Trinca', 'REPARO': 'Reparo',
   };
   return map[category] || category;
-}
-
-function truncateText(text: string, font: any, size: number, maxWidth: number): string {
-  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
-  let truncated = text;
-  while (truncated.length > 3 && font.widthOfTextAtSize(truncated + '...', size) > maxWidth) {
-    truncated = truncated.slice(0, -1);
-  }
-  return truncated + '...';
 }

@@ -1,27 +1,45 @@
 /**
- * NR-13 PDF Template — Builder (Orquestrador Principal)
+ * NR-13 PDF Template — Builder (Section-Based Flow Pagination)
  *
- * Flow-based pagination architecture:
- *   Pass 1: Render all content, respecting header/footer zones
+ * Architecture:
+ *   Pass 1: Render all content with flow-based pagination
  *   Pass 2: Stamp headers and footers with correct page count
  *
- * Key principle: content is drawn BELOW the header zone.
- * Page 1 (cover) has no header. Pages 2+ reserve header space.
- * When content exceeds available space, a page break occurs.
+ * Key principles:
+ * - Content determines the number of pages
+ * - Each section checks available space before drawing
+ * - Section titles stay with their content (no orphans)
+ * - Tables and photo grids paginate internally
+ * - Footer zone is always preserved
  */
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
 import { MOCK_COMPANY } from '../mock-data';
-import { createPdfContext, addNewPage, PdfRenderingContext, LAYOUT, getAvailableHeight } from './context';
+import {
+  createPdfContext, addNewPage, addNewPageFullHeader, getAvailableHeight,
+  PdfRenderingContext, LAYOUT, SECTION_TITLE_HEIGHT,
+} from './context';
 import { drawCoverPdf } from './cover';
-import { drawEquipmentDataPdf } from './equipment-data';
-import { drawStatusSummaryPdf } from './status-summary';
+import { drawEquipmentDataPdf, estimateEquipmentDataHeight } from './equipment-data';
+import { drawStatusSummaryPdf, estimateStatusSummaryHeight } from './status-summary';
 import { drawMeasurementsPdf } from './measurements';
 import { drawPhotoRegisterPdf } from './photo-register';
-import { drawRecommendationsPdf, drawConclusionPdf } from './conclusion';
-import { drawSignaturesPdf } from './signatures';
+import { drawRecommendationsPdf, drawConclusionPdf, estimateRecommendationsHeight, estimateConclusionHeight } from './conclusion';
+import { drawSignaturesPdf, estimateSignaturesHeight } from './signatures';
 import { stampAllFooters } from './footer';
 import { stampAllHeaders } from './header';
+
+/**
+ * Ensure there is space for `estimatedHeight` pt of content.
+ * If not enough space, create a new page.
+ * Returns the (possibly updated) y position.
+ */
+function ensureSpaceFor(ctx: PdfRenderingContext, estimatedHeight: number): number {
+  if (getAvailableHeight(ctx) < estimatedHeight) {
+    addNewPage(ctx);
+  }
+  return ctx.y;
+}
 
 /**
  * Build the complete NR-13 PDF from a TechnicalReport.
@@ -30,66 +48,94 @@ export async function buildNr13Pdf(
   report: TechnicalReport,
   company: CompanyInfo = MOCK_COMPANY
 ): Promise<Uint8Array> {
-  // Create context with fonts and initial page
   const ctx = await createPdfContext(report, company);
 
   // ============================================================
-  // PASS 1: RENDER ALL CONTENT
+  // PASS 1: RENDER ALL CONTENT (flow-based)
   // ============================================================
 
   // PAGE 1 — COVER (no header needed)
   drawCoverPdf(ctx);
 
-  // PAGE 2 — EQUIPMENT DATA (full header will be stamped later)
-  // Content starts below where the full header will be drawn
-  addNewPage(ctx, true); // withHeader=true reserves space
+  // PAGE 2 — First content page (full header reserved by builder)
+  addNewPageFullHeader(ctx);
+
+  // --- Equipment Data ---
+  // Estimate height before drawing to check if it fits
+  const equipHeight = estimateEquipmentDataHeight(ctx);
+  if (getAvailableHeight(ctx) < equipHeight + SECTION_TITLE_HEIGHT + 20) {
+    // If equipment data alone is too big for remaining space, start new page
+    addNewPage(ctx);
+  }
   let y = ctx.y;
   y = drawEquipmentDataPdf(ctx, y);
 
-  // If equipment data didn't fill the page, check if status+measurements fit
-  // on the same page. If yes, continue. If no, new page.
-  const availableForStatus = getAvailableHeight(ctx);
-  // Estimate status summary height: ~320pt for typical data
-  const estimatedStatusHeight = 340;
-
-  if (availableForStatus < estimatedStatusHeight) {
-    // Status summary needs its own page
+  // --- Status Summary ---
+  // Check if status summary fits on current page
+  const statusHeight = estimateStatusSummaryHeight(ctx);
+  if (getAvailableHeight(ctx) < statusHeight) {
     addNewPage(ctx);
     y = ctx.y;
   }
-
-  // STATUS + MEASUREMENTS — may span 1-2 pages
   y = drawStatusSummaryPdf(ctx, y);
 
-  // Measurements continue on current page (may cause page break internally)
+  // --- Measurements ---
+  // Measurements handle their own internal pagination.
+  // The measurements module needs: title(26) + header(18) + 2 rows(32) + buffer(40) = 116pt minimum.
+  // Check this BEFORE calling drawMeasurementsPdf to avoid orphaned titles.
+  const measurements = report.inspectionData.measurements;
+  if (measurements && measurements.length > 0) {
+    const minMeasureHeight = SECTION_TITLE_HEIGHT + 58 + 40; // title + header + rows + buffer
+    if (getAvailableHeight(ctx) < minMeasureHeight) {
+      addNewPage(ctx);
+      y = ctx.y;
+    }
+  }
   y = drawMeasurementsPdf(ctx, y);
 
-  // PAGE — PHOTO REGISTER
-  addNewPage(ctx);
-  y = ctx.y;
+  // --- Photo Register ---
+  // Photos handle their own internal pagination (2-col grid)
+  const photos = report.attachments.photos;
+  if (photos && photos.length > 0) {
+    const photoHeight = 50; // title + intro text
+    if (getAvailableHeight(ctx) < photoHeight) {
+      addNewPage(ctx);
+      y = ctx.y;
+    }
+  }
   y = await drawPhotoRegisterPdf(ctx, y);
 
-  // PAGE — RECOMMENDATIONS + CONCLUSION + SIGNATURES
-  addNewPage(ctx);
-  y = ctx.y;
+  // --- Recommendations ---
+  const recsHeight = estimateRecommendationsHeight(ctx);
+  if (getAvailableHeight(ctx) < recsHeight) {
+    addNewPage(ctx);
+    y = ctx.y;
+  }
   y = drawRecommendationsPdf(ctx, y);
+
+  // --- Conclusion ---
+  const conclusionHeight = estimateConclusionHeight(ctx);
+  if (getAvailableHeight(ctx) < conclusionHeight) {
+    addNewPage(ctx);
+    y = ctx.y;
+  }
   y = drawConclusionPdf(ctx, y);
+
+  // --- Signatures (keep-together: move entire block if needed) ---
+  const sigHeight = estimateSignaturesHeight(ctx);
+  if (getAvailableHeight(ctx) < sigHeight) {
+    // Move entire signatures block to next page
+    addNewPage(ctx);
+    y = ctx.y;
+  }
   y = drawSignaturesPdf(ctx, y);
 
   // ============================================================
-  // PASS 2: STAMP HEADERS + FOOTERS WITH CORRECT PAGE COUNT
+  // PASS 2: STAMP HEADERS + FOOTERS
   // ============================================================
   const actualTotalPages = ctx.doc.getPages().length;
-
-  // Stamp headers on pages 2-N (page 1 is cover)
   stampAllHeaders(ctx, actualTotalPages);
-
-  // Stamp footers on all pages
   stampAllFooters(ctx, actualTotalPages);
 
-  // ============================================================
-  // SAVE
-  // ============================================================
-  const pdfBytes = await ctx.doc.save();
-  return pdfBytes;
+  return await ctx.doc.save();
 }

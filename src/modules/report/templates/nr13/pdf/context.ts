@@ -1,14 +1,12 @@
 /**
- * NR-13 PDF Template — Shared Rendering Context
+ * NR-13 PDF Template — Shared Rendering Context & Layout Engine
  *
- * Provides fonts, colors, layout engine, helper functions and page management
- * for all PDF section modules.
- *
- * Layout Engine:
- * - PaginationContext tracks available space per page
- * - Sections can estimate their height before drawing
- * - Automatic page breaks when content exceeds available space
- * - Headers and footers are reserved space, never overlapping content
+ * Layout Architecture:
+ * - Content Safe Area: header + footer are reserved zones
+ * - addNewPage() reserves compact header space by default (70pt)
+ * - ensureSpace() checks before drawing — creates new page if needed
+ * - Footer zone (margin + 20pt) is always preserved
+ * - Content never enters header or footer zones
  */
 import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, PageSizes, RGB } from 'pdf-lib';
 import type { TechnicalReport } from '../../../types';
@@ -34,20 +32,28 @@ PDFFont.prototype.widthOfTextAtSize = function (text: any, size?: any) {
 };
 
 // ============================================================
-// LAYOUT CONSTANTS
+// LAYOUT CONSTANTS — Content Safe Area
 // ============================================================
 export const LAYOUT = {
-  pageWidth: 595.28,
-  pageHeight: 841.89,
-  margin: 45,
-  headerHeight: 70,      // compact header on pages 3+
-  headerHeightFull: 88,  // full header on page 2
-  footerHeight: 30,
+  pageWidth: 595.28,    // A4 width
+  pageHeight: 841.89,   // A4 height
+  margin: 45,           // side margins
+  headerHeightCompact: 36,   // compact header: logo + report info + separator
+  headerHeightFull: 80,      // full header: logo + title + control + faixa
+  footerHeight: 20,          // footer: separator + text
   get contentWidth() { return this.pageWidth - 2 * this.margin; },
-  get contentHeightFull() { return this.pageHeight - this.headerHeightFull - this.footerHeight - 2 * this.margin; },
-  get contentHeight() { return this.pageHeight - this.headerHeight - this.footerHeight - 2 * this.margin; },
-  sectionGap: 16,
-  subsectionGap: 10,
+  /** Usable content height with compact header (pages 3+) */
+  get contentHeightCompact() {
+    return this.pageHeight - 2 * this.margin - this.headerHeightCompact - this.footerHeight;
+  },
+  /** Usable content height with full header (page 2) */
+  get contentHeightFull() {
+    return this.pageHeight - 2 * this.margin - this.headerHeightFull - this.footerHeight;
+  },
+  /** Minimum space to keep at bottom of page (footer + some padding) */
+  get footerReserve() { return this.margin + this.footerHeight + 4; },
+  sectionGap: 14,
+  subsectionGap: 8,
 } as const;
 
 // ============================================================
@@ -92,34 +98,14 @@ export const PDF_COLORS = {
 export function sanitizeTextForWinAnsi(text: string): string {
   if (!text) return '';
   const replacements: [string, string][] = [
-    ['\u2014', '-'],   // em-dash
-    ['\u2013', '-'],   // en-dash
-    ['\u2019', "'"],   // right single quote
-    ['\u2018', "'"],   // left single quote
-    ['\u201C', '"'],   // left double quote
-    ['\u201D', '"'],   // right double quote
-    ['\u2026', '...'], // ellipsis
-    ['\u2713', '[OK]'],// checkmark
-    ['\u2717', '[X]'], // cross
-    ['\u2714', '[OK]'],// heavy checkmark
-    ['\u2716', '[X]'], // heavy cross
-    ['\u26A0', '!'],   // warning sign
-    ['\u26A1', '!'],   // lightning
-    ['\u00D7', 'x'],   // multiplication sign
-    ['\u00F7', '/'],   // division sign
-    ['\u2265', '>='],  // greater-than-or-equal
-    ['\u2264', '<='],  // less-than-or-equal
-    ['\u2260', '!='],  // not-equal
-    ['\u2248', '~'],   // approximately equal
-    ['\u221E', 'inf'], // infinity
-    ['\u00B2', '2'],   // superscript 2
-    ['\u00B3', '3'],   // superscript 3
-    ['\u00B0', ' deg'],// degree sign
-    ['\u00BA', 'o'],   // masculine ordinal
-    ['\u00AA', 'a'],   // feminine ordinal
-    ['\u00BC', '1/4'], // fraction 1/4
-    ['\u00BD', '1/2'], // fraction 1/2
-    ['\u00BE', '3/4'], // fraction 3/4
+    ['\u2014', '-'], ['\u2013', '-'], ['\u2019', "'"], ['\u2018', "'"],
+    ['\u201C', '"'], ['\u201D', '"'], ['\u2026', '...'],
+    ['\u2713', '[OK]'], ['\u2717', '[X]'], ['\u2714', '[OK]'], ['\u2716', '[X]'],
+    ['\u26A0', '!'], ['\u26A1', '!'], ['\u00D7', 'x'], ['\u00F7', '/'],
+    ['\u2265', '>='], ['\u2264', '<='], ['\u2260', '!='], ['\u2248', '~'],
+    ['\u221E', 'inf'], ['\u00B2', '2'], ['\u00B3', '3'],
+    ['\u00B0', ' deg'], ['\u00BA', 'o'], ['\u00AA', 'a'],
+    ['\u00BC', '1/4'], ['\u00BD', '1/2'], ['\u00BE', '3/4'],
   ];
   let result = text;
   for (const [char, replacement] of replacements) {
@@ -149,19 +135,14 @@ export interface PdfRenderingContext {
   contentWidth: number;
   report: TechnicalReport;
   company: CompanyInfo;
-  /** Current page number (1-indexed). Updated when addNewPage is called. */
   pageNumber: number;
 }
 
-/**
- * Create a new PDF rendering context.
- */
 export async function createPdfContext(
   report: TechnicalReport,
   company: CompanyInfo
 ): Promise<PdfRenderingContext> {
   const doc = await PDFDocument.create();
-
   const helvetica = await doc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const helveticaOblique = await doc.embedFont(StandardFonts.HelveticaOblique);
@@ -171,72 +152,68 @@ export async function createPdfContext(
   const pageWidth = LAYOUT.pageWidth;
   const pageHeight = LAYOUT.pageHeight;
   const margin = LAYOUT.margin;
-
   const page = doc.addPage([pageWidth, pageHeight]);
 
   return {
-    doc,
-    page,
+    doc, page,
     y: pageHeight - margin,
     fonts: { helvetica, helveticaBold, helveticaOblique, courier, courierBold },
-    pageWidth,
-    pageHeight,
-    margin,
+    pageWidth, pageHeight, margin,
     contentWidth: LAYOUT.contentWidth,
-    report,
-    company,
+    report, company,
     pageNumber: 1,
   };
 }
 
 /**
- * Add a new page. Content starts BELOW the header zone.
- * For content pages (pages 2+), y starts at pageHeight - margin - headerHeight.
+ * Add a new page. Content starts below the COMPACT header zone.
+ * This is the default for all content pages after the cover.
  */
-export function addNewPage(ctx: PdfRenderingContext, withHeader: boolean = true): void {
+export function addNewPage(ctx: PdfRenderingContext): void {
   ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
   ctx.pageNumber++;
-  // Reserve space for header on content pages
-  const headerH = withHeader ? LAYOUT.headerHeightFull : 0;
-  ctx.y = ctx.pageHeight - ctx.margin - headerH;
+  // Content starts below compact header zone
+  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightCompact;
 }
 
 /**
- * Check if there's enough vertical space. If not, add a new page.
+ * Add a new page with the FULL header (for the first content page only).
+ */
+export function addNewPageFullHeader(ctx: PdfRenderingContext): void {
+  ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
+  ctx.pageNumber++;
+  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightFull;
+}
+
+/**
+ * Get available vertical space on the current page.
+ * This is the distance from current y down to the footer zone.
+ */
+export function getAvailableHeight(ctx: PdfRenderingContext): number {
+  return ctx.y - LAYOUT.footerReserve;
+}
+
+/**
+ * Ensure there is enough vertical space. If not, create a new page.
  * Returns the (possibly updated) y position.
  */
 export function ensureSpace(ctx: PdfRenderingContext, neededHeight: number): number {
-  const footerReserve = ctx.margin + LAYOUT.footerHeight;
-  if (ctx.y - neededHeight < footerReserve) {
+  if (getAvailableHeight(ctx) < neededHeight) {
     addNewPage(ctx);
-    return ctx.y;
   }
   return ctx.y;
 }
 
-/**
- * Get the usable content height on the current page.
- */
-export function getAvailableHeight(ctx: PdfRenderingContext): number {
-  const footerReserve = ctx.margin + LAYOUT.footerHeight;
-  return ctx.y - footerReserve;
-}
+// ============================================================
+// TEXT DRAWING HELPERS
+// ============================================================
 
-/**
- * Draw text with automatic word wrapping. Returns new y.
- */
 export function drawText(
   ctx: PdfRenderingContext,
   text: string,
   x: number,
   y: number,
-  options?: {
-    font?: any;
-    size?: number;
-    color?: RGB;
-    maxWidth?: number;
-    lineHeight?: number;
-  }
+  options?: { font?: any; size?: number; color?: RGB; maxWidth?: number; lineHeight?: number }
 ): number {
   const font = options?.font || ctx.fonts.helvetica;
   const size = options?.size || 10;
@@ -248,7 +225,6 @@ export function drawText(
     const words = text.split(' ');
     let line = '';
     let currentY = y;
-
     for (const word of words) {
       const testLine = line + (line ? ' ' : '') + word;
       const width = font.widthOfTextAtSize(testLine, size);
@@ -271,9 +247,6 @@ export function drawText(
   return y - lineHeight;
 }
 
-/**
- * Estimate the height needed for wrapped text.
- */
 export function estimateWrappedTextHeight(
   ctx: PdfRenderingContext,
   text: string,
@@ -286,11 +259,9 @@ export function estimateWrappedTextHeight(
   const words = text.split(' ');
   let line = '';
   let lines = 1;
-
   for (const word of words) {
     const testLine = line + (line ? ' ' : '') + word;
-    const width = font.widthOfTextAtSize(testLine, fontSize);
-    if (width > maxWidth && line) {
+    if (font.widthOfTextAtSize(testLine, fontSize) > maxWidth && line) {
       lines++;
       line = word;
     } else {
@@ -300,126 +271,68 @@ export function estimateWrappedTextHeight(
   return lines * lh;
 }
 
-/**
- * Draw a section title with underline. Returns new y.
- * Height: ~24pt
- */
+// ============================================================
+// SECTION TITLES
+// ============================================================
+
+export const SECTION_TITLE_HEIGHT = 26;
+export const SUBSECTION_TITLE_HEIGHT = 18;
+
 export function drawSectionTitle(
   ctx: PdfRenderingContext,
   number: number,
   title: string,
   y: number
 ): number {
-  // Navy circle with number
   const circleX = ctx.margin;
-  ctx.page.drawCircle({
-    x: circleX + 10,
-    y: y + 4,
-    size: 10,
-    color: PDF_COLORS.navy,
-  });
+  ctx.page.drawCircle({ x: circleX + 10, y: y + 4, size: 10, color: PDF_COLORS.navy });
   ctx.page.drawText(sanitizeTextForWinAnsi(`${number}`), {
-    x: circleX + 7,
-    y: y + 1,
-    font: ctx.fonts.helveticaBold,
-    size: 9,
-    color: PDF_COLORS.white,
+    x: circleX + 7, y: y + 1,
+    font: ctx.fonts.helveticaBold, size: 9, color: PDF_COLORS.white,
   });
-
-  // Title text
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
-    x: circleX + 25,
-    y,
-    font: ctx.fonts.helveticaBold,
-    size: 11,
-    color: PDF_COLORS.navy,
+    x: circleX + 25, y,
+    font: ctx.fonts.helveticaBold, size: 11, color: PDF_COLORS.navy,
   });
-
   y -= 6;
-
-  // Underline
   ctx.page.drawLine({
     start: { x: ctx.margin, y },
     end: { x: ctx.margin + ctx.contentWidth, y },
-    thickness: 1.5,
-    color: PDF_COLORS.navy,
+    thickness: 1.5, color: PDF_COLORS.navy,
   });
-
-  y -= 12;
+  y -= 10;
   return y;
 }
 
-/**
- * Section title height (for estimation).
- */
-export const SECTION_TITLE_HEIGHT = 24;
-
-/**
- * Draw a subsection title. Returns new y.
- * Height: ~18pt
- */
 export function drawSubsectionTitle(
   ctx: PdfRenderingContext,
   title: string,
   y: number
 ): number {
-  ctx.page.drawRectangle({
-    x: ctx.margin,
-    y: y - 1,
-    width: 3,
-    height: 14,
-    color: PDF_COLORS.navy,
-  });
-
+  ctx.page.drawRectangle({ x: ctx.margin, y: y - 1, width: 3, height: 14, color: PDF_COLORS.navy });
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
-    x: ctx.margin + 8,
-    y,
-    font: ctx.fonts.helveticaBold,
-    size: 9,
-    color: PDF_COLORS.gray600,
+    x: ctx.margin + 8, y,
+    font: ctx.fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
   });
-
   return y - 18;
 }
 
-export const SUBSECTION_TITLE_HEIGHT = 18;
+// ============================================================
+// DRAWING PRIMITIVES
+// ============================================================
 
-/**
- * Draw a filled rectangle.
- */
-export function drawRect(
-  ctx: PdfRenderingContext,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color: RGB
-): void {
+export function drawRect(ctx: PdfRenderingContext, x: number, y: number, width: number, height: number, color: RGB): void {
   ctx.page.drawRectangle({ x, y, width, height, color });
 }
 
-/**
- * Draw a horizontal line.
- */
-export function drawLine(
-  ctx: PdfRenderingContext,
-  x1: number,
-  y: number,
-  x2: number,
-  thickness: number = 1,
-  color: RGB = PDF_COLORS.gray200
-): void {
-  ctx.page.drawLine({
-    start: { x: x1, y },
-    end: { x: x2, y },
-    thickness,
-    color,
-  });
+export function drawLine(ctx: PdfRenderingContext, x1: number, y: number, x2: number, thickness: number = 1, color: RGB = PDF_COLORS.gray200): void {
+  ctx.page.drawLine({ start: { x: x1, y }, end: { x: x2, y }, thickness, color });
 }
 
-/**
- * Format a Date to DD/MM/YYYY.
- */
+// ============================================================
+// FORMATTING
+// ============================================================
+
 export function formatDateBR(date: Date | string | undefined): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -427,9 +340,6 @@ export function formatDateBR(date: Date | string | undefined): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/**
- * Format a Date to long format (DD de mes de YYYY).
- */
 export function formatDateLong(date: Date | string | undefined): string {
   if (!date) return '-';
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -437,9 +347,6 @@ export function formatDateLong(date: Date | string | undefined): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-/**
- * Get status display info from an InspectionConclusion value.
- */
 export function getStatusDisplay(status: string): { label: string; color: 'green' | 'yellow' | 'red' | 'gray' } {
   switch (status) {
     case 'INTEGRO': return { label: 'APROVADO', color: 'green' };
@@ -450,51 +357,15 @@ export function getStatusDisplay(status: string): { label: string; color: 'green
   }
 }
 
-/**
- * Get the background and text RGB colors for a status color key.
- */
-export function getStatusColors(colorKey: 'green' | 'yellow' | 'red' | 'gray'): {
-  bg: RGB; text: RGB; border: RGB; badgeBg: RGB; badgeText: RGB;
-} {
+export function getStatusColors(colorKey: 'green' | 'yellow' | 'red' | 'gray') {
   switch (colorKey) {
-    case 'green':
-      return {
-        bg: PDF_COLORS.green50,
-        text: PDF_COLORS.green700,
-        border: PDF_COLORS.green100,
-        badgeBg: PDF_COLORS.green100,
-        badgeText: PDF_COLORS.green700,
-      };
-    case 'yellow':
-      return {
-        bg: PDF_COLORS.yellow50,
-        text: PDF_COLORS.yellow700,
-        border: PDF_COLORS.yellow100,
-        badgeBg: PDF_COLORS.yellow100,
-        badgeText: PDF_COLORS.yellow700,
-      };
-    case 'red':
-      return {
-        bg: PDF_COLORS.red50,
-        text: PDF_COLORS.red700,
-        border: PDF_COLORS.red100,
-        badgeBg: PDF_COLORS.red100,
-        badgeText: PDF_COLORS.red700,
-      };
-    default:
-      return {
-        bg: PDF_COLORS.gray50,
-        text: PDF_COLORS.gray600,
-        border: PDF_COLORS.gray200,
-        badgeBg: PDF_COLORS.gray100,
-        badgeText: PDF_COLORS.gray600,
-      };
+    case 'green': return { bg: PDF_COLORS.green50, text: PDF_COLORS.green700, border: PDF_COLORS.green100, badgeBg: PDF_COLORS.green100, badgeText: PDF_COLORS.green700 };
+    case 'yellow': return { bg: PDF_COLORS.yellow50, text: PDF_COLORS.yellow700, border: PDF_COLORS.yellow100, badgeBg: PDF_COLORS.yellow100, badgeText: PDF_COLORS.yellow700 };
+    case 'red': return { bg: PDF_COLORS.red50, text: PDF_COLORS.red700, border: PDF_COLORS.red100, badgeBg: PDF_COLORS.red100, badgeText: PDF_COLORS.red700 };
+    default: return { bg: PDF_COLORS.gray50, text: PDF_COLORS.gray600, border: PDF_COLORS.gray200, badgeBg: PDF_COLORS.gray100, badgeText: PDF_COLORS.gray600 };
   }
 }
 
-/**
- * Get criticality display colors.
- */
 export function getCriticalityColors(level: string): { bg: RGB; text: RGB } {
   switch (level) {
     case 'LOW': return { bg: PDF_COLORS.green100, text: PDF_COLORS.green700 };
@@ -505,22 +376,21 @@ export function getCriticalityColors(level: string): { bg: RGB; text: RGB } {
   }
 }
 
-/**
- * Truncate text to fit within maxWidth, appending '...' if needed.
- */
+// ============================================================
+// TEXT UTILITIES
+// ============================================================
+
 export function truncateText(text: string, font: any, size: number, maxWidth: number): string {
   if (!text) return '';
-  if (font.widthOfTextAtSize(text, size) <= maxWidth) return text;
-  let truncated = text;
+  const safe = sanitizeTextForWinAnsi(text);
+  if (font.widthOfTextAtSize(safe, size) <= maxWidth) return safe;
+  let truncated = safe;
   while (truncated.length > 3 && font.widthOfTextAtSize(truncated + '...', size) > maxWidth) {
     truncated = truncated.slice(0, -1);
   }
   return truncated + '...';
 }
 
-/**
- * Word-wrap text into lines that fit within maxWidth.
- */
 export function wrapTextLines(text: string, font: any, size: number, maxWidth: number): string[] {
   const words = text.split(' ');
   const lines: string[] = [];
@@ -538,9 +408,6 @@ export function wrapTextLines(text: string, font: any, size: number, maxWidth: n
   return lines.length > 0 ? lines : [''];
 }
 
-/**
- * Get a safe string value, returning empty string for null/undefined.
- */
 export function safeStr(val: any): string {
   if (val === null || val === undefined) return '';
   return String(val);

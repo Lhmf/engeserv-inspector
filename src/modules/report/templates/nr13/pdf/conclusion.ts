@@ -1,16 +1,78 @@
 /**
- * NR-13 PDF Template — Conclusion (Conclusao e Recomendacoes)
+ * NR-13 PDF Template — Conclusion & Recommendations
  *
  * Recommendations, next inspection, and technical conclusion.
- * Clean layout with proper spacing between sections.
+ * Exports estimateHeight for builder space planning.
+ * Internal page breaks for long content.
  */
 import type { PdfRenderingContext } from './context';
 import {
   PDF_COLORS, drawSectionTitle, drawRect, drawLine,
   getStatusDisplay, getStatusColors, formatDateLong,
-  wrapTextLines, truncateText, LAYOUT, ensureSpace,
+  truncateText, LAYOUT, getAvailableHeight, addNewPage, SECTION_TITLE_HEIGHT,
 } from './context';
 import { sanitizeTextForWinAnsi } from './context';
+
+/**
+ * Estimate height for recommendations section.
+ */
+export function estimateRecommendationsHeight(ctx: PdfRenderingContext): number {
+  const { report } = ctx;
+  const { recommendations: recs } = report;
+
+  let height = SECTION_TITLE_HEIGHT + 4; // title
+
+  // Count recommendation items
+  const allItems = [...recs.immediate, ...recs.shortTerm, ...recs.mediumTerm, ...recs.longTerm];
+  if (allItems.length === 0) {
+    height += 16; // "no recommendations" text
+  } else {
+    height += allItems.length * 22; // each rec: badge + text + possible standard ref
+  }
+
+  // Next inspection box
+  height += 6 + 12 + 16 + 52 + 8;
+
+  return height;
+}
+
+/**
+ * Estimate height for conclusion section.
+ */
+export function estimateConclusionHeight(ctx: PdfRenderingContext): number {
+  const { report } = ctx;
+  const { technicalConclusion } = report;
+
+  let height = SECTION_TITLE_HEIGHT + 20; // title + status badge line
+
+  if (technicalConclusion.justification) {
+    height += 12 + 6; // label + gap
+    // Estimate text lines
+    const words = technicalConclusion.justification.split(' ');
+    let lines = 1;
+    let line = '';
+    for (const word of words) {
+      const test = line + (line ? ' ' : '') + word;
+      if (ctx.fonts.helvetica.widthOfTextAtSize(test, 8) > ctx.contentWidth - 6 && line) {
+        lines++;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    height += lines * 10.5 + 6;
+  }
+
+  if (technicalConclusion.complianceStatement) {
+    height += 14;
+  }
+
+  if (technicalConclusion.restrictions && technicalConclusion.restrictions.length > 0) {
+    height += 12 + technicalConclusion.restrictions.length * 16;
+  }
+
+  return height;
+}
 
 export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): number {
   const { page, margin, contentWidth, fonts, report } = ctx;
@@ -36,6 +98,13 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   for (const section of allSections) {
     if (section.items.length === 0) continue;
 
+    // Keep section title with at least first item
+    const sectionHeaderHeight = 16 + 22;
+    if (getAvailableHeight(ctx) < sectionHeaderHeight) {
+      addNewPage(ctx);
+      y = ctx.y;
+    }
+
     drawRect(ctx, margin, y - 1, 3, 12, section.color);
     drawRect(ctx, margin + 3, y - 1, contentWidth - 3, 12, section.bgColor);
     page.drawText(sanitizeTextForWinAnsi(section.title), {
@@ -44,12 +113,15 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
     y -= 16;
 
     for (const rec of section.items) {
+      if (getAvailableHeight(ctx) < 22) {
+        addNewPage(ctx);
+        y = ctx.y;
+      }
+
       const priColors = getPriorityColors(rec.priority);
       const priText = rec.priority;
       const priWidth = fonts.helveticaBold.widthOfTextAtSize(priText, 6) + 6;
-      ctx.page.drawRectangle({
-        x: margin + 8, y: y - 1, width: priWidth, height: 10, color: priColors.bg,
-      });
+      ctx.page.drawRectangle({ x: margin + 8, y: y - 1, width: priWidth, height: 10, color: priColors.bg });
       page.drawText(sanitizeTextForWinAnsi(priText), {
         x: margin + 11, y: y, font: fonts.helveticaBold, size: 6, color: priColors.text,
       });
@@ -70,7 +142,13 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
     y -= 4;
   }
 
-  // NEXT INSPECTION
+  // === NEXT INSPECTION ===
+  const nextBlockHeight = 6 + 12 + 16 + 52 + 8;
+  if (getAvailableHeight(ctx) < nextBlockHeight) {
+    addNewPage(ctx);
+    y = ctx.y;
+  }
+
   y -= 6;
   drawRect(ctx, margin, y - 1, 3, 12, PDF_COLORS.navy);
   drawRect(ctx, margin + 3, y - 1, contentWidth - 3, 12, PDF_COLORS.gray100);
@@ -107,6 +185,7 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   }
 
   y -= boxHeight + 8;
+  ctx.y = y;
   return y;
 }
 
@@ -126,9 +205,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   const badgeX = margin + fonts.helveticaBold.widthOfTextAtSize('Conclusao: ', 9);
   const badgeText = statusInfo.label;
   const badgeWidth = fonts.helveticaBold.widthOfTextAtSize(badgeText, 9) + 12;
-  ctx.page.drawRectangle({
-    x: badgeX, y: y - 2, width: badgeWidth, height: 14, color: statusColors.badgeBg,
-  });
+  ctx.page.drawRectangle({ x: badgeX, y: y - 2, width: badgeWidth, height: 14, color: statusColors.badgeBg });
   page.drawText(sanitizeTextForWinAnsi(badgeText), {
     x: badgeX + 6, y, font: fonts.helveticaBold, size: 9, color: statusColors.text,
   });
@@ -159,6 +236,10 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
     y -= 12;
 
     for (const r of technicalConclusion.restrictions) {
+      if (getAvailableHeight(ctx) < 16) {
+        addNewPage(ctx);
+        y = ctx.y;
+      }
       ctx.page.drawCircle({ x: margin + 4, y: y + 2, size: 2, color: PDF_COLORS.red500 });
       y = drawWrappedText(ctx, r, margin + 12, y, contentWidth - 12, {
         font: fonts.helvetica, size: 8, color: PDF_COLORS.red700,
@@ -167,6 +248,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
     }
   }
 
+  ctx.y = y;
   return y;
 }
 
@@ -178,7 +260,7 @@ function drawWrappedText(
   maxWidth: number,
   options: { font: any; size: number; color: any }
 ): number {
-  const { page, fonts } = ctx;
+  const { page } = ctx;
   const words = text.split(' ');
   let line = '';
   let currentY = y;
@@ -190,7 +272,7 @@ function drawWrappedText(
       page.drawText(sanitizeTextForWinAnsi(line), { x, y: currentY, font: options.font, size: options.size, color: options.color });
       currentY -= options.size * 1.35;
       line = word;
-      if (currentY < ctx.margin + LAYOUT.footerHeight) {
+      if (currentY < LAYOUT.footerReserve) {
         addNewPage(ctx);
         currentY = ctx.y;
       }
@@ -212,10 +294,4 @@ function getPriorityColors(priority: string): { bg: any; text: any } {
     case 'MEDIUM': return { bg: PDF_COLORS.yellow100, text: PDF_COLORS.yellow700 };
     default: return { bg: PDF_COLORS.gray100, text: PDF_COLORS.gray600 };
   }
-}
-
-function addNewPage(ctx: PdfRenderingContext): void {
-  ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
-  ctx.pageNumber++;
-  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeight;
 }
