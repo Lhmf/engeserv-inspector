@@ -6,7 +6,7 @@
  * - Cache do app shell para navegação offline (fallback → /login).
  * - Background Sync para fila de envio quando a conexão volta.
  */
-const CACHE_NAME = "engeserv-v3";
+const CACHE_NAME = "engeserv-v4";
 
 // App shell: páginas principais ficam disponíveis offline
 const APP_SHELL = [

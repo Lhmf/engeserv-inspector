@@ -14,10 +14,7 @@ const ExecutiveSummary = dynamic(
   () => import("@/components/report/ExecutiveSummary").then((m) => m.ExecutiveSummary),
   { loading: () => <SectionSkeleton /> }
 );
-const ReportPreview = dynamic(
-  () => import("@/components/report/ReportPreview").then((m) => m.ReportPreview),
-  { loading: () => <SectionSkeleton /> }
-);
+
 const InspectionDataCard = dynamic(
   () => import("@/components/report/InspectionDataCard").then((m) => m.InspectionDataCard),
   { loading: () => <SectionSkeleton /> }
@@ -795,12 +792,32 @@ export default function ReportPage() {
                       } : undefined}
                     />
                   )}
-                  {activeSection === "preview" && (
-                    <ReportPreview
-                      report={report}
-                      onExportPdf={handleExportPdf}
-                      isExportingPdf={isExportingPdf}
-                    />
+                  {activeSection === "preview" && technicalReportId && (
+                    <div className="relative">
+                      {/* Preview toolbar */}
+                      <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-t-xl">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-600 font-medium">Preview do Laudo NR-13</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf`, '_blank')}
+                            className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            Exportar PDF
+                          </button>
+                        </div>
+                      </div>
+                      {/* PDF iframe */}
+                      <div className="border border-t-0 border-slate-200 rounded-b-xl overflow-hidden bg-slate-100" style={{ height: '800px' }}>
+                        <iframe
+                          src={`/api/reports/${technicalReportId}/pdf`}
+                          className="w-full h-full border-0"
+                          title="Preview do Laudo NR-13"
+                        />
+                      </div>
+                    </div>
                   )}
                   {activeSection === "inspecao" && (
                     <InspectionDataCard
