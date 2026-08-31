@@ -45,7 +45,7 @@ export const LAYOUT = {
   pageHeight: 841.89,   // A4 height
   margin: 45,           // side margins
   headerHeightCompact: 36,   // compact header: logo + report info + separator
-  headerHeightFull: 80,      // full header: logo + title + control + faixa
+  headerHeightFull: 88,      // full header: logo + title + control + faixa (actual drawn height=84, +4pt gap)
   footerHeight: 20,          // footer: separator + text
   get contentWidth() { return this.pageWidth - 2 * this.margin; },
   /** Usable content height with compact header (pages 3+) */
