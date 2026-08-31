@@ -270,8 +270,8 @@ export async function createPdfContext(
 export function addNewPage(ctx: PdfRenderingContext): void {
   ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
   ctx.pageNumber++;
-  // Content starts below compact header zone
-  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightCompact;
+  // Content starts below compact header zone PLUS safety gap
+  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightCompact - 4;
 }
 
 /**
@@ -280,7 +280,9 @@ export function addNewPage(ctx: PdfRenderingContext): void {
 export function addNewPageFullHeader(ctx: PdfRenderingContext): void {
   ctx.page = ctx.doc.addPage([ctx.pageWidth, ctx.pageHeight]);
   ctx.pageNumber++;
-  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightFull;
+  // Content starts below full header zone PLUS a safety gap to prevent
+  // visual overlap when headers are stamped in pass 2.
+  ctx.y = ctx.pageHeight - ctx.margin - LAYOUT.headerHeightFull - 4;
 }
 
 /**
