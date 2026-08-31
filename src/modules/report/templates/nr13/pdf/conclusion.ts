@@ -80,18 +80,18 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   const D = REPORT_DESIGN;
   const { recommendations: recs } = report;
 
-  y = drawSectionTitle(ctx, 6, 'RECOMENDACOES', y);
+  y = drawSectionTitle(ctx, 6, 'RECOMENDAÇÕES', y);
 
   const allSections = [
-    { title: 'Acoes Imediatas (Criticas)', items: recs.immediate, color: D.colors.priorityCritical, bgColor: D.colors.statusRedBg },
-    { title: 'Curto Prazo (ate 6 meses)', items: recs.shortTerm, color: D.colors.priorityHigh, bgColor: D.colors.priorityHighBg },
-    { title: 'Medio Prazo (6-18 meses)', items: recs.mediumTerm, color: D.colors.accent, bgColor: rgb(0.941, 0.969, 1.0) },
+    { title: 'Ações Imediatas (Críticas)', items: recs.immediate, color: D.colors.priorityCritical, bgColor: D.colors.statusRedBg },
+    { title: 'Curto Prazo (até 6 meses)', items: recs.shortTerm, color: D.colors.priorityHigh, bgColor: D.colors.priorityHighBg },
+    { title: 'Médio Prazo (6-18 meses)', items: recs.mediumTerm, color: D.colors.accent, bgColor: rgb(0.941, 0.969, 1.0) },
     { title: 'Longo Prazo (18+ meses)', items: recs.longTerm, color: D.colors.gray500, bgColor: D.colors.gray50 },
   ];
 
   const hasAny = allSections.some(s => s.items.length > 0);
   if (!hasAny) {
-    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma recomendacao registrada.'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma recomendação registrada.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: D.colors.gray400,
     });
     y -= 16;
@@ -157,10 +157,10 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
   y -= 6;
   drawRect(ctx, margin, y - 1, 3, 12, D.colors.sectionAccent);
   drawRect(ctx, margin + 3, y - 1, contentWidth - 3, 12, D.colors.gray100);
-  ctx.page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Próxima Inspeção'), {
     x: margin + 8, y, font: fonts.helveticaBold, size: 8, color: D.colors.primary,
   });
-  y -= 16;
+  y -= 22;
 
   const boxHeight = 52;
   ctx.page.drawRectangle({
@@ -173,10 +173,10 @@ export function drawRecommendationsPdf(ctx: PdfRenderingContext, y: number): num
     { label: 'Intervalo:', value: `${recs.inspection.intervalMonths} meses` },
     { label: 'Tipo:', value: recs.inspection.type },
     { label: 'Escopo:', value: recs.inspection.scope.join('; ') },
-    { label: 'Criterios:', value: recs.inspection.criteria },
+    { label: 'Critérios:', value: recs.inspection.criteria },
   ];
 
-  let detailY = y - 10;
+  let detailY = y - 14;
   for (const detail of inspDetails) {
     ctx.page.drawText(sanitizeTextForWinAnsi(detail.label), {
       x: margin + 8, y: detailY, font: fonts.helveticaBold, size: 7, color: D.colors.gray600,
@@ -199,12 +199,12 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   const D = REPORT_DESIGN;
   const { technicalConclusion } = report;
 
-  y = drawSectionTitle(ctx, 7, 'CONCLUSAO TECNICA', y);
+  y = drawSectionTitle(ctx, 7, 'CONCLUSÃO TÉCNICA', y);
 
   const statusInfo = getStatusDisplay(technicalConclusion.conclusion);
   const statusColors = getStatusColors(statusInfo.color);
 
-  ctx.page.drawText(sanitizeTextForWinAnsi('Conclusao:'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Conclusão:'), {
     x: margin, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray600,
   });
 
@@ -215,7 +215,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   ctx.page.drawText(sanitizeTextForWinAnsi(badgeText), {
     x: badgeX + 6, y, font: fonts.helveticaBold, size: 9, color: statusColors.text,
   });
-  y -= 20;
+  y -= 28;
 
   if (technicalConclusion.justification) {
     ctx.page.drawText(sanitizeTextForWinAnsi('Justificativa:'), {
@@ -236,7 +236,7 @@ export function drawConclusionPdf(ctx: PdfRenderingContext, y: number): number {
   }
 
   if (technicalConclusion.restrictions && technicalConclusion.restrictions.length > 0) {
-    ctx.page.drawText(sanitizeTextForWinAnsi('Restricoes de Operacao:'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Restrições de Operação:'), {
       x: margin, y, font: fonts.helveticaBold, size: 8, color: D.colors.gray600,
     });
     y -= 12;

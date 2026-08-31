@@ -1,5 +1,5 @@
 /**
- * NR-13 PDF Template — Equipment Data (Dados Tecnicos)
+ * NR-13 PDF Template — Equipment Data (Dados Técnicos)
  *
  * 4 separate grouped tables with refined styling:
  * - Thinner borders, subtle zebra striping
@@ -18,9 +18,9 @@ interface TableRow {
   value2?: string;
 }
 
-const ROW_HEIGHT = 22;
-const GROUP_TITLE_HEIGHT = 18;
-const TABLE_ROW_HEIGHT = 22;
+const ROW_HEIGHT = 26;
+const GROUP_TITLE_HEIGHT = 20;
+const TABLE_ROW_HEIGHT = 26;
 
 /**
  * Estimate total height of the equipment data section.
@@ -49,37 +49,37 @@ export function drawEquipmentDataPdf(ctx: PdfRenderingContext, y: number): numbe
   const { equipment } = report;
   const D = REPORT_DESIGN;
 
-  y = drawSectionTitle(ctx, 2, 'DADOS TECNICOS DO EQUIPAMENTO', y);
+  y = drawSectionTitle(ctx, 2, 'DADOS TÉCNICOS DO EQUIPAMENTO', y);
   y -= 2;
 
-  y = drawTableGroup(ctx, 'Identificacao', [
+  y = drawTableGroup(ctx, 'Identificação', [
     { label: 'TAG', value: safeStr(equipment.tag), label2: 'Tipo', value2: formatType(equipment.type) },
-    { label: 'Descricao', value: safeStr(equipment.description) },
-    { label: 'Fabricante', value: safeStr(equipment.manufacturer), label2: 'Ano Fabricacao', value2: safeStr(equipment.manufactureYear) },
-    { label: 'No Serie', value: safeStr(equipment.serialNumber), label2: 'Codigo de Projeto', value2: safeStr(equipment.designCode) },
+    { label: 'Descrição', value: safeStr(equipment.description) },
+    { label: 'Fabricante', value: safeStr(equipment.manufacturer), label2: 'Ano Fabricação', value2: safeStr(equipment.manufactureYear) },
+    { label: 'Nº Série', value: safeStr(equipment.serialNumber), label2: 'Código de Projeto', value2: safeStr(equipment.designCode) },
     { label: 'Categoria NR-13', value: safeStr(equipment.nr13Category), label2: 'Grupo de Risco', value2: safeStr(equipment.riskGroup) },
   ], y);
 
-  y -= 4;
+  y -= 8;
 
-  y = drawTableGroup(ctx, 'Pressoes e Temperaturas', [
-    { label: 'Pressao de Projeto', value: equipment.designPressureBar ? `${equipment.designPressureBar} bar` : '', label2: 'Temperatura de Projeto', value2: equipment.designTemperatureC ? `${equipment.designTemperatureC} oC` : '' },
-    { label: 'Pressao de Operacao', value: equipment.operatingPressureBar ? `${equipment.operatingPressureBar} bar` : '', label2: 'Temperatura de Operacao', value2: equipment.operatingTemperatureC ? `${equipment.operatingTemperatureC} oC` : '' },
-    { label: 'PMTA (MAWP)', value: equipment.mawpBar ? `${equipment.mawpBar} bar` : '', label2: 'PTH (Hidrostatica)', value2: equipment.hydroTestPressureBar ? `${equipment.hydroTestPressureBar} bar` : '' },
+  y = drawTableGroup(ctx, 'Pressões e Temperaturas', [
+    { label: 'Pressão de Projeto', value: equipment.designPressureBar ? `${equipment.designPressureBar} bar` : '', label2: 'Temperatura de Projeto', value2: equipment.designTemperatureC ? `${equipment.designTemperatureC} °C` : '' },
+    { label: 'Pressão de Operação', value: equipment.operatingPressureBar ? `${equipment.operatingPressureBar} bar` : '', label2: 'Temperatura de Operação', value2: equipment.operatingTemperatureC ? `${equipment.operatingTemperatureC} °C` : '' },
+    { label: 'PMTA (MAWP)', value: equipment.mawpBar ? `${equipment.mawpBar} bar` : '', label2: 'PTH (Hidrostática)', value2: equipment.hydroTestPressureBar ? `${equipment.hydroTestPressureBar} bar` : '' },
   ], y);
 
-  y -= 4;
+  y -= 8;
 
-  y = drawTableGroup(ctx, 'Material e Dimensoes', [
+  y = drawTableGroup(ctx, 'Material e Dimensões', [
     { label: 'Material do Casco', value: safeStr(equipment.bodyMaterial), label2: 'Material da Tampa', value2: safeStr(equipment.headMaterial) },
-    { label: 'Tipo de Tampa', value: safeStr(equipment.headType), label2: 'Eficiencia de Solda', value2: equipment.jointEfficiency ? `${(equipment.jointEfficiency * 100).toFixed(0)}%` : '' },
-    { label: 'Espessura Original', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '', label2: 'Espessura Minima', value2: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '' },
-    { label: 'Sobra de Corrosao', value: equipment.corrosionAllowanceMm ? `${equipment.corrosionAllowanceMm} mm` : '', label2: 'Volume', value2: equipment.volumeLiters ? `${equipment.volumeLiters} L` : '' },
+    { label: 'Tipo de Tampa', value: safeStr(equipment.headType), label2: 'Eficiência de Solda', value2: equipment.jointEfficiency ? `${(equipment.jointEfficiency * 100).toFixed(0)}%` : '' },
+    { label: 'Espessura Original', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '', label2: 'Espessura Mínima', value2: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '' },
+    { label: 'Sobra de Corrosão', value: equipment.corrosionAllowanceMm ? `${equipment.corrosionAllowanceMm} mm` : '', label2: 'Volume', value2: equipment.volumeLiters ? `${equipment.volumeLiters} L` : '' },
   ], y);
 
-  y -= 4;
+  y -= 8;
 
-  y = drawTableGroup(ctx, 'Fluidos e Classificacao', [
+  y = drawTableGroup(ctx, 'Fluidos e Classificação', [
     { label: 'Fluido', value: safeStr(equipment.fluidType), label2: 'Classe do Fluido', value2: safeStr(equipment.fluidClass) },
   ], y);
 
@@ -173,14 +173,14 @@ function drawTableRowFull(
   const valueWidth = contentWidth * 0.70;
   const bgColor = isEven ? D.colors.tableRowEven : D.colors.tableRowOdd;
 
-  drawRect(ctx, margin, y - ROW_HEIGHT + 4, labelWidth, ROW_HEIGHT, D.colors.tableRowOdd);
+  drawRect(ctx, margin, y - ROW_HEIGHT + 4, labelWidth, ROW_HEIGHT, bgColor);
   drawRect(ctx, margin + labelWidth, y - ROW_HEIGHT + 4, valueWidth, ROW_HEIGHT, bgColor);
   ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: D.colors.tableBorder, borderWidth: 0.5 });
 
   ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, D.tableLabelSize, labelWidth - 8)), {
     x: margin + 4, y: y, font: fonts.helveticaBold, size: D.tableLabelSize, color: D.colors.tableLabel,
   });
-  drawValueCell(ctx, margin + labelWidth + 4, y, valueWidth - 8, value);
+  drawValueCell(ctx, margin + labelWidth + 4, y - 12, valueWidth - 8, value);
 
   return y - ROW_HEIGHT;
 }
@@ -189,7 +189,7 @@ function drawValueCell(ctx: PdfRenderingContext, x: number, y: number, maxWidth:
   const { fonts } = ctx;
   const D = REPORT_DESIGN;
   if (!value || value === '') {
-    ctx.page.drawText(sanitizeTextForWinAnsi('nao informado'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('não informado'), {
       x, y, font: fonts.helveticaOblique, size: 8, color: D.colors.gray300,
     });
   } else {

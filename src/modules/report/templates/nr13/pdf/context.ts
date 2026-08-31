@@ -424,7 +424,7 @@ export function drawSectionTitle(
     end: { x: margin + contentWidth, y },
     thickness: D.sectionLineWidth, color: D.colors.sectionLine,
   });
-  y -= 10;
+  y -= 14;
   return y;
 }
 

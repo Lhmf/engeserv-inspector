@@ -1,5 +1,5 @@
 /**
- * NR-13 PDF Template — Cover Page (Pagina 1)
+ * NR-13 PDF Template — Cover Page (Página 1)
  *
  * Professional cover with:
  * - Clean brand bar with logo
@@ -55,11 +55,11 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
   let y = pageHeight - brandBarHeight - 80;
 
   // Large title
-  page.drawText(sanitizeTextForWinAnsi('LAUDO TECNICO'), {
+  page.drawText(sanitizeTextForWinAnsi('LAUDO TÉCNICO'), {
     x: margin, y, font: fonts.helveticaBold, size: 36, color: D.colors.primary,
   });
   y -= 42;
-  page.drawText(sanitizeTextForWinAnsi('DE INSPECAO'), {
+  page.drawText(sanitizeTextForWinAnsi('DE INSPEÇÃO'), {
     x: margin, y, font: fonts.helveticaBold, size: 36, color: D.colors.primary,
   });
   y -= 44;
@@ -135,7 +135,7 @@ export function drawCoverPdf(ctx: PdfRenderingContext): void {
     }
   }
   rightY -= 10;
-  page.drawText(sanitizeTextForWinAnsi('DATA DA INSPECAO'), {
+  page.drawText(sanitizeTextForWinAnsi('DATA DA INSPEÇÃO'), {
     x: col2X, y: rightY, font: fonts.helveticaBold, size: labelSize, color: D.colors.gray400,
   });
   rightY -= 14;

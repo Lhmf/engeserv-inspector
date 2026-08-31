@@ -31,13 +31,13 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   const D = REPORT_DESIGN;
   const { signatures, identification } = report;
 
-  y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TECNICA', y);
+  y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TÉCNICA', y);
 
-  ctx.page.drawText(sanitizeTextForWinAnsi('O presente laudo tecnico e de responsabilidade dos profissionais abaixo assinados,'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('O presente laudo técnico é de responsabilidade dos profissionais abaixo assinados,'), {
     x: margin, y, font: fonts.helvetica, size: 7, color: D.colors.gray500,
   });
   y -= 9;
-  ctx.page.drawText(sanitizeTextForWinAnsi('conforme legislacao vigente e normas tecnicas aplicaveis.'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('conforme legislação vigente e normas técnicas aplicáveis.'), {
     x: margin, y, font: fonts.helvetica, size: 7, color: D.colors.gray500,
   });
   y -= 16;
@@ -46,24 +46,24 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
 
   const blocks = [
     {
-      role: 'ELABORACAO',
+      role: 'ELABORAÇÃO',
       name: identification.inspectorName,
       registration: signatures.inspector?.userRegistration,
-      title: 'Inspetor Tecnico',
+      title: 'Inspetor Técnico',
       signature: signatures.inspector,
     },
     {
-      role: 'VERIFICACAO',
+      role: 'VERIFICAÇÃO',
       name: identification.engineerName || '-',
       registration: signatures.engineer?.userRegistration,
-      title: 'Engenheiro Responsavel',
+      title: 'Engenheiro Responsável',
       signature: signatures.engineer,
     },
     {
-      role: 'APROVACAO',
+      role: 'APROVAÇÃO',
       name: identification.managerName || '-',
       registration: signatures.manager?.userRegistration,
-      title: 'Gestor Tecnico',
+      title: 'Gestor Técnico',
       signature: signatures.manager,
     },
   ];

@@ -20,8 +20,8 @@ import {
 import { sanitizeTextForWinAnsi, truncateText } from './context';
 
 const COL_WIDTHS_RATIO = [0.10, 0.40, 0.25, 0.25];
-const ROW_HEIGHT = 16;
-const HEADER_HEIGHT = 18;
+const ROW_HEIGHT = 20;
+const HEADER_HEIGHT = 20;
 const LEGEND_HEIGHT = 16;
 const REF_HEIGHT = 14;
 
@@ -39,17 +39,17 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
     y = ctx.y;
   }
 
-  y = drawSectionTitle(ctx, 4, 'MEDICOES TECNICAS', y);
+  y = drawSectionTitle(ctx, 4, 'MEDIÇÕES TÉCNICAS', y);
 
   // After drawing the title, verify we have enough space for table header + rows.
   if ((y - LAYOUT.footerReserve) < HEADER_HEIGHT + 2 * ROW_HEIGHT) {
     addNewPage(ctx);
     y = ctx.y;
-    y = drawSectionTitle(ctx, 4, 'MEDICOES TECNICAS', y);
+y = drawSectionTitle(ctx, 4, 'MEDIÇÕES TÉCNICAS', y);
   }
 
   if (!measurements || measurements.length === 0) {
-    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma medicao registrada para esta inspecao.'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma medição registrada para esta inspeção.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: D.colors.gray400,
     });
     return y - 20;
@@ -59,7 +59,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
 
   // Draw table header (reusable)
   function drawTableHeader(startY: number): number {
-    const headers = ['Ponto', 'Localizacao / Observacao', 'Espessura (mm)', 'Condicao'];
+    const headers = ['Ponto', 'Localização / Observação', 'Espessura (mm)', 'Condição'];
     drawRect(ctx, margin, startY - HEADER_HEIGHT + 4, contentWidth, HEADER_HEIGHT, D.colors.tableHeader);
 
     let hx = margin;
@@ -170,9 +170,9 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   }
 
   const legends = [
-    { label: 'OK', color: D.colors.statusGreen, desc: 'Espessura >= 110% do minimo' },
-    { label: 'ATENCAO', color: D.colors.statusYellow, desc: 'Entre 100% e 110%' },
-    { label: 'CRITICO', color: D.colors.statusRed, desc: 'Abaixo do minimo' },
+    { label: 'OK', color: D.colors.statusGreen, desc: 'Espessura ≥ 110% do mínimo' },
+    { label: 'ATENÇÃO', color: D.colors.statusYellow, desc: 'Entre 100% e 110%' },
+    { label: 'CRÍTICO', color: D.colors.statusRed, desc: 'Abaixo do mínimo' },
   ];
 
   let legendX = margin;
@@ -194,7 +194,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   // === REFERENCE LINE ===
   if (minThickness) {
     ctx.page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 14, color: D.colors.gray50 });
-    const refText = `Espessura minima admissivel: ${minThickness} mm`;
+    const refText = `Espessura mínima admissível: ${minThickness} mm`;
     ctx.page.drawText(sanitizeTextForWinAnsi(refText), {
       x: margin + 6, y: y, font: fonts.helveticaBold, size: 8, color: D.colors.gray600,
     });
@@ -215,7 +215,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
 function getCondition(thickness: number, minThickness?: number): { label: string; class: string } {
   if (!minThickness || minThickness === 0) return { label: 'OK', class: 'ok' };
   const threshold = minThickness * 1.1;
-  if (thickness < minThickness) return { label: 'CRITICO', class: 'critical' };
-  if (thickness < threshold) return { label: 'ATENCAO', class: 'attention' };
+  if (thickness < minThickness) return { label: 'CRÍTICO', class: 'critical' };
+  if (thickness < threshold) return { label: 'ATENÇÃO', class: 'attention' };
   return { label: 'OK', class: 'ok' };
 }

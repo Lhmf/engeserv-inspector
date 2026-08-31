@@ -16,9 +16,9 @@ import {
 import { sanitizeTextForWinAnsi } from './context';
 
 const PHOTO_AREA_HEIGHT = 90;
-const CARD_INFO_HEIGHT = 30;
+const CARD_INFO_HEIGHT = 36;
 const CARD_HEIGHT = PHOTO_AREA_HEIGHT + CARD_INFO_HEIGHT;
-const ROW_GAP = 8;
+const ROW_GAP = 14;
 const MIN_SPACE_FOR_ROW = CARD_HEIGHT + ROW_GAP;
 
 export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): Promise<number> {
@@ -32,10 +32,10 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
     y = ctx.y;
   }
 
-  y = drawSectionTitle(ctx, 5, 'REGISTRO FOTOGRAFICO', y);
+  y = drawSectionTitle(ctx, 5, 'REGISTRO FOTOGRÁFICO', y);
 
   if (!photos || photos.length === 0) {
-    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotografico disponivel para esta inspecao.'), {
+    ctx.page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotográfico disponível para esta inspeção.'), {
       x: margin, y, font: fonts.helveticaOblique, size: 9, color: D.colors.gray400,
     });
     return y - 20;
@@ -86,7 +86,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
         pageNum++;
 
         // Continuation label
-        ctx.page.drawText(sanitizeTextForWinAnsi(`Continuacao - Registro Fotografico`), {
+        ctx.page.drawText(sanitizeTextForWinAnsi(`Continuação - Registro Fotográfico`), {
           x: margin, y, font: fonts.helveticaOblique, size: 8, color: D.colors.gray400,
         });
         drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, D.colors.gray200);
@@ -158,7 +158,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
     });
 
     // Caption
-    const desc = truncateText(photo.caption || 'Sem descricao', fonts.helvetica, 8, cardWidth - 12);
+    const desc = truncateText(photo.caption || 'Sem descrição', fonts.helvetica, 8, cardWidth - 12);
     ctx.page.drawText(sanitizeTextForWinAnsi(desc), {
       x: cardX + 6, y: infoY - 14, font: fonts.helvetica, size: 8, color: D.colors.gray700,
     });
@@ -182,8 +182,8 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
 function formatCategory(category: string): string {
   const map: Record<string, string> = {
-    'PLACA': 'Placa', 'CORROSAO': 'Corrosao', 'VALVULA': 'Valvula',
-    'MANOMETRO': 'Manometro', 'ULTRASSOM': 'Ultrassom', 'VISTA_GERAL': 'Vista Geral',
+    'PLACA': 'Placa', 'CORROSAO': 'Corrosão', 'VALVULA': 'Válvula',
+    'MANOMETRO': 'Manômetro', 'ULTRASSOM': 'Ultrassom', 'VISTA_GERAL': 'Vista Geral',
     'SOLDA': 'Solda', 'TRINCA': 'Trinca', 'REPARO': 'Reparo',
   };
   return map[category] || category;

@@ -111,7 +111,7 @@ export function drawFullHeaderPdf(
   y -= 4;
 
   // Title
-  const titleText = 'LAUDO TECNICO DE INSPECAO';
+  const titleText = 'LAUDO TÉCNICO DE INSPEÇÃO';
   const titleWidth = fonts.helveticaBold.widthOfTextAtSize(titleText, 11);
   page.drawText(sanitizeTextForWinAnsi(titleText), {
     x: margin + (contentWidth - titleWidth) / 2, y,
@@ -119,15 +119,15 @@ export function drawFullHeaderPdf(
   });
   y -= 12;
   drawLine(ctx, margin, y, margin + contentWidth, 1.5, D.colors.primary);
-  y -= 4;
+  y -= 16;
 
   // Control data (4 columns)
   const colWidth = contentWidth / 4;
   const controlItems = [
-    { label: 'LAUDO No', value: identification.reportNumber },
-    { label: 'REVISAO', value: `v${identification.version}` },
+    { label: 'LAUDO Nº', value: identification.reportNumber },
+    { label: 'REVISÃO', value: `v${identification.version}` },
     { label: 'DATA', value: formatDateBR(identification.inspectionDate) },
-    { label: 'PAGINA', value: `${pageNumber} / ${totalPages}` },
+    { label: 'PÁGINA', value: `${pageNumber} / ${totalPages}` },
   ];
 
   for (let i = 0; i < controlItems.length; i++) {
@@ -139,7 +139,7 @@ export function drawFullHeaderPdf(
       x: colX, y: y - 9, font: fonts.helveticaBold, size: 8, color: D.colors.gray800,
     });
   }
-  y -= 16;
+  y -= 22;
 
   // Faixa tecnica
   const bandHeight = 16;
@@ -152,7 +152,7 @@ export function drawFullHeaderPdf(
     { label: 'CLIENTE', value: client.name },
     { label: 'EQUIPAMENTO', value: equipment.tag },
     { label: 'TAG', value: equipment.tag },
-    { label: 'DATA INSPECAO', value: formatDateBR(identification.inspectionDate) },
+    { label: 'DATA INSPEÇÃO', value: formatDateBR(identification.inspectionDate) },
   ];
 
   const bandColWidth = contentWidth / 4;

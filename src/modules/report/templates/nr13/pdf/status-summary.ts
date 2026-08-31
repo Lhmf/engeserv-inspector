@@ -39,7 +39,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const stats = inspectionData.measurementStats;
   const D = REPORT_DESIGN;
 
-  y = drawSectionTitle(ctx, 3, 'STATUS GERAL E RESULTADOS TECNICOS', y);
+  y = drawSectionTitle(ctx, 3, 'STATUS GERAL E RESULTADOS TÉCNICOS', y);
   y -= 2;
 
   // === STATUS HIGHLIGHT BOX ===
@@ -74,7 +74,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   // Status text
   const textX = margin + 50;
-  ctx.page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPECAO'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPEÇÃO'), {
     x: textX, y: y - 12, font: fonts.helveticaBold, size: 7, color: D.colors.gray500,
   });
   ctx.page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
@@ -99,18 +99,18 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     addNewPage(ctx); y = ctx.y;
   }
 
-  ctx.page.drawText(sanitizeTextForWinAnsi('Indicadores Tecnicos'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Indicadores Técnicos'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
 
   const indicators = [
     { label: 'Esp. Nominal', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '-' },
-    { label: 'Esp. Minima Req.', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '-' },
+    { label: 'Esp. Mínima Req.', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '-' },
     { label: 'Menor Esp. Encontrada', value: stats.minThicknessMm ? `${stats.minThicknessMm.toFixed(2)} mm` : '-' },
-    { label: 'Espessura Media', value: stats.avgThicknessMm ? `${stats.avgThicknessMm.toFixed(2)} mm` : '-' },
-    { label: 'Taxa Corrosao', value: '-' },
-    { label: 'Vida Util Rem.', value: '-' },
+    { label: 'Espessura Média', value: stats.avgThicknessMm ? `${stats.avgThicknessMm.toFixed(2)} mm` : '-' },
+    { label: 'Taxa Corrosão', value: '-' },
+    { label: 'Vida Útil Rem.', value: '-' },
     { label: 'PMTA Calculada', value: '-' },
     { label: '% Abaixo Min.', value: `${(stats.belowMinPercentage || 0).toFixed(1)}%` },
   ];
@@ -146,7 +146,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     addNewPage(ctx); y = ctx.y;
   }
 
-  ctx.page.drawText(sanitizeTextForWinAnsi('Resumo das Medicoes'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Resumo das Medições'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
@@ -189,7 +189,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     addNewPage(ctx); y = ctx.y;
   }
 
-  ctx.page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao Recomendada'), {
+  ctx.page.drawText(sanitizeTextForWinAnsi('Próxima Inspeção Recomendada'), {
     x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
@@ -201,7 +201,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   const nextItems = [
     { label: 'Data Recomendada:', value: formatDateLong(nextInspection.recommendedDate) },
-    { label: 'Intervalo Maximo:', value: `${nextInspection.maxIntervalMonths} meses` },
+    { label: 'Intervalo Máximo:', value: `${nextInspection.maxIntervalMonths} meses` },
     { label: 'Tipo:', value: nextInspection.type },
   ];
 

@@ -41,7 +41,7 @@ export function stampAllFooters(
     });
 
     // Right: page number
-    const rightText = `Pagina ${i + 1} de ${totalPages}`;
+    const rightText = `Página ${i + 1} de ${totalPages}`;
     const rightWidth = ctx.fonts.helvetica.widthOfTextAtSize(rightText, D.footerSize);
     page.drawText(sanitizeTextForWinAnsi(rightText), {
       x: ctx.pageWidth - ctx.margin - rightWidth, y: footerY,
