@@ -2,11 +2,12 @@
  * NR-13 PDF Template — Status Summary
  *
  * Status highlight, indicators (2x4 grid), measurement summaries, next inspection.
+ * Redesigned with REPORT_DESIGN system for cleaner professional appearance.
  * Exports estimateHeight for builder space planning.
  */
 import type { PdfRenderingContext } from './context';
 import {
-  PDF_COLORS, drawSectionTitle, drawRect, drawLine,
+  REPORT_DESIGN, drawSectionTitle, drawRect, drawLine,
   getStatusDisplay, getStatusColors, getCriticalityColors,
   formatDateLong, truncateText, LAYOUT, getAvailableHeight, addNewPage,
 } from './context';
@@ -36,6 +37,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const { margin, contentWidth, fonts, report } = ctx;
   const { executiveSummary, inspectionData, equipment, nextInspection } = report;
   const stats = inspectionData.measurementStats;
+  const D = REPORT_DESIGN;
 
   y = drawSectionTitle(ctx, 3, 'STATUS GERAL E RESULTADOS TECNICOS', y);
   y -= 2;
@@ -45,34 +47,41 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   const statusColors = getStatusColors(statusInfo.color);
   const boxHeight = STATUS_BOX_HEIGHT;
 
+  // Background box
   ctx.page.drawRectangle({
     x: margin, y: y - boxHeight, width: contentWidth, height: boxHeight,
     color: statusColors.bg, borderColor: statusColors.border, borderWidth: 1,
   });
 
+  // Status icon — colored circle with symbol
   const iconX = margin + 22;
   const iconY = y - boxHeight / 2;
   ctx.page.drawCircle({ x: iconX, y: iconY, size: 16, color: statusColors.badgeBg });
 
   if (statusInfo.color === 'green') {
-    ctx.page.drawLine({ start: { x: iconX - 6, y: iconY }, end: { x: iconX - 1, y: iconY - 5 }, thickness: 2.5, color: PDF_COLORS.green700 });
-    ctx.page.drawLine({ start: { x: iconX - 1, y: iconY - 5 }, end: { x: iconX + 7, y: iconY + 4 }, thickness: 2.5, color: PDF_COLORS.green700 });
+    // Checkmark
+    ctx.page.drawLine({ start: { x: iconX - 6, y: iconY }, end: { x: iconX - 1, y: iconY - 5 }, thickness: 2.5, color: D.colors.statusGreen });
+    ctx.page.drawLine({ start: { x: iconX - 1, y: iconY - 5 }, end: { x: iconX + 7, y: iconY + 4 }, thickness: 2.5, color: D.colors.statusGreen });
   } else if (statusInfo.color === 'red') {
-    ctx.page.drawLine({ start: { x: iconX - 5, y: iconY + 5 }, end: { x: iconX + 5, y: iconY - 5 }, thickness: 2.5, color: PDF_COLORS.red700 });
-    ctx.page.drawLine({ start: { x: iconX + 5, y: iconY + 5 }, end: { x: iconX - 5, y: iconY - 5 }, thickness: 2.5, color: PDF_COLORS.red700 });
+    // X mark
+    ctx.page.drawLine({ start: { x: iconX - 5, y: iconY + 5 }, end: { x: iconX + 5, y: iconY - 5 }, thickness: 2.5, color: D.colors.statusRed });
+    ctx.page.drawLine({ start: { x: iconX + 5, y: iconY + 5 }, end: { x: iconX - 5, y: iconY - 5 }, thickness: 2.5, color: D.colors.statusRed });
   } else {
-    ctx.page.drawLine({ start: { x: iconX, y: iconY + 4 }, end: { x: iconX, y: iconY - 1 }, thickness: 2.5, color: PDF_COLORS.yellow700 });
-    ctx.page.drawCircle({ x: iconX, y: iconY - 5, size: 1.5, color: PDF_COLORS.yellow700 });
+    // Exclamation
+    ctx.page.drawLine({ start: { x: iconX, y: iconY + 4 }, end: { x: iconX, y: iconY - 1 }, thickness: 2.5, color: D.colors.statusYellow });
+    ctx.page.drawCircle({ x: iconX, y: iconY - 5, size: 1.5, color: D.colors.statusYellow });
   }
 
+  // Status text
   const textX = margin + 50;
   ctx.page.drawText(sanitizeTextForWinAnsi('RESULTADO DA INSPECAO'), {
-    x: textX, y: y - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray500,
+    x: textX, y: y - 12, font: fonts.helveticaBold, size: 7, color: D.colors.gray500,
   });
   ctx.page.drawText(sanitizeTextForWinAnsi(statusInfo.label), {
     x: textX, y: y - 28, font: fonts.helveticaBold, size: 16, color: statusColors.text,
   });
 
+  // Criticality badge
   const critColors = getCriticalityColors(executiveSummary.criticalityLevel);
   const critText = executiveSummary.criticalityLevel;
   const critWidth = fonts.helveticaBold.widthOfTextAtSize(critText, 7) + 14;
@@ -91,7 +100,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   }
 
   ctx.page.drawText(sanitizeTextForWinAnsi('Indicadores Tecnicos'), {
-    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
+    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
 
@@ -114,15 +123,18 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
     const cardX = margin + col * cardWidth;
     const cardY = y - row * (INDICATOR_CARD_HEIGHT + 4);
 
+    // Card with subtle background and border
     ctx.page.drawRectangle({
       x: cardX + 2, y: cardY - INDICATOR_CARD_HEIGHT, width: cardWidth - 4, height: INDICATOR_CARD_HEIGHT,
-      color: PDF_COLORS.gray50, borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
+      color: D.colors.indicatorBg, borderColor: D.colors.indicatorBorder, borderWidth: 0.5,
     });
-    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].label, fonts.helveticaBold, 6, cardWidth - 10)), {
-      x: cardX + 6, y: cardY - 10, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray400,
+    // Label
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].label, fonts.helveticaBold, D.indicatorLabelSize, cardWidth - 10)), {
+      x: cardX + 6, y: cardY - 10, font: fonts.helveticaBold, size: D.indicatorLabelSize, color: D.colors.indicatorLabel,
     });
-    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].value, fonts.helveticaBold, 10, cardWidth - 10)), {
-      x: cardX + 6, y: cardY - 24, font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray800,
+    // Value — large, prominent
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(indicators[i].value, fonts.helveticaBold, D.indicatorValueSize, cardWidth - 10)), {
+      x: cardX + 6, y: cardY - 24, font: fonts.helveticaBold, size: D.indicatorValueSize, color: D.colors.indicatorValue,
     });
   }
 
@@ -135,7 +147,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   }
 
   ctx.page.drawText(sanitizeTextForWinAnsi('Resumo das Medicoes'), {
-    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
+    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
 
@@ -151,12 +163,13 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   for (let i = 0; i < summaries.length; i++) {
     const cardX = margin + i * cardWidth;
-    const bgColor = summaries[i].isDanger ? PDF_COLORS.red50 : PDF_COLORS.gray50;
-    const textColor = summaries[i].isDanger ? PDF_COLORS.red700 : PDF_COLORS.gray800;
+    const bgColor = summaries[i].isDanger ? D.colors.statusRedBg : D.colors.indicatorBg;
+    const textColor = summaries[i].isDanger ? D.colors.statusRed : D.colors.indicatorValue;
+    const borderColor = summaries[i].isDanger ? D.colors.statusRedBorder : D.colors.indicatorBorder;
 
     ctx.page.drawRectangle({
       x: cardX + 2, y: y - SUMMARY_CARD_HEIGHT, width: cardWidth - 4, height: SUMMARY_CARD_HEIGHT,
-      color: bgColor, borderColor: summaries[i].isDanger ? PDF_COLORS.red100 : PDF_COLORS.gray200, borderWidth: 0.5,
+      color: bgColor, borderColor: borderColor, borderWidth: 0.5,
     });
     const valWidth = fonts.helveticaBold.widthOfTextAtSize(summaries[i].value, 18);
     ctx.page.drawText(sanitizeTextForWinAnsi(summaries[i].value), {
@@ -164,7 +177,7 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
       font: fonts.helveticaBold, size: 18, color: textColor,
     });
     ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(summaries[i].label, fonts.helvetica, 6, cardWidth - 10)), {
-      x: cardX + 6, y: y - 30, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray500,
+      x: cardX + 6, y: y - 30, font: fonts.helvetica, size: 6, color: D.colors.gray500,
     });
   }
 
@@ -177,13 +190,13 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   }
 
   ctx.page.drawText(sanitizeTextForWinAnsi('Proxima Inspecao Recomendada'), {
-    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray700,
+    x: margin + 4, y, font: fonts.helveticaBold, size: 9, color: D.colors.gray700,
   });
   y -= 12;
 
   ctx.page.drawRectangle({
     x: margin, y: y - NEXT_INSPECTION_HEIGHT, width: contentWidth, height: NEXT_INSPECTION_HEIGHT,
-    color: PDF_COLORS.gray50, borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
+    color: D.colors.gray50, borderColor: D.colors.gray200, borderWidth: 0.5,
   });
 
   const nextItems = [
@@ -195,10 +208,10 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   for (let i = 0; i < nextItems.length; i++) {
     const itemX = margin + 8 + i * (contentWidth / 3);
     ctx.page.drawText(sanitizeTextForWinAnsi(nextItems[i].label), {
-      x: itemX, y: y - 10, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray500,
+      x: itemX, y: y - 10, font: fonts.helveticaBold, size: 6, color: D.colors.gray500,
     });
     ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(nextItems[i].value, fonts.helvetica, 8, contentWidth / 3 - 10)), {
-      x: itemX, y: y - 20, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
+      x: itemX, y: y - 20, font: fonts.helvetica, size: 8, color: D.colors.gray800,
     });
   }
 

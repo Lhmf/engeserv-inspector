@@ -1,11 +1,14 @@
 /**
  * NR-13 PDF Template — Equipment Data (Dados Tecnicos)
  *
- * 4 separate grouped tables with zebra striping.
+ * 4 separate grouped tables with refined styling:
+ * - Thinner borders, subtle zebra striping
+ * - Clear label/value hierarchy
+ * - Section accent bar
  * Exports estimateHeight for builder space planning.
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, safeStr, LAYOUT, getAvailableHeight, addNewPage } from './context';
+import { REPORT_DESIGN, drawSectionTitle, drawRect, drawLine, safeStr, LAYOUT, getAvailableHeight, addNewPage } from './context';
 import { sanitizeTextForWinAnsi, truncateText } from './context';
 
 interface TableRow {
@@ -23,9 +26,6 @@ const TABLE_ROW_HEIGHT = 22;
  * Estimate total height of the equipment data section.
  */
 export function estimateEquipmentDataHeight(ctx: PdfRenderingContext): number {
-  const { report } = ctx;
-  const { equipment } = report;
-
   // Section title: 26pt
   let height = 26;
 
@@ -47,6 +47,7 @@ export function estimateEquipmentDataHeight(ctx: PdfRenderingContext): number {
 export function drawEquipmentDataPdf(ctx: PdfRenderingContext, y: number): number {
   const { margin, contentWidth, fonts, report } = ctx;
   const { equipment } = report;
+  const D = REPORT_DESIGN;
 
   y = drawSectionTitle(ctx, 2, 'DADOS TECNICOS DO EQUIPAMENTO', y);
   y -= 2;
@@ -92,6 +93,7 @@ function drawTableGroup(
   y: number
 ): number {
   const { margin, contentWidth, fonts } = ctx;
+  const D = REPORT_DESIGN;
 
   // Check space for title + at least 2 rows using local y (ctx.y may be stale)
   const needed = GROUP_TITLE_HEIGHT + Math.min(rows.length, 2) * TABLE_ROW_HEIGHT + 4;
@@ -100,10 +102,11 @@ function drawTableGroup(
     y = ctx.y;
   }
 
-  drawRect(ctx, margin, y - 1, 3, 12, PDF_COLORS.navy);
+  // Subsection title with accent bar
+  drawRect(ctx, margin, y - 1, 3, 12, D.colors.sectionAccent);
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: margin + 8, y,
-    font: fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
+    font: fonts.helveticaBold, size: 9, color: D.colors.gray600,
   });
   y -= 16;
 
@@ -132,21 +135,27 @@ function drawTableRow2Col(
   y: number, isEven: boolean
 ): number {
   const { margin, contentWidth, fonts } = ctx;
+  const D = REPORT_DESIGN;
   const halfWidth = contentWidth / 2;
-  const bgColor = isEven ? PDF_COLORS.white : PDF_COLORS.gray50;
+  const bgColor = isEven ? D.colors.tableRowEven : D.colors.tableRowOdd;
 
+  // Background for both cells
   drawRect(ctx, margin, y - ROW_HEIGHT + 4, halfWidth, ROW_HEIGHT, bgColor);
   drawRect(ctx, margin + halfWidth, y - ROW_HEIGHT + 4, halfWidth, ROW_HEIGHT, bgColor);
-  ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: PDF_COLORS.gray200, borderWidth: 0.5 });
-  ctx.page.drawLine({ start: { x: margin + halfWidth, y: y - ROW_HEIGHT + 4 }, end: { x: margin + halfWidth, y: y + 4 }, thickness: 0.5, color: PDF_COLORS.gray200 });
 
-  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, 7, halfWidth - 8)), {
-    x: margin + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
+  // Borders
+  ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: D.colors.tableBorder, borderWidth: 0.5 });
+  ctx.page.drawLine({ start: { x: margin + halfWidth, y: y - ROW_HEIGHT + 4 }, end: { x: margin + halfWidth, y: y + 4 }, thickness: 0.5, color: D.colors.tableBorder });
+
+  // Label 1
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label1, fonts.helveticaBold, D.tableLabelSize, halfWidth - 8)), {
+    x: margin + 4, y: y, font: fonts.helveticaBold, size: D.tableLabelSize, color: D.colors.tableLabel,
   });
   drawValueCell(ctx, margin + 4, y - 12, halfWidth - 8, value1);
 
-  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, 7, halfWidth - 8)), {
-    x: margin + halfWidth + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
+  // Label 2
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label2, fonts.helveticaBold, D.tableLabelSize, halfWidth - 8)), {
+    x: margin + halfWidth + 4, y: y, font: fonts.helveticaBold, size: D.tableLabelSize, color: D.colors.tableLabel,
   });
   drawValueCell(ctx, margin + halfWidth + 4, y - 12, halfWidth - 8, value2);
 
@@ -159,16 +168,17 @@ function drawTableRowFull(
   y: number, isEven: boolean
 ): number {
   const { margin, contentWidth, fonts } = ctx;
+  const D = REPORT_DESIGN;
   const labelWidth = contentWidth * 0.30;
   const valueWidth = contentWidth * 0.70;
-  const bgColor = isEven ? PDF_COLORS.white : PDF_COLORS.gray50;
+  const bgColor = isEven ? D.colors.tableRowEven : D.colors.tableRowOdd;
 
-  drawRect(ctx, margin, y - ROW_HEIGHT + 4, labelWidth, ROW_HEIGHT, PDF_COLORS.gray50);
+  drawRect(ctx, margin, y - ROW_HEIGHT + 4, labelWidth, ROW_HEIGHT, D.colors.tableRowOdd);
   drawRect(ctx, margin + labelWidth, y - ROW_HEIGHT + 4, valueWidth, ROW_HEIGHT, bgColor);
-  ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: PDF_COLORS.gray200, borderWidth: 0.5 });
+  ctx.page.drawRectangle({ x: margin, y: y - ROW_HEIGHT + 4, width: contentWidth, height: ROW_HEIGHT, borderColor: D.colors.tableBorder, borderWidth: 0.5 });
 
-  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, 7, labelWidth - 8)), {
-    x: margin + 4, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray400,
+  ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(label, fonts.helveticaBold, D.tableLabelSize, labelWidth - 8)), {
+    x: margin + 4, y: y, font: fonts.helveticaBold, size: D.tableLabelSize, color: D.colors.tableLabel,
   });
   drawValueCell(ctx, margin + labelWidth + 4, y, valueWidth - 8, value);
 
@@ -177,13 +187,14 @@ function drawTableRowFull(
 
 function drawValueCell(ctx: PdfRenderingContext, x: number, y: number, maxWidth: number, value: string): void {
   const { fonts } = ctx;
+  const D = REPORT_DESIGN;
   if (!value || value === '') {
     ctx.page.drawText(sanitizeTextForWinAnsi('nao informado'), {
-      x, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray300,
+      x, y, font: fonts.helveticaOblique, size: 8, color: D.colors.gray300,
     });
   } else {
     ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(value, fonts.helvetica, 8, maxWidth)), {
-      x, y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
+      x, y, font: fonts.helvetica, size: 8, color: D.colors.gray800,
     });
   }
 }

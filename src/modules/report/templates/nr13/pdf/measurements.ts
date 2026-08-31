@@ -2,8 +2,9 @@
  * NR-13 PDF Template — Measurements Table
  *
  * Truly paginated table with:
- * - Table header repeated on each page
- * - Zebra striping
+ * - Clean table header repeated on each page
+ * - Refined zebra striping
+ * - Dot indicators for condition
  * - Proper column alignment
  * - Legend on last page only
  * - Reference line on last page only
@@ -13,7 +14,7 @@
  */
 import type { PdfRenderingContext } from './context';
 import {
-  PDF_COLORS, drawSectionTitle, drawRect, drawLine,
+  REPORT_DESIGN, PDF_COLORS, drawSectionTitle, drawRect, drawLine,
   addNewPage, getAvailableHeight, LAYOUT, SECTION_TITLE_HEIGHT,
 } from './context';
 import { sanitizeTextForWinAnsi, truncateText } from './context';
@@ -27,6 +28,7 @@ const REF_HEIGHT = 14;
 export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number {
   // NOTE: Do NOT destructure `page` here — ctx.page changes after addNewPage.
   const { margin, contentWidth, fonts, report } = ctx;
+  const D = REPORT_DESIGN;
   const measurements = report.inspectionData.measurements;
   const minThickness = report.equipment.minThicknessMm;
 
@@ -48,7 +50,7 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
 
   if (!measurements || measurements.length === 0) {
     ctx.page.drawText(sanitizeTextForWinAnsi('Nenhuma medicao registrada para esta inspecao.'), {
-      x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
+      x: margin, y, font: fonts.helveticaOblique, size: 9, color: D.colors.gray400,
     });
     return y - 20;
   }
@@ -58,19 +60,19 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   // Draw table header (reusable)
   function drawTableHeader(startY: number): number {
     const headers = ['Ponto', 'Localizacao / Observacao', 'Espessura (mm)', 'Condicao'];
-    drawRect(ctx, margin, startY - HEADER_HEIGHT + 4, contentWidth, HEADER_HEIGHT, PDF_COLORS.navy);
+    drawRect(ctx, margin, startY - HEADER_HEIGHT + 4, contentWidth, HEADER_HEIGHT, D.colors.tableHeader);
 
     let hx = margin;
     for (let i = 0; i < headers.length; i++) {
       const align = (i === 0 || i === 2) ? 'center' : 'left';
       let textX = hx + 4;
       if (align === 'center') {
-        const tw = fonts.helveticaBold.widthOfTextAtSize(headers[i], 8);
+        const tw = fonts.helveticaBold.widthOfTextAtSize(headers[i], D.tableHeaderSize);
         textX = hx + (colWidths[i] - tw) / 2;
       }
       ctx.page.drawText(sanitizeTextForWinAnsi(headers[i]), {
         x: textX, y: startY - HEADER_HEIGHT + 10,
-        font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
+        font: fonts.helveticaBold, size: D.tableHeaderSize, color: D.colors.tableHeaderText,
       });
       hx += colWidths[i];
     }
@@ -96,54 +98,64 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
       // Page break
       addNewPage(ctx);
       y = ctx.y;
+      // Draw continuation title on new page
+      y = drawSectionTitle(ctx, 4, 'MEDICOES TECNICAS', y, 'CONTINUACAO');
       y = drawTableHeader(y);
     }
 
     const condition = getCondition(m.thicknessMm, minThickness);
-    const bgColor = condition.class === 'critical' ? PDF_COLORS.red50 :
-                     condition.class === 'attention' ? PDF_COLORS.yellow50 :
-                     (idx % 2 === 0 ? PDF_COLORS.white : PDF_COLORS.gray50);
+    const bgColor = condition.class === 'critical' ? D.colors.statusRedBg :
+                     condition.class === 'attention' ? D.colors.statusYellowBg :
+                     (idx % 2 === 0 ? D.colors.tableRowEven : D.colors.tableRowOdd);
 
+    // Row background
     drawRect(ctx, margin, y - ROW_HEIGHT + 4, contentWidth, ROW_HEIGHT, bgColor);
-    drawLine(ctx, margin, y - ROW_HEIGHT + 4, margin + contentWidth, 0.5, PDF_COLORS.gray200);
+    // Row border (subtle bottom line)
+    drawLine(ctx, margin, y - ROW_HEIGHT + 4, margin + contentWidth, 0.5, D.colors.tableBorder);
 
     let x = margin;
     const cellY = y - ROW_HEIGHT + 8;
 
     // Point (centered)
-    const pointWidth = fonts.helvetica.widthOfTextAtSize(m.point || '', 8);
+    const pointWidth = fonts.helvetica.widthOfTextAtSize(m.point || '', D.tableCellSize);
     ctx.page.drawText(sanitizeTextForWinAnsi(m.point || ''), {
       x: x + (colWidths[0] - pointWidth) / 2, y: cellY,
-      font: fonts.helvetica, size: 8, color: PDF_COLORS.gray800,
+      font: fonts.helvetica, size: D.tableCellSize, color: D.colors.gray800,
     });
     x += colWidths[0];
 
     // Location/Notes
-    const notes = truncateText(m.notes || '', fonts.helvetica, 8, colWidths[1] - 8);
+    const notes = truncateText(m.notes || '', fonts.helvetica, D.tableCellSize, colWidths[1] - 8);
     ctx.page.drawText(sanitizeTextForWinAnsi(notes || ''), {
       x: x + 4, y: cellY,
-      font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
+      font: fonts.helvetica, size: D.tableCellSize, color: D.colors.gray700,
     });
     x += colWidths[1];
 
     // Thickness (centered, monospace)
     const thickText = m.thicknessMm ? m.thicknessMm.toFixed(2) : '-';
-    const thickWidth = fonts.courier.widthOfTextAtSize(thickText, 8);
+    const thickWidth = fonts.courier.widthOfTextAtSize(thickText, D.tableCellSize);
     ctx.page.drawText(sanitizeTextForWinAnsi(thickText), {
       x: x + (colWidths[2] - thickWidth) / 2, y: cellY,
-      font: fonts.courier, size: 8, color: PDF_COLORS.gray800,
+      font: fonts.courier, size: D.tableCellSize, color: D.colors.gray800,
     });
     x += colWidths[2];
 
-    // Condition badge
-    const badgeColors = condition.class === 'critical' ? { bg: PDF_COLORS.red100, text: PDF_COLORS.red700 } :
-                        condition.class === 'attention' ? { bg: PDF_COLORS.yellow100, text: PDF_COLORS.yellow700 } :
-                        { bg: PDF_COLORS.green100, text: PDF_COLORS.green700 };
-    const badgeWidth = fonts.helveticaBold.widthOfTextAtSize(condition.label, 7) + 10;
-    const badgeX = x + (colWidths[3] - badgeWidth) / 2;
-    ctx.page.drawRectangle({ x: badgeX, y: cellY - 2, width: badgeWidth, height: 12, color: badgeColors.bg });
+    // Condition — dot indicator + text
+    const dotColor = condition.class === 'critical' ? D.colors.statusRed :
+                     condition.class === 'attention' ? D.colors.statusYellow :
+                     D.colors.statusGreen;
+
+    // Dot
+    ctx.page.drawCircle({
+      x: x + 8, y: cellY + 2, size: 3,
+      color: dotColor,
+    });
+
+    // Condition text
     ctx.page.drawText(sanitizeTextForWinAnsi(condition.label), {
-      x: badgeX + 5, y: cellY, font: fonts.helveticaBold, size: 7, color: badgeColors.text,
+      x: x + 14, y: cellY,
+      font: fonts.helveticaBold, size: 7, color: dotColor,
     });
 
     y -= ROW_HEIGHT;
@@ -158,38 +170,39 @@ export function drawMeasurementsPdf(ctx: PdfRenderingContext, y: number): number
   }
 
   const legends = [
-    { label: 'OK', color: PDF_COLORS.green100, textColor: PDF_COLORS.green700, desc: 'Espessura >= 110% do minimo' },
-    { label: 'ATENCAO', color: PDF_COLORS.yellow100, textColor: PDF_COLORS.yellow700, desc: 'Entre 100% e 110%' },
-    { label: 'CRITICO', color: PDF_COLORS.red100, textColor: PDF_COLORS.red700, desc: 'Abaixo do minimo' },
+    { label: 'OK', color: D.colors.statusGreen, desc: 'Espessura >= 110% do minimo' },
+    { label: 'ATENCAO', color: D.colors.statusYellow, desc: 'Entre 100% e 110%' },
+    { label: 'CRITICO', color: D.colors.statusRed, desc: 'Abaixo do minimo' },
   ];
 
   let legendX = margin;
   for (const leg of legends) {
-    const badgeW = fonts.helveticaBold.widthOfTextAtSize(leg.label, 7) + 8;
-    ctx.page.drawRectangle({ x: legendX, y: y - 2, width: badgeW, height: 10, color: leg.color });
+    // Dot + text legend
+    ctx.page.drawCircle({ x: legendX + 4, y: y + 1, size: 3, color: leg.color });
     ctx.page.drawText(sanitizeTextForWinAnsi(leg.label), {
-      x: legendX + 4, y: y, font: fonts.helveticaBold, size: 7, color: leg.textColor,
+      x: legendX + 10, y: y, font: fonts.helveticaBold, size: 7, color: leg.color,
     });
+    const labelWidth = fonts.helveticaBold.widthOfTextAtSize(leg.label, 7);
     ctx.page.drawText(sanitizeTextForWinAnsi(leg.desc), {
-      x: legendX + badgeW + 4, y: y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
+      x: legendX + 10 + labelWidth + 6, y: y, font: fonts.helvetica, size: 7, color: D.colors.gray500,
     });
-    legendX += badgeW + fonts.helvetica.widthOfTextAtSize(leg.desc, 7) + 20;
+    legendX += 10 + labelWidth + 6 + fonts.helvetica.widthOfTextAtSize(leg.desc, 7) + 20;
   }
 
   y -= LEGEND_HEIGHT;
 
   // === REFERENCE LINE ===
   if (minThickness) {
-    ctx.page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 14, color: PDF_COLORS.gray50 });
+    ctx.page.drawRectangle({ x: margin, y: y - 4, width: contentWidth, height: 14, color: D.colors.gray50 });
     const refText = `Espessura minima admissivel: ${minThickness} mm`;
     ctx.page.drawText(sanitizeTextForWinAnsi(refText), {
-      x: margin + 6, y: y, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray600,
+      x: margin + 6, y: y, font: fonts.helveticaBold, size: 8, color: D.colors.gray600,
     });
     if (report.equipment.originalThicknessMm) {
       const origText = ` | Espessura original: ${report.equipment.originalThicknessMm} mm`;
       const refWidth = fonts.helveticaBold.widthOfTextAtSize(refText, 8);
       ctx.page.drawText(sanitizeTextForWinAnsi(origText), {
-        x: margin + 6 + refWidth, y: y, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray500,
+        x: margin + 6 + refWidth, y: y, font: fonts.helvetica, size: 8, color: D.colors.gray500,
       });
     }
     y -= REF_HEIGHT;

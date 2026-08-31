@@ -3,9 +3,10 @@
  *
  * Keep-together block: the entire section title + 3 signature blocks
  * move to a new page if they don't fit. Never split the block.
+ * Redesigned with REPORT_DESIGN for cleaner professional appearance.
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR, LAYOUT, getAvailableHeight, addNewPage, SECTION_TITLE_HEIGHT } from './context';
+import { REPORT_DESIGN, drawSectionTitle, drawRect, drawLine, formatDateBR, LAYOUT, getAvailableHeight, addNewPage, SECTION_TITLE_HEIGHT } from './context';
 import { sanitizeTextForWinAnsi } from './context';
 
 const BLOCK_HEIGHT = 80;
@@ -27,16 +28,17 @@ export function estimateSignaturesHeight(ctx: PdfRenderingContext): number {
 
 export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
   const { margin, contentWidth, fonts, report } = ctx;
+  const D = REPORT_DESIGN;
   const { signatures, identification } = report;
 
   y = drawSectionTitle(ctx, 8, 'RESPONSABILIDADE TECNICA', y);
 
   ctx.page.drawText(sanitizeTextForWinAnsi('O presente laudo tecnico e de responsabilidade dos profissionais abaixo assinados,'), {
-    x: margin, y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
+    x: margin, y, font: fonts.helvetica, size: 7, color: D.colors.gray500,
   });
   y -= 9;
   ctx.page.drawText(sanitizeTextForWinAnsi('conforme legislacao vigente e normas tecnicas aplicaveis.'), {
-    x: margin, y, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
+    x: margin, y, font: fonts.helvetica, size: 7, color: D.colors.gray500,
   });
   y -= 16;
 
@@ -71,56 +73,64 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     const blockX = margin + i * (blockWidth + 10);
     const isSigned = block.signature && block.signature.status === 'APPROVED';
 
+    // Card background
     ctx.page.drawRectangle({
       x: blockX, y: y - BLOCK_HEIGHT, width: blockWidth, height: BLOCK_HEIGHT,
-      borderColor: isSigned ? PDF_COLORS.green100 : PDF_COLORS.gray200,
+      borderColor: isSigned ? D.colors.statusGreenBorder : D.colors.gray200,
       borderWidth: 0.5,
-      color: isSigned ? PDF_COLORS.green50 : PDF_COLORS.white,
+      color: isSigned ? D.colors.statusGreenBg : D.colors.white,
     });
 
+    // Role title
     ctx.page.drawText(sanitizeTextForWinAnsi(block.role), {
-      x: blockX + 4, y: y - 12, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.navy,
+      x: blockX + 4, y: y - 12, font: fonts.helveticaBold, size: 7, color: D.colors.primary,
     });
 
+    // Status badge
     if (isSigned) {
-      ctx.page.drawRectangle({ x: blockX + blockWidth - 50, y: y - 14, width: 46, height: 10, color: PDF_COLORS.green100 });
+      ctx.page.drawRectangle({ x: blockX + blockWidth - 50, y: y - 14, width: 46, height: 10, color: D.colors.statusGreenBg });
       ctx.page.drawText(sanitizeTextForWinAnsi('Assinado'), {
-        x: blockX + blockWidth - 46, y: y - 12, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.green700,
+        x: blockX + blockWidth - 46, y: y - 12, font: fonts.helveticaBold, size: 6, color: D.colors.statusGreen,
       });
     } else {
-      ctx.page.drawRectangle({ x: blockX + blockWidth - 42, y: y - 14, width: 38, height: 10, color: PDF_COLORS.gray100 });
+      ctx.page.drawRectangle({ x: blockX + blockWidth - 42, y: y - 14, width: 38, height: 10, color: D.colors.gray100 });
       ctx.page.drawText(sanitizeTextForWinAnsi('Pendente'), {
-        x: blockX + blockWidth - 38, y: y - 12, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+        x: blockX + blockWidth - 38, y: y - 12, font: fonts.helvetica, size: 6, color: D.colors.gray400,
       });
     }
 
-    drawLine(ctx, blockX + blockWidth * 0.1, y - 40, blockX + blockWidth * 0.9, 0.5, PDF_COLORS.gray300);
+    // Signature line
+    drawLine(ctx, blockX + blockWidth * 0.1, y - 40, blockX + blockWidth * 0.9, 0.5, D.colors.gray300);
 
+    // Name or placeholder
     if (isSigned) {
       ctx.page.drawText(sanitizeTextForWinAnsi(block.name), {
-        x: blockX + 6, y: y - 50, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray800,
+        x: blockX + 6, y: y - 50, font: fonts.helveticaBold, size: 8, color: D.colors.gray800,
       });
     } else {
       ctx.page.drawText(sanitizeTextForWinAnsi('________________________'), {
-        x: blockX + 6, y: y - 50, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
+        x: blockX + 6, y: y - 50, font: fonts.helvetica, size: 7, color: D.colors.gray400,
       });
     }
 
+    // Title
     ctx.page.drawText(sanitizeTextForWinAnsi(block.title), {
-      x: blockX + 6, y: y - 60, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray500,
+      x: blockX + 6, y: y - 60, font: fonts.helvetica, size: 7, color: D.colors.gray500,
     });
 
+    // Registration
     if (block.registration) {
       ctx.page.drawText(sanitizeTextForWinAnsi(block.registration), {
-        x: blockX + 6, y: y - 68, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray600,
+        x: blockX + 6, y: y - 68, font: fonts.helveticaBold, size: 6, color: D.colors.gray600,
       });
     }
 
+    // Date
     const dateText = isSigned && block.signature?.signedAt
       ? `Data: ${formatDateBR(block.signature.signedAt)}`
       : 'Data: ____/____/________';
     ctx.page.drawText(sanitizeTextForWinAnsi(dateText), {
-      x: blockX + 6, y: y - 76, font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+      x: blockX + 6, y: y - 76, font: fonts.helvetica, size: 6, color: D.colors.gray400,
     });
   }
 
@@ -130,10 +140,10 @@ export function drawSignaturesPdf(ctx: PdfRenderingContext, y: number): number {
     const artText = `ART No ${identification.artNumber}`;
     const artWidth = fonts.helveticaBold.widthOfTextAtSize(artText, 7) + 16;
     const artX = (ctx.pageWidth - artWidth) / 2;
-    ctx.page.drawRectangle({ x: artX, y: y - 3, width: artWidth, height: 12, color: PDF_COLORS.gray50 });
+    ctx.page.drawRectangle({ x: artX, y: y - 3, width: artWidth, height: 12, color: D.colors.gray50 });
     const artTextX = (ctx.pageWidth - fonts.helveticaBold.widthOfTextAtSize(artText, 7)) / 2;
     ctx.page.drawText(sanitizeTextForWinAnsi(artText), {
-      x: artTextX, y: y, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray600,
+      x: artTextX, y: y, font: fonts.helveticaBold, size: 7, color: D.colors.gray600,
     });
     y -= 12;
   }

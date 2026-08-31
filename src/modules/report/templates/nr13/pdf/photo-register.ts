@@ -1,18 +1,16 @@
 /**
  * NR-13 PDF Template — Photo Register
  *
- * Space-aware 2-column photo grid.
- * Each photo card: image + number + category + caption + date.
- * Photos are fetched and embedded. Falls back to placeholder.
- *
- * Internal pagination:
- * - Calculates space before each row of 2 photos
- * - If not enough space, creates new page
- * - Continuation label on new pages
+ * Space-aware 2-column photo grid with refined card design:
+ * - Clean card borders
+ * - Refined typography for labels
+ * - Category badge
+ * - Caption and date
+ * - Proper pagination with continuation labels
  */
 import type { PdfRenderingContext } from './context';
 import {
-  PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR,
+  REPORT_DESIGN, PDF_COLORS, drawSectionTitle, drawRect, drawLine, formatDateBR,
   addNewPage, getAvailableHeight, LAYOUT, truncateText, SECTION_TITLE_HEIGHT,
 } from './context';
 import { sanitizeTextForWinAnsi } from './context';
@@ -25,6 +23,7 @@ const MIN_SPACE_FOR_ROW = CARD_HEIGHT + ROW_GAP;
 
 export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number): Promise<number> {
   const { doc, margin, contentWidth, fonts, report } = ctx;
+  const D = REPORT_DESIGN;
   const photos = report.attachments.photos;
 
   // Section title — check space first using local y (ctx.y may be stale)
@@ -37,7 +36,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
   if (!photos || photos.length === 0) {
     ctx.page.drawText(sanitizeTextForWinAnsi('Nenhum registro fotografico disponivel para esta inspecao.'), {
-      x: margin, y, font: fonts.helveticaOblique, size: 9, color: PDF_COLORS.gray400,
+      x: margin, y, font: fonts.helveticaOblique, size: 9, color: D.colors.gray400,
     });
     return y - 20;
   }
@@ -45,7 +44,7 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
   // Intro text
   const introText = `Total de ${photos.length} registro(s) fotografico(s).`;
   ctx.page.drawText(sanitizeTextForWinAnsi(introText), {
-    x: margin, y, font: fonts.helvetica, size: 9, color: PDF_COLORS.gray500,
+    x: margin, y, font: fonts.helvetica, size: 9, color: D.colors.gray500,
   });
   y -= 16;
 
@@ -88,9 +87,9 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
         // Continuation label
         ctx.page.drawText(sanitizeTextForWinAnsi(`Continuacao - Registro Fotografico`), {
-          x: margin, y, font: fonts.helveticaOblique, size: 8, color: PDF_COLORS.gray400,
+          x: margin, y, font: fonts.helveticaOblique, size: 8, color: D.colors.gray400,
         });
-        drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, PDF_COLORS.gray200);
+        drawLine(ctx, margin, y - 4, margin + contentWidth, 0.5, D.colors.gray200);
         y -= 16;
       }
     }
@@ -100,10 +99,10 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
     const cardX = margin + col * (cardWidth + 10);
     const cardCurrentY = y;
 
-    // Card border
+    // Card border — subtle, professional
     ctx.page.drawRectangle({
       x: cardX, y: cardCurrentY - CARD_HEIGHT, width: cardWidth, height: CARD_HEIGHT,
-      borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
+      borderColor: D.colors.photoBorder, borderWidth: 0.5,
     });
 
     // Photo area
@@ -129,40 +128,45 @@ export async function drawPhotoRegisterPdf(ctx: PdfRenderingContext, y: number):
 
       ctx.page.drawImage(embeddedImage, { x: drawX, y: drawY, width: drawW, height: drawH });
     } else {
-      drawRect(ctx, cardX + 2, cardCurrentY - PHOTO_AREA_HEIGHT + 2, cardWidth - 4, PHOTO_AREA_HEIGHT - 4, PDF_COLORS.gray100);
+      // Placeholder with refined styling
+      drawRect(ctx, cardX + 2, cardCurrentY - PHOTO_AREA_HEIGHT + 2, cardWidth - 4, PHOTO_AREA_HEIGHT - 4, D.colors.photoBg);
       ctx.page.drawText(sanitizeTextForWinAnsi('Foto'), {
         x: cardX + cardWidth / 2 - 10, y: cardCurrentY - PHOTO_AREA_HEIGHT / 2,
-        font: fonts.helveticaBold, size: 10, color: PDF_COLORS.gray400,
+        font: fonts.helveticaBold, size: 10, color: D.colors.gray400,
       });
       ctx.page.drawText(sanitizeTextForWinAnsi(`#${photoIdx}`), {
         x: cardX + cardWidth / 2 - 8, y: cardCurrentY - PHOTO_AREA_HEIGHT / 2 - 14,
-        font: fonts.helvetica, size: 9, color: PDF_COLORS.gray400,
+        font: fonts.helvetica, size: 9, color: D.colors.gray400,
       });
     }
 
-    // Photo info
+    // Photo info — refined typography
     const infoY = cardCurrentY - PHOTO_AREA_HEIGHT - 8;
 
+    // Photo number (bold, primary color)
     ctx.page.drawText(sanitizeTextForWinAnsi(`Foto ${photoIdx}`), {
       x: cardX + 6, y: infoY,
-      font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
+      font: fonts.helveticaBold, size: 8, color: D.colors.primary,
     });
 
+    // Category badge
     const catText = formatCategory(photo.category);
     const catWidth = fonts.helveticaBold.widthOfTextAtSize(catText, 6) + 8;
-    ctx.page.drawRectangle({ x: cardX + cardWidth - catWidth - 4, y: infoY - 2, width: catWidth, height: 10, color: PDF_COLORS.gray100 });
+    ctx.page.drawRectangle({ x: cardX + cardWidth - catWidth - 4, y: infoY - 2, width: catWidth, height: 10, color: D.colors.gray100 });
     ctx.page.drawText(sanitizeTextForWinAnsi(catText), {
-      x: cardX + cardWidth - catWidth, y: infoY, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray500,
+      x: cardX + cardWidth - catWidth, y: infoY, font: fonts.helveticaBold, size: 6, color: D.colors.gray500,
     });
 
+    // Caption
     const desc = truncateText(photo.caption || 'Sem descricao', fonts.helvetica, 8, cardWidth - 12);
     ctx.page.drawText(sanitizeTextForWinAnsi(desc), {
-      x: cardX + 6, y: infoY - 14, font: fonts.helvetica, size: 8, color: PDF_COLORS.gray700,
+      x: cardX + 6, y: infoY - 14, font: fonts.helvetica, size: 8, color: D.colors.gray700,
     });
 
+    // Date
     if (photo.takenAt) {
       ctx.page.drawText(sanitizeTextForWinAnsi(`Data: ${formatDateBR(photo.takenAt)}`), {
-        x: cardX + 6, y: infoY - 24, font: fonts.helvetica, size: 7, color: PDF_COLORS.gray400,
+        x: cardX + 6, y: infoY - 24, font: fonts.helvetica, size: 7, color: D.colors.gray400,
       });
     }
 

@@ -3,10 +3,16 @@
  *
  * Layout Architecture:
  * - Content Safe Area: header + footer are reserved zones
- * - addNewPage() reserves compact header space by default (70pt)
+ * - addNewPage() reserves compact header space by default (36pt)
  * - ensureSpace() checks before drawing — creates new page if needed
  * - Footer zone (margin + 20pt) is always preserved
  * - Content never enters header or footer zones
+ *
+ * Design System (REPORT_DESIGN):
+ * - Centralized visual constants for consistent professional appearance
+ * - All colors, typography, spacing defined in one place
+ * - Heights must match what pagination uses — DO NOT change heights here
+ *   without updating estimateHeight functions in each module
  */
 import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, PageSizes, RGB } from 'pdf-lib';
 import type { TechnicalReport } from '../../../types';
@@ -57,40 +63,132 @@ export const LAYOUT = {
 } as const;
 
 // ============================================================
-// PDF-RGB COLORS
+// REPORT DESIGN SYSTEM — Centralized Visual Constants
 // ============================================================
-export const PDF_COLORS = {
-  navy: rgb(0.102, 0.153, 0.267),
-  navyLight: rgb(0.165, 0.247, 0.431),
-  white: rgb(1, 1, 1),
-  gray50: rgb(0.973, 0.984, 0.992),
-  gray100: rgb(0.945, 0.961, 0.976),
-  gray200: rgb(0.886, 0.906, 0.937),
-  gray300: rgb(0.796, 0.835, 0.878),
-  gray400: rgb(0.580, 0.639, 0.722),
-  gray500: rgb(0.392, 0.455, 0.545),
-  gray600: rgb(0.278, 0.337, 0.412),
-  gray700: rgb(0.200, 0.255, 0.333),
-  gray800: rgb(0.118, 0.161, 0.231),
-  green50: rgb(0.941, 0.988, 0.957),
-  green100: rgb(0.859, 0.973, 0.898),
-  green500: rgb(0.133, 0.773, 0.369),
-  green600: rgb(0.086, 0.639, 0.290),
-  green700: rgb(0.082, 0.502, 0.239),
-  yellow50: rgb(0.996, 0.988, 0.910),
-  yellow100: rgb(0.992, 0.976, 0.765),
-  yellow500: rgb(0.918, 0.702, 0.031),
-  yellow600: rgb(0.792, 0.541, 0.016),
-  yellow700: rgb(0.631, 0.384, 0.027),
-  red50: rgb(0.992, 0.949, 0.949),
-  red100: rgb(0.980, 0.890, 0.890),
-  red500: rgb(0.937, 0.267, 0.267),
-  red600: rgb(0.863, 0.149, 0.149),
-  red700: rgb(0.725, 0.106, 0.106),
-  blue50: rgb(0.941, 0.969, 1.0),
-  blue500: rgb(0.231, 0.510, 0.965),
-  blue600: rgb(0.145, 0.388, 0.922),
+export const REPORT_DESIGN = {
+  // === COLOR PALETTE ===
+  // Primary: deep navy for authority and professionalism
+  // Accent: teal-blue for highlights
+  // Neutral: warm grays for text and borders
+  colors: {
+    // Primary brand
+    primary: rgb(0.082, 0.145, 0.294),        // Deep navy #15254B
+    primaryDark: rgb(0.055, 0.102, 0.216),     // Darker navy
+    primaryLight: rgb(0.125, 0.227, 0.447),    // Lighter navy for accents
+    accent: rgb(0.145, 0.400, 0.565),          // Teal accent #256690
+
+    // Status colors — muted, professional
+    statusGreen: rgb(0.133, 0.565, 0.290),     // Professional green
+    statusGreenBg: rgb(0.941, 0.980, 0.949),   // Light green bg
+    statusGreenBorder: rgb(0.780, 0.922, 0.808),
+    statusYellow: rgb(0.761, 0.549, 0.024),    // Professional amber
+    statusYellowBg: rgb(0.996, 0.984, 0.906),
+    statusYellowBorder: rgb(0.957, 0.902, 0.678),
+    statusRed: rgb(0.820, 0.141, 0.118),       // Professional red
+    statusRedBg: rgb(0.992, 0.945, 0.941),
+    statusRedBorder: rgb(0.961, 0.820, 0.812),
+
+    // Priority badges
+    priorityCritical: rgb(0.820, 0.141, 0.118),
+    priorityCriticalBg: rgb(0.820, 0.141, 0.118),
+    priorityHigh: rgb(0.886, 0.345, 0.133),
+    priorityHighBg: rgb(0.992, 0.945, 0.941),
+    priorityMedium: rgb(0.761, 0.549, 0.024),
+    priorityMediumBg: rgb(0.996, 0.984, 0.906),
+    priorityLow: rgb(0.392, 0.455, 0.545),
+    priorityLowBg: rgb(0.945, 0.961, 0.976),
+
+    // Neutral palette — warm grays
+    white: rgb(1, 1, 1),
+    offWhite: rgb(0.992, 0.988, 0.984),
+    gray50: rgb(0.976, 0.973, 0.969),
+    gray100: rgb(0.949, 0.945, 0.941),
+    gray200: rgb(0.894, 0.886, 0.878),
+    gray300: rgb(0.808, 0.800, 0.792),
+    gray400: rgb(0.620, 0.608, 0.596),
+    gray500: rgb(0.455, 0.447, 0.439),
+    gray600: rgb(0.337, 0.333, 0.329),
+    gray700: rgb(0.235, 0.231, 0.227),
+    gray800: rgb(0.145, 0.141, 0.137),
+    gray900: rgb(0.082, 0.078, 0.078),
+
+    // Table colors
+    tableHeader: rgb(0.082, 0.145, 0.294),     // Navy
+    tableHeaderText: rgb(1, 1, 1),
+    tableRowEven: rgb(1, 1, 1),
+    tableRowOdd: rgb(0.976, 0.973, 0.969),     // Off-white
+    tableBorder: rgb(0.894, 0.886, 0.878),
+    tableLabel: rgb(0.565, 0.557, 0.549),       // Muted label
+
+    // Indicator card colors
+    indicatorBg: rgb(0.976, 0.973, 0.969),
+    indicatorBorder: rgb(0.922, 0.914, 0.906),
+    indicatorLabel: rgb(0.565, 0.557, 0.549),
+    indicatorValue: rgb(0.145, 0.141, 0.137),
+
+    // Photo card
+    photoBg: rgb(0.976, 0.973, 0.969),
+    photoBorder: rgb(0.894, 0.886, 0.878),
+
+    // Section accent
+    sectionAccent: rgb(0.082, 0.145, 0.294),    // Left border accent
+    sectionNumber: rgb(1, 1, 1),
+    sectionTitle: rgb(0.082, 0.145, 0.294),
+    sectionSubtitle: rgb(0.455, 0.447, 0.439),
+    sectionLine: rgb(0.894, 0.886, 0.878),
+  },
+
+  // === TYPOGRAPHY SIZES ===
+  // Cover
+  coverTitle: 36,
+  coverSubtitle: 18,
+  coverLabel: 8,
+  coverValue: 12,
+  coverSmall: 7,
+
+  // Section titles
+  sectionNumberSize: 9,
+  sectionTitleSize: 11,
+  sectionTitleItalic: 9,
+  sectionLineWidth: 1,
+
+  // Subsection titles
+  subsectionSize: 9,
+
+  // Body
+  bodySize: 8,
+  bodySmall: 7,
+  bodyTiny: 6,
+  labelSize: 7,
+  valueSize: 8,
+  valueLarge: 10,
+  valueXLarge: 18,
+
+  // Table
+  tableHeaderSize: 7,
+  tableCellSize: 8,
+  tableLabelSize: 6.5,
+
+  // Indicator
+  indicatorLabelSize: 6.5,
+  indicatorValueSize: 10,
+
+  // Footer
+  footerSize: 6,
+  footerLineWeight: 0.5,
+
+  // === SPACING ===
+  sectionGap: 14,
+  subsectionGap: 8,
+  rowGap: 4,
+  cardPadding: 6,
+  innerPadding: 6,
 } as const;
+
+// ============================================================
+// PDF-RGB COLORS (kept for backward compatibility)
+// ============================================================
+export const PDF_COLORS = REPORT_DESIGN.colors;
 
 // ============================================================
 // WINANSI TEXT SANITIZATION
@@ -217,7 +315,7 @@ export function drawText(
 ): number {
   const font = options?.font || ctx.fonts.helvetica;
   const size = options?.size || 10;
-  const color = options?.color || PDF_COLORS.gray800;
+  const color = options?.color || REPORT_DESIGN.colors.gray800;
   const maxWidth = options?.maxWidth;
   const lineHeight = options?.lineHeight || size * 1.35;
 
@@ -272,7 +370,7 @@ export function estimateWrappedTextHeight(
 }
 
 // ============================================================
-// SECTION TITLES
+// SECTION TITLES — Redesigned with left accent bar
 // ============================================================
 
 export const SECTION_TITLE_HEIGHT = 26;
@@ -282,23 +380,47 @@ export function drawSectionTitle(
   ctx: PdfRenderingContext,
   number: number,
   title: string,
-  y: number
+  y: number,
+  subtitle?: string
 ): number {
-  const circleX = ctx.margin;
-  ctx.page.drawCircle({ x: circleX + 10, y: y + 4, size: 10, color: PDF_COLORS.navy });
-  ctx.page.drawText(sanitizeTextForWinAnsi(`${number}`), {
-    x: circleX + 7, y: y + 1,
-    font: ctx.fonts.helveticaBold, size: 9, color: PDF_COLORS.white,
+  const { margin, contentWidth, fonts } = ctx;
+  const D = REPORT_DESIGN;
+
+  // Left accent bar (thin, tall)
+  ctx.page.drawRectangle({
+    x: margin, y: y - 14, width: 3, height: 14,
+    color: D.colors.sectionAccent,
   });
+
+  // Section number — left-aligned, bold
+  const numText = String(number).padStart(2, '0');
+  ctx.page.drawText(sanitizeTextForWinAnsi(numText), {
+    x: margin + 8, y,
+    font: fonts.helveticaBold, size: D.sectionNumberSize, color: D.colors.sectionAccent,
+  });
+
+  // Section title
+  const numWidth = fonts.helveticaBold.widthOfTextAtSize(numText, D.sectionNumberSize);
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
-    x: circleX + 25, y,
-    font: ctx.fonts.helveticaBold, size: 11, color: PDF_COLORS.navy,
+    x: margin + 8 + numWidth + 6, y,
+    font: fonts.helveticaBold, size: D.sectionTitleSize, color: D.colors.sectionTitle,
   });
+
+  // Optional subtitle (e.g., "CONTINUACAO")
+  if (subtitle) {
+    const titleWidth = fonts.helveticaBold.widthOfTextAtSize(title, D.sectionTitleSize);
+    ctx.page.drawText(sanitizeTextForWinAnsi(` - ${subtitle}`), {
+      x: margin + 8 + numWidth + 6 + titleWidth + 4, y,
+      font: fonts.helveticaOblique, size: D.sectionTitleItalic, color: D.colors.sectionSubtitle,
+    });
+  }
+
+  // Subtle bottom line
   y -= 6;
   ctx.page.drawLine({
-    start: { x: ctx.margin, y },
-    end: { x: ctx.margin + ctx.contentWidth, y },
-    thickness: 1.5, color: PDF_COLORS.navy,
+    start: { x: margin, y },
+    end: { x: margin + contentWidth, y },
+    thickness: D.sectionLineWidth, color: D.colors.sectionLine,
   });
   y -= 10;
   return y;
@@ -309,10 +431,11 @@ export function drawSubsectionTitle(
   title: string,
   y: number
 ): number {
-  ctx.page.drawRectangle({ x: ctx.margin, y: y - 1, width: 3, height: 14, color: PDF_COLORS.navy });
+  const D = REPORT_DESIGN;
+  ctx.page.drawRectangle({ x: ctx.margin, y: y - 1, width: 3, height: 12, color: D.colors.sectionAccent });
   ctx.page.drawText(sanitizeTextForWinAnsi(title), {
     x: ctx.margin + 8, y,
-    font: ctx.fonts.helveticaBold, size: 9, color: PDF_COLORS.gray600,
+    font: ctx.fonts.helveticaBold, size: D.subsectionSize, color: D.colors.gray600,
   });
   return y - 18;
 }
@@ -325,7 +448,7 @@ export function drawRect(ctx: PdfRenderingContext, x: number, y: number, width: 
   ctx.page.drawRectangle({ x, y, width, height, color });
 }
 
-export function drawLine(ctx: PdfRenderingContext, x1: number, y: number, x2: number, thickness: number = 1, color: RGB = PDF_COLORS.gray200): void {
+export function drawLine(ctx: PdfRenderingContext, x1: number, y: number, x2: number, thickness: number = 1, color: RGB = REPORT_DESIGN.colors.tableBorder): void {
   ctx.page.drawLine({ start: { x: x1, y }, end: { x: x2, y }, thickness, color });
 }
 
@@ -358,21 +481,23 @@ export function getStatusDisplay(status: string): { label: string; color: 'green
 }
 
 export function getStatusColors(colorKey: 'green' | 'yellow' | 'red' | 'gray') {
+  const D = REPORT_DESIGN;
   switch (colorKey) {
-    case 'green': return { bg: PDF_COLORS.green50, text: PDF_COLORS.green700, border: PDF_COLORS.green100, badgeBg: PDF_COLORS.green100, badgeText: PDF_COLORS.green700 };
-    case 'yellow': return { bg: PDF_COLORS.yellow50, text: PDF_COLORS.yellow700, border: PDF_COLORS.yellow100, badgeBg: PDF_COLORS.yellow100, badgeText: PDF_COLORS.yellow700 };
-    case 'red': return { bg: PDF_COLORS.red50, text: PDF_COLORS.red700, border: PDF_COLORS.red100, badgeBg: PDF_COLORS.red100, badgeText: PDF_COLORS.red700 };
-    default: return { bg: PDF_COLORS.gray50, text: PDF_COLORS.gray600, border: PDF_COLORS.gray200, badgeBg: PDF_COLORS.gray100, badgeText: PDF_COLORS.gray600 };
+    case 'green': return { bg: D.colors.statusGreenBg, text: D.colors.statusGreen, border: D.colors.statusGreenBorder, badgeBg: D.colors.statusGreenBg, badgeText: D.colors.statusGreen };
+    case 'yellow': return { bg: D.colors.statusYellowBg, text: D.colors.statusYellow, border: D.colors.statusYellowBorder, badgeBg: D.colors.statusYellowBg, badgeText: D.colors.statusYellow };
+    case 'red': return { bg: D.colors.statusRedBg, text: D.colors.statusRed, border: D.colors.statusRedBorder, badgeBg: D.colors.statusRedBg, badgeText: D.colors.statusRed };
+    default: return { bg: D.colors.gray50, text: D.colors.gray500, border: D.colors.gray200, badgeBg: D.colors.gray100, badgeText: D.colors.gray500 };
   }
 }
 
 export function getCriticalityColors(level: string): { bg: RGB; text: RGB } {
+  const D = REPORT_DESIGN;
   switch (level) {
-    case 'LOW': return { bg: PDF_COLORS.green100, text: PDF_COLORS.green700 };
-    case 'MEDIUM': return { bg: PDF_COLORS.yellow100, text: PDF_COLORS.yellow700 };
-    case 'HIGH': return { bg: PDF_COLORS.red100, text: PDF_COLORS.red700 };
-    case 'CRITICAL': return { bg: PDF_COLORS.red700, text: PDF_COLORS.white };
-    default: return { bg: PDF_COLORS.gray100, text: PDF_COLORS.gray600 };
+    case 'LOW': return { bg: D.colors.statusGreenBg, text: D.colors.statusGreen };
+    case 'MEDIUM': return { bg: D.colors.statusYellowBg, text: D.colors.statusYellow };
+    case 'HIGH': return { bg: D.colors.statusRedBg, text: D.colors.statusRed };
+    case 'CRITICAL': return { bg: D.colors.statusRed, text: D.colors.white };
+    default: return { bg: D.colors.gray100, text: D.colors.gray500 };
   }
 }
 

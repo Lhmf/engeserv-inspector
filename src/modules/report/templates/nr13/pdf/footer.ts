@@ -1,11 +1,14 @@
 /**
- * NR-13 PDF Template — Footer (Compact Standardized Footer)
+ * NR-13 PDF Template — Footer (Institutional Standardized Footer)
  *
- * Minimal footer: company | report number | page X de Y
+ * Clean institutional footer:
+ * - Thin separator line
+ * - Company name | Report number
+ * - Page X de Y
  * Height: 20pt max, positioned at margin bottom
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawLine, LAYOUT } from './context';
+import { REPORT_DESIGN, drawLine, LAYOUT } from './context';
 import { sanitizeTextForWinAnsi } from './context';
 
 /**
@@ -16,31 +19,33 @@ export function stampAllFooters(
   totalPages: number
 ): void {
   const pages = ctx.doc.getPages();
+  const D = REPORT_DESIGN;
+
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const footerY = ctx.margin - 8;
 
-    // Separator line
+    // Thin separator line
     page.drawLine({
       start: { x: ctx.margin, y: footerY + 10 },
       end: { x: ctx.pageWidth - ctx.margin, y: footerY + 10 },
-      thickness: 0.5,
-      color: PDF_COLORS.gray200,
+      thickness: D.footerLineWeight,
+      color: D.colors.gray200,
     });
 
-    // Left: company name + report number
+    // Left: company name | report number
     const leftText = `${ctx.company.name} | ${ctx.report.identification.reportNumber}`;
     page.drawText(sanitizeTextForWinAnsi(leftText), {
       x: ctx.margin, y: footerY,
-      font: ctx.fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+      font: ctx.fonts.helvetica, size: D.footerSize, color: D.colors.gray400,
     });
 
     // Right: page number
     const rightText = `Pagina ${i + 1} de ${totalPages}`;
-    const rightWidth = ctx.fonts.helvetica.widthOfTextAtSize(rightText, 6);
+    const rightWidth = ctx.fonts.helvetica.widthOfTextAtSize(rightText, D.footerSize);
     page.drawText(sanitizeTextForWinAnsi(rightText), {
       x: ctx.pageWidth - ctx.margin - rightWidth, y: footerY,
-      font: ctx.fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+      font: ctx.fonts.helvetica, size: D.footerSize, color: D.colors.gray400,
     });
   }
 }

@@ -8,12 +8,13 @@
  * The reserved zone height is defined in LAYOUT constants.
  */
 import type { PdfRenderingContext } from './context';
-import { PDF_COLORS, drawRect, drawLine, LAYOUT } from './context';
+import { REPORT_DESIGN, drawRect, drawLine, LAYOUT } from './context';
 import { sanitizeTextForWinAnsi, formatDateBR } from './context';
 
 /**
  * Compact header for pages 3+.
  * Height: 36pt (logo + report info + separator).
+ * Redesigned: thinner accent line, cleaner typography.
  */
 export function drawCompactHeaderPdf(
   ctx: PdfRenderingContext,
@@ -23,18 +24,19 @@ export function drawCompactHeaderPdf(
 ): number {
   const { page, margin, contentWidth, fonts, report, company } = ctx;
   const { identification } = report;
+  const D = REPORT_DESIGN;
 
   // Logo (16x16)
-  page.drawRectangle({ x: margin, y: y - 16, width: 16, height: 16, color: PDF_COLORS.navy });
+  page.drawRectangle({ x: margin, y: y - 16, width: 16, height: 16, color: D.colors.primary });
   page.drawText(sanitizeTextForWinAnsi('ES'), {
     x: margin + 3, y: y - 12,
-    font: fonts.helveticaBold, size: 6, color: PDF_COLORS.white,
+    font: fonts.helveticaBold, size: 6, color: D.colors.white,
   });
 
   // Company name
   page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin + 20, y: y - 10,
-    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
+    font: fonts.helveticaBold, size: 8, color: D.colors.primary,
   });
 
   // Report number — centered
@@ -42,17 +44,17 @@ export function drawCompactHeaderPdf(
   const centerWidth = fonts.helvetica.widthOfTextAtSize(centerText, 7);
   page.drawText(sanitizeTextForWinAnsi(centerText), {
     x: margin + (contentWidth - centerWidth) / 2, y: y - 10,
-    font: fonts.helvetica, size: 7, color: PDF_COLORS.gray600,
+    font: fonts.helvetica, size: 7, color: D.colors.gray500,
   });
 
   // NR-13 badge
   const nr13Text = 'NR-13';
   const nr13Width = fonts.helveticaBold.widthOfTextAtSize(nr13Text, 6) + 6;
   const nr13X = margin + (contentWidth - nr13Width) / 2;
-  page.drawRectangle({ x: nr13X, y: y - 22, width: nr13Width, height: 9, color: PDF_COLORS.navy });
+  page.drawRectangle({ x: nr13X, y: y - 22, width: nr13Width, height: 9, color: D.colors.primary });
   page.drawText(sanitizeTextForWinAnsi(nr13Text), {
     x: nr13X + 3, y: y - 20,
-    font: fonts.helveticaBold, size: 6, color: PDF_COLORS.white,
+    font: fonts.helveticaBold, size: 6, color: D.colors.white,
   });
 
   // Page number — right
@@ -60,13 +62,13 @@ export function drawCompactHeaderPdf(
   const pageTextWidth = fonts.helvetica.widthOfTextAtSize(pageText, 8);
   page.drawText(sanitizeTextForWinAnsi(pageText), {
     x: margin + contentWidth - pageTextWidth, y: y - 10,
-    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.navy,
+    font: fonts.helveticaBold, size: 8, color: D.colors.primary,
   });
 
   y -= 24;
 
-  // Separator
-  drawLine(ctx, margin, y, margin + contentWidth, 0.5, PDF_COLORS.gray200);
+  // Accent line
+  drawLine(ctx, margin, y, margin + contentWidth, 0.5, D.colors.gray200);
   y -= 8;
 
   return y;
@@ -75,6 +77,7 @@ export function drawCompactHeaderPdf(
 /**
  * Full header for page 2.
  * Height: 80pt (logo + title + control data + faixa tecnica).
+ * Redesigned: cleaner control data, refined faixa.
  */
 export function drawFullHeaderPdf(
   ctx: PdfRenderingContext,
@@ -84,26 +87,27 @@ export function drawFullHeaderPdf(
 ): number {
   const { page, margin, contentWidth, fonts, report, company } = ctx;
   const { identification, equipment, client } = report;
+  const D = REPORT_DESIGN;
 
   // Logo (20x20)
-  page.drawRectangle({ x: margin, y: y - 20, width: 20, height: 20, color: PDF_COLORS.navy });
+  page.drawRectangle({ x: margin, y: y - 20, width: 20, height: 20, color: D.colors.primary });
   page.drawText(sanitizeTextForWinAnsi('ES'), {
     x: margin + 4, y: y - 14,
-    font: fonts.helveticaBold, size: 8, color: PDF_COLORS.white,
+    font: fonts.helveticaBold, size: 8, color: D.colors.white,
   });
 
   // Company name
   page.drawText(sanitizeTextForWinAnsi(company.name), {
     x: margin + 26, y: y - 10,
-    font: fonts.helveticaBold, size: 10, color: PDF_COLORS.navy,
+    font: fonts.helveticaBold, size: 10, color: D.colors.primary,
   });
   page.drawText(sanitizeTextForWinAnsi(company.tagline), {
     x: margin + 26, y: y - 19,
-    font: fonts.helvetica, size: 6, color: PDF_COLORS.gray400,
+    font: fonts.helvetica, size: 6, color: D.colors.gray400,
   });
 
   y -= 24;
-  drawLine(ctx, margin, y, margin + contentWidth, 0.5, PDF_COLORS.gray200);
+  drawLine(ctx, margin, y, margin + contentWidth, 0.5, D.colors.gray200);
   y -= 4;
 
   // Title
@@ -111,10 +115,10 @@ export function drawFullHeaderPdf(
   const titleWidth = fonts.helveticaBold.widthOfTextAtSize(titleText, 11);
   page.drawText(sanitizeTextForWinAnsi(titleText), {
     x: margin + (contentWidth - titleWidth) / 2, y,
-    font: fonts.helveticaBold, size: 11, color: PDF_COLORS.navy,
+    font: fonts.helveticaBold, size: 11, color: D.colors.primary,
   });
   y -= 12;
-  drawLine(ctx, margin, y, margin + contentWidth, 1.5, PDF_COLORS.navy);
+  drawLine(ctx, margin, y, margin + contentWidth, 1.5, D.colors.primary);
   y -= 4;
 
   // Control data (4 columns)
@@ -129,10 +133,10 @@ export function drawFullHeaderPdf(
   for (let i = 0; i < controlItems.length; i++) {
     const colX = margin + i * colWidth;
     page.drawText(sanitizeTextForWinAnsi(controlItems[i].label), {
-      x: colX, y, font: fonts.helveticaBold, size: 6, color: PDF_COLORS.gray400,
+      x: colX, y, font: fonts.helveticaBold, size: 6, color: D.colors.gray400,
     });
     page.drawText(sanitizeTextForWinAnsi(controlItems[i].value), {
-      x: colX, y: y - 9, font: fonts.helveticaBold, size: 8, color: PDF_COLORS.gray800,
+      x: colX, y: y - 9, font: fonts.helveticaBold, size: 8, color: D.colors.gray800,
     });
   }
   y -= 16;
@@ -141,7 +145,7 @@ export function drawFullHeaderPdf(
   const bandHeight = 16;
   ctx.page.drawRectangle({
     x: margin, y: y - bandHeight, width: contentWidth, height: bandHeight,
-    color: PDF_COLORS.gray100, borderColor: PDF_COLORS.gray200, borderWidth: 0.5,
+    color: D.colors.gray50, borderColor: D.colors.gray200, borderWidth: 0.5,
   });
 
   const bandItems = [
@@ -156,7 +160,7 @@ export function drawFullHeaderPdf(
     const item = bandItems[i];
     const colX = margin + i * bandColWidth + 6;
     page.drawText(sanitizeTextForWinAnsi(item.label), {
-      x: colX, y: y - 6, font: fonts.helveticaBold, size: 5, color: PDF_COLORS.gray400,
+      x: colX, y: y - 6, font: fonts.helveticaBold, size: 5, color: D.colors.gray400,
     });
     let displayValue = item.value;
     while (fonts.helvetica.widthOfTextAtSize(displayValue, 7) > bandColWidth - 16 && displayValue.length > 3) {
@@ -164,13 +168,13 @@ export function drawFullHeaderPdf(
     }
     if (displayValue !== item.value) displayValue += '...';
     page.drawText(sanitizeTextForWinAnsi(displayValue), {
-      x: colX, y: y - 14, font: fonts.helveticaBold, size: 7, color: PDF_COLORS.gray800,
+      x: colX, y: y - 14, font: fonts.helveticaBold, size: 7, color: D.colors.gray800,
     });
     if (i < 3) {
       ctx.page.drawLine({
         start: { x: margin + (i + 1) * bandColWidth, y: y - 14 },
         end: { x: margin + (i + 1) * bandColWidth, y: y - 2 },
-        thickness: 0.5, color: PDF_COLORS.gray300,
+        thickness: 0.5, color: D.colors.gray300,
       });
     }
   }
