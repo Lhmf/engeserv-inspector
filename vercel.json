@@ -2,9 +2,7 @@
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "functions": {
-    "src/app/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
+  "regions": ["gru1"]
 }
