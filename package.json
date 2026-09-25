@@ -4,13 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "PRISMA_DATABASE_URL=$lhmf_POSTGRES_PRISMA_URL prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "generate-icons": "node scripts/generate-icons.mjs",
-    "postinstall": ""
+    "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
