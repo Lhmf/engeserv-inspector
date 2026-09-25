@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function NewClientForm() {
+export default function NewClientForm({ embedded = false, onCancel }: { embedded?: boolean; onCancel?: () => void }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -100,7 +100,7 @@ export default function NewClientForm() {
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
+      {!embedded && <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-navy">Clientes</h1>
           <p className="text-sm text-slate-500">Cadastro e gestão de clientes</p>
@@ -111,7 +111,7 @@ export default function NewClientForm() {
         >
           Voltar à listagem
         </Link>
-      </div>
+      </div>}
 
       <form onSubmit={handleSubmit} className="space-y-6 lg:grid lg:grid-cols-4 lg:gap-6">
         <div className="lg:col-span-2">
@@ -223,12 +223,13 @@ export default function NewClientForm() {
         )}
 
         <div className="mt-6 flex items-center justify-end gap-3">
-          <Link
-            href="/clientes"
+          <button
+            type="button"
+            onClick={() => onCancel ? onCancel() : router.push("/clientes")}
             className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
           >
             Cancelar
-          </Link>
+          </button>
           <button
             type="submit"
             disabled={loading}

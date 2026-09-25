@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 interface StatCardProps {
   title: string;
@@ -19,6 +20,7 @@ interface StatCardProps {
     label: string;
   };
   className?: string;
+  href?: string;
 }
 
 export function StatCard({
@@ -31,9 +33,10 @@ export function StatCard({
   trend,
   progress,
   className,
+  href,
 }: StatCardProps) {
-  return (
-    <div className={cn("rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-slate-800 dark:bg-[#141e34] dark:hover:shadow-slate-900/40", className)}>
+  const content = (
+    <div className={cn("rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:border-slate-800 dark:bg-[#141e34] dark:hover:shadow-slate-900/40", href && "cursor-pointer hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand", className)}>
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1 dark:text-slate-400">{title}</p>
@@ -72,4 +75,5 @@ export function StatCard({
       </div>
     </div>
   );
+  return href ? <Link href={href} aria-label={`Abrir ${title}`}>{content}</Link> : content;
 }

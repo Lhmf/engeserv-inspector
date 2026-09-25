@@ -158,6 +158,7 @@ export const DashboardClient = memo(function DashboardClient({
           iconBg="bg-blue-50"
           iconColor="text-blue-600"
           trend={{ value: 12, label: "novos clientes", positive: true }}
+          href="/clientes"
         />
         <StatCard
           title="Equipamentos Cadastrados"
@@ -167,6 +168,7 @@ export const DashboardClient = memo(function DashboardClient({
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
           trend={{ value: 3, label: "novos este mês", positive: true }}
+          href="/equipamentos"
         />
         <StatCard
           title="Inspeções no Período"
@@ -176,14 +178,16 @@ export const DashboardClient = memo(function DashboardClient({
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
           trend={{ value: totalInspections - 5, label: "vs mês anterior", positive: totalInspections > 5 }}
+          href="/inspecoes"
         />
         <StatCard
-          title="Usuários do Sistema"
-          value={userCount}
-          subtitle="4 inspetores, 1 gestor, 1 admin"
-          icon={Users}
+          title="Laudos"
+          value={approvedInspections}
+          subtitle="inspeções aprovadas"
+          icon={FileText}
           iconBg="bg-amber-50"
           iconColor="text-amber-600"
+          href="/laudos"
         />
       </div>
 

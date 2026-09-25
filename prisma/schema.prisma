@@ -50,6 +50,13 @@ enum EquipmentType {
   OUTRO
 }
 
+enum ClientDocumentType {
+  LAUDO
+  ART
+  INSPECAO
+  OUTRO
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -70,6 +77,7 @@ model User {
   inspectionsInspected  Inspection[] @relation("InspectionInspector")
   inspectionsApproved   Inspection[] @relation("InspectionApprover")
   inspectionPhotos      InspectionPhoto[] @relation("InspectionPhotoUploader")
+  uploadedClientDocuments ClientDocument[] @relation("ClientDocumentUploader")
 
   @@map("users")
 }
@@ -92,6 +100,8 @@ model Client {
   responsible   User?   @relation("ClientResponsible", fields: [responsibleId], references: [id])
 
   equipments Equipment[]
+  sites      ClientSite[]
+  documents  ClientDocument[]
 
   @@map("clients")
 }
@@ -135,10 +145,55 @@ model Equipment {
   clientId String
   client   Client @relation(fields: [clientId], references: [id])
 
+  // Optional so existing equipment remains valid until a front/site is assigned.
+  siteId String?
+  site   ClientSite? @relation(fields: [siteId], references: [id], onDelete: SetNull)
+
   inspections Inspection[]
 
   @@unique([clientId, tag])
   @@map("equipments")
+}
+
+// A front/site is a client location where equipment, inspections and
+// documentation are organized. It is optional for backwards compatibility.
+model ClientSite {
+  id        String   @id @default(cuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name      String
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  equipments Equipment[]
+  documents  ClientDocument[]
+
+  @@unique([clientId, name])
+  @@map("client_sites")
+}
+
+// Files uploaded for a client must outlive a particular equipment or inspection.
+model ClientDocument {
+  id           String             @id @default(cuid())
+  clientId     String
+  client       Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  siteId       String?
+  site         ClientSite?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  type         ClientDocumentType
+  originalName String
+  storedName   String
+  url          String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  uploadedBy   User               @relation("ClientDocumentUploader", fields: [uploadedById], references: [id])
+  createdAt    DateTime           @default(now())
+
+  @@index([clientId, createdAt])
+  @@index([siteId])
+  @@map("client_documents")
 }
 
 model TextTemplate {

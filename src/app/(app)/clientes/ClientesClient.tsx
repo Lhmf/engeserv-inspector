@@ -1,0 +1,14 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
+import NewClientForm from "./NewClientForm";
+
+type Client = { id: string; companyName: string; cnpj: string | null; address: string | null; active: boolean; createdAt: string; responsible: { name: string } | null; _count: { equipments: number } };
+
+export function ClientesClient({ clients }: { clients: Client[] }) {
+  const [adding, setAdding] = useState(false); const [searching, setSearching] = useState(false); const [query, setQuery] = useState("");
+  const filtered = useMemo(() => { const term = query.trim().toLowerCase(); return term ? clients.filter((client) => [client.companyName, client.cnpj, client.address].filter(Boolean).some((value) => value!.toLowerCase().includes(term))) : clients; }, [clients, query]);
+  return <div className="space-y-5"><div><h1 className="text-xl font-bold text-slate-800">Clientes</h1><p className="text-sm text-slate-500">Central de histórico e documentação dos clientes</p></div><div className="grid gap-3 sm:grid-cols-2"><button onClick={() => { setAdding(!adding); setSearching(false); }} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left font-semibold text-slate-800 shadow-sm hover:border-brand hover:bg-slate-50"><Plus className="h-5 w-5 text-navy" />Adicionar cliente</button><button onClick={() => { setSearching(!searching); setAdding(false); }} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-left font-semibold text-slate-800 shadow-sm hover:border-brand hover:bg-slate-50"><Search className="h-5 w-5 text-navy" />Procurar clientes</button></div>{adding && <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 text-lg font-semibold text-slate-800">Novo cliente</h2><NewClientForm embedded onCancel={() => setAdding(false)} /></div>}{searching && <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><label className="relative block"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Procurar por nome, razão social, endereço ou CNPJ/CPF..." className="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm" /></label><div className="mt-3 divide-y divide-slate-100">{filtered.map((client) => <Link key={client.id} href={`/clientes/${client.id}`} className="block py-3 hover:bg-slate-50"><p className="font-medium text-slate-800">{client.companyName}</p><p className="text-sm text-slate-500">CNPJ/CPF: {client.cnpj || "—"} · {client._count.equipments} equipamento(s)</p></Link>)}{!filtered.length && <p className="py-4 text-sm text-slate-500">Nenhum cliente encontrado.</p>}</div></div>}</div>;
+}
