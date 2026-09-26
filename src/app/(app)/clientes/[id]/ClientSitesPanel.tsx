@@ -26,8 +26,8 @@ export function ClientSitesPanel({
     setSaving(true);
 
     const url = editingId 
-      ? `/api/clientes//sites/`
-      : `/api/clientes//sites`;
+      ? `/api/clientes/${clientId}/sites/${editingId}`
+      : `/api/clientes/${clientId}/sites`;
     const method = editingId ? "PATCH" : "POST";
 
     const res = await fetch(url, {
@@ -59,7 +59,7 @@ export function ClientSitesPanel({
   async function handleDelete(siteId: string) {
     if (!confirm("Tem certeza que deseja excluir esta frente? Equipamentos vinculados ficarao sem frente definida.")) return;
 
-    const res = await fetch(`/api/clientes//sites/`, { method: "DELETE" });
+    const res = await fetch(`/api/clientes/${clientId}/sites/${siteId}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json();
       alert(data.error || "Nao foi possivel excluir a frente.");
