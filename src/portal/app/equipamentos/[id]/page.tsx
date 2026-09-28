@@ -328,8 +328,8 @@ export default function EquipamentoFichaTecnica() {
                   </div>
                 );
               })
-          </div>
-        ) : (
+            </div>
+          ) : (
           <p className="text-sm text-slate-500">Nenhum laudo registrado.</p>
         )}
       </div>
