@@ -21,49 +21,16 @@ export default function DashboardPage() {
       }
 
       try {
-        // Buscar validades (vencimentos) - usa endpoint existente com filtro clientId
-        const validadesResp = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/validades?clientId=${session.clientId}`,
+        // Fetch consolidated KPI data from portal dashboard API
+        const dashboardResp = await fetch(
+          "/portal/dashboard",
           {
             credentials: "include",
           }
         );
-        const validadesData = await validadesResp.json();
-        
-        // Buscar equipamentos do cliente
-        const equipamentosResp = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/equipamentos?clientId=${session.clientId}`,
-          {
-            credentials: "include",
-          }
-        );
-        const equipamentosData = await equipamentosResp.json();
-
-        // Buscar reports/list e filtrar pelo clientId
-        const reportsResp = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/reports/list?clientId=${session.clientId}`,
-          {
-            credentials: "include",
-          }
-        );
-        const reportsData = await reportsResp.json();
-        
-        // Filtrar reports pelo clientId
-        const clientReports = reportsData.reports?.filter((r: any) => 
-          r.inspection?.equipment?.client?.id === session.clientId
-        ) || [];
-
-        setKpis({
-          validades: validadesData.validades || [],
-          equipamentos: equipamentosData.equipamentos || [],
-          reports: clientReports,
-          stats: {
-            totalEquipamentos: equipamentosData.equipamentos?.length || 0,
-            totalLaudos: clientReports.length,
-            proximoVencimento: validadesData.stats?.proximo || 0,
-            vencido: validadesData.stats?.vencido || 0,
-          }
-        });
+        const dashboardData = await dashboardResp.json();
+        // Expect dashboardData to contain the same shape as previously setKpis
+        setKpis(dashboardData);
       } catch (err) {
         console.error("Erro ao carregar dados do dashboard", err);
       }

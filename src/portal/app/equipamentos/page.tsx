@@ -4,8 +4,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPortalSession } from "@/portal/lib/portal-auth";
 
+interface EquipamentoPortal {
+  id: string;
+  tag: string;
+  type: string;
+  description: string | null;
+  manufacturer: string | null;
+  manufactureYear: number | null;
+  site: string | null;
+  siteId: string | null;
+  status: string;
+  diasRestantes: number | null;
+  venceEm: string | null;
+  lastInspectionAt: string | null;
+}
+
+interface PortalSession {
+  clientId: string;
+  name: string;
+  role: "CLIENTE";
+}
+
 export default function EquipamentosPage() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<PortalSession | null>(null);
+  const [equipamentos, setEquipamentos] = useState<EquipamentoPortal[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -20,14 +42,13 @@ export default function EquipamentosPage() {
       }
 
       try {
-        const resp = await fetch(
-          `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/equipamentos?clientId=${session.clientId}`,
-          {
-            credentials: "include",
-          }
-        );
+        const resp = await fetch("/portal/equipamentos", {
+          credentials: "include",
+        });
         const data = await resp.json();
-        setLoading(false);
+        if (data.equipamentos) {
+          setEquipamentos(data.equipamentos);
+        }
       } catch (err) {
         console.error("Erro ao carregar equipamentos", err);
       }
@@ -37,6 +58,32 @@ export default function EquipamentosPage() {
 
     init();
   }, [router]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "OK":
+        return "bg-emerald-50 text-emerald-700";
+      case "PROXIMO":
+        return "bg-amber-50 text-amber-700";
+      case "VENCIDO":
+        return "bg-rose-50 text-rose-700";
+      default:
+        return "bg-slate-50 text-slate-600";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "OK":
+        return "Em dia";
+      case "PROXIMO":
+        return "Próximo do vencimento";
+      case "VENCIDO":
+        return "Vencido";
+      default:
+        return "Sem data";
+    }
+  };
 
   if (loading) {
     return (
@@ -52,32 +99,68 @@ export default function EquipamentosPage() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">Meus Equipamentos</h1>
-      <p className="text-sm text-slate-500 mb-4">
-        Olá, {session.name}
-      </p>
-      <p className="text-sm text-slate-500">
-        Seus equipamentos cadastrados
-      </p>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Placeholder cards */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-gray-800 min-h-[200px]">
-          <h3 className="font-medium text-slate-600">Equipamento</h3>
-          <p className="text-slate-500 text-sm">TAG: —</p>
-          <p className="text-slate-500 text-sm">Tipo: —</p>
+    <div className="bg-white dark:bg-gray-800 min-h-screen">
+      <header className="border-b border-slate-200 bg-white/80 px-4 py-3 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Meus Equipamentos</h1>
+            <p className="text-sm text-slate-500">Olá, {session.name}</p>
+          </div>
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-gray-800 min-h-[200px]">
-          <h3 className="font-medium text-slate-600">Equipamento</h3>
-          <p className="text-slate-500 text-sm">TAG: —</p>
-          <p className="text-slate-500 text-sm">Tipo: —</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-gray-800 min-h-[200px]">
-          <h3 className="font-medium text-slate-600">Equipamento</h3>
-          <p className="text-slate-500 text-sm">TAG: —</p>
-          <p className="text-slate-500 text-sm">Tipo: —</p>
-        </div>
-      </div>
+      </header>
+
+      <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        {equipamentos.length === 0 ? (
+          <div className="text-center py-16">
+            <svg
+              className="w-16 h-16 mx-auto text-slate-300 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            <h2 className="text-lg font-medium text-slate-900 mb-1">Nenhum equipamento cadastrado</h2>
+            <p className="text-slate-500">Entre em contato com a EngeServ para cadastrar seus equipamentos.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {equipamentos.map((eq) => (
+              <a
+                key={eq.id}
+                href={`/portal/equipamentos/${eq.id}`}
+                className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-navy/30 transition-all dark:border-slate-800 dark:bg-gray-800"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-sm font-mono font-semibold text-navy">{eq.tag}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(eq.status)}`}>
+                    {getStatusLabel(eq.status)}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600 mb-2">{eq.type || "—"}</p>
+                {eq.description && <p className="text-xs text-slate-500 mb-3 line-clamp-2">{eq.description}</p>}
+                <div className="space-y-1 text-xs text-slate-500">
+                  {eq.manufacturer && <p>Fabricante: {eq.manufacturer}</p>}
+                  {eq.site && <p>Frente: {eq.site}</p>}
+                  {eq.venceEm && (
+                    <p className={`font-medium ${eq.status === "VENCIDO" ? "text-rose-600" : eq.status === "PROXIMO" ? "text-amber-600" : "text-emerald-600"}`}>
+                      Vence em: {eq.venceEm} {eq.diasRestantes !== null ? `(${eq.diasRestantes > 0 ? eq.diasRestantes : Math.abs(eq.diasRestantes)} ${eq.diasRestantes > 0 ? "dias" : "dias atraso"})` : ""}
+                    </p>
+                  )}
+                  {eq.lastInspectionAt && !eq.venceEm && (
+                    <p>Última inspeção: {eq.lastInspectionAt}</p>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
