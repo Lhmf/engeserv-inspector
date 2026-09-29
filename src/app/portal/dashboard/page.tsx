@@ -25,7 +25,7 @@ export default function PortalDashboardPage() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch("/portal/dashboard", { credentials: "include" });
+        const res = await fetch("/api/portal/dashboard", { credentials: "include" });
         if (!res.ok) {
           if (res.status === 401) {
             router.replace("/portal/login");
