@@ -1,14 +1,61 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { getPortalSession } from "@/portal/lib/portal-auth";
 
+interface EquipamentoData {
+  id: string;
+  tag: string;
+  type: string;
+  description: string | null;
+  manufacturer: string | null;
+  manufactureYear: string | null;
+  designPressureBar: number | null;
+  mawpBar: number | null;
+  volumeLiters: number | null;
+  designCode: string | null;
+  operatingPressureBar: number | null;
+  operatingTempC: number | null;
+  fluidType: string | null;
+  fluidClass: string | null;
+  originalThicknessMm: number | null;
+  minThicknessMm: number | null;
+  headType: string | null;
+  headMaterial: string | null;
+  headNominalThicknessMm: number | null;
+  jointEfficiency: number | null;
+  corrosionAllowanceMm: number | null;
+  site: string | null;
+  siteAddress: string | null;
+  totalInspecoes: number;
+  ultimasInspecoes: Array<{
+    id: string;
+    tipo: string | null;
+    status: string | null;
+    dataInicial: string | null;
+    dataConclusao: string | null;
+    observacoes: string | null;
+    recomendacoes: string | null;
+    laudo: {
+      numero: string;
+      versao: string;
+      status: string;
+    } | null;
+  }>;
+}
+
+interface PortalSession {
+  clientId: string;
+  [key: string]: unknown;
+}
+
 export default function EquipamentoFichaTecnica() {
-  const [session, setSession] = useState(null);
-  const [equipamento, setEquipamento] = useState(null);
+  const [session, setSession] = useState<PortalSession | null>(null);
+  const [equipamento, setEquipamento] = useState<EquipamentoData | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const params = useParams();
 
   useEffect(() => {
     async function init() {
@@ -21,8 +68,7 @@ export default function EquipamentoFichaTecnica() {
       }
 
       try {
-        const pathSegments = router.pathname.split("/");
-        const equipId = pathSegments[pathSegments.length - 1];
+        const equipId = params?.id as string;
 
         const resp = await fetch(
           `${process.env.NEXT_PUBLIC_BASE_URL || ""}/portal/equipamentos/${equipId}`,
@@ -40,7 +86,7 @@ export default function EquipamentoFichaTecnica() {
     }
 
     init();
-  }, [router]);
+  }, [router, params]);
 
   if (loading) {
     return (
@@ -77,9 +123,9 @@ export default function EquipamentoFichaTecnica() {
   const e = equipamento;
 
   // Helper para formatacao condicional
-  const fmt = (v) => (v !== undefined && v !== null ? String(v) : "Nao informado");
-  const fmtFloat = (v) =>
-    v !== undefined && v !== null ? String(v.toFixed(2)) : "Nao informado";
+  const fmt = (v: unknown) => (v !== undefined && v !== null ? String(v) : "Nao informado");
+  const fmtFloat = (v: unknown) =>
+    v !== undefined && v !== null && typeof v === "number" ? String(v.toFixed(2)) : "Nao informado";
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6">
@@ -314,10 +360,10 @@ export default function EquipamentoFichaTecnica() {
         {e.totalInspecoes > 0 && e.ultimasInspecoes?.length > 0 ? (
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {e.ultimasInspecoes
-              .filter((i) => i.laudo)
+              .filter((i): i is typeof i & { laudo: NonNullable<typeof i.laudo> } => !!i.laudo)
               .slice(0, 5)
               .map((i) => {
-                const l = i.laudo;
+                const l = i.laudo!;
                 return (
                   <div
                     key={l.numero}
@@ -328,7 +374,8 @@ export default function EquipamentoFichaTecnica() {
                   </div>
                 );
               })
-            </div>
+            }
+          </div>
           ) : (
           <p className="text-sm text-slate-500">Nenhum laudo registrado.</p>
         )}
