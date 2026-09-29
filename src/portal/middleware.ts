@@ -3,7 +3,7 @@ import { verifyPortalSession } from "@/portal/lib/portal-auth";
 
 // Rotas públicas do portal (não exigem autenticação)
 // Estas rotas podem ser acessadas sem login (ex: página de login itself)
-const PORTAL_PUBLIC_PATHS = ["/portal/login"];
+const PORTAL_PUBLIC_PATHS = ["/portal/login", "/api/portal/login"];
 
 // Rotas e arquivos estáticos que não exigem autenticação do portal
 const PORTAL_PUBLIC_ASSETS = [
