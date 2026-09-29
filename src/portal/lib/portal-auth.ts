@@ -156,7 +156,7 @@ export async function portalLogin(
     const cnpjLimpoDoBanco = (c.cnpj || "").replace(/\D/g, "");
     // Verificar se o CNPJ do banco termina com o prefixo informado
     // (pois os 6 primeiros dígitos do CNPJ identificam a empresa)
-    return cnpjLimpoDoBanco.endsWith(cnpjPrefixo);
+    return cnpjLimpoDoBanco.startsWith(cnpjPrefixo);
   });
 
   if (!clienteEncontrado) {
