@@ -1,0 +1,24 @@
+Failed to compile.
+
+./src/app/portal/layout.tsx
+Error: 
+  [31mx[0m You are attempting to export "metadata" from a component marked with "use client", which is disallowed. Either remove the export, or the "use client" directive. Read more: https://nextjs.org/
+  [31m|[0m docs/getting-started/react-essentials#the-use-client-directive
+  [31m|[0m 
+  [31m|[0m 
+    ,-[[36;1;4mC:\Users\luizh\Documents\Codex\2026-07-19\new-chat\engeserv-inspector\src\app\portal\layout.tsx[0m:4:1]
+ [2m 4[0m | import { PortalNavigation } from "@/components/portal/PortalNavigation";
+ [2m 5[0m | import { ReactNode, useState } from "react";
+ [2m 6[0m | 
+ [2m 7[0m | export const metadata = {
+    : [31;1m             ^^^^^^^^[0m
+ [2m 8[0m |   title: "EngeServ — Portal do Cliente",
+ [2m 9[0m |   description: "Portal do Cliente EngeServ — Gestão de inspeções NR-13 e laudos técnicos",
+ [2m10[0m | };
+    `----
+
+Import trace for requested module:
+./src/app/portal/layout.tsx
+
+
+> Build failed because of webpack errors
