@@ -25,11 +25,13 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Calcular validades
+    // Calcular validades - 4 estados explícitos
     const periodicityMonths = 12;
     let totalEquipamentos = equipamentos.length;
+    let regulares = 0;
     let proximoVencimento = 0;
     let vencido = 0;
+    let semData = 0;
 
     for (const eq of equipamentos) {
       const lastInspection = eq.inspections[0];
@@ -44,7 +46,11 @@ export async function GET(req: NextRequest) {
           vencido++;
         } else if (diasRestantes <= 30) {
           proximoVencimento++;
+        } else {
+          regulares++;
         }
+      } else {
+        semData++;
       }
     }
 
@@ -75,16 +81,21 @@ export async function GET(req: NextRequest) {
     if (proximoVencimento > 0) {
       alertas.push(`${proximoVencimento} equipamento(s) com laudo próximo do vencimento`);
     }
-    if (totalEquipamentos > 0 && vencido === 0 && proximoVencimento === 0) {
+    if (semData > 0) {
+      alertas.push(`${semData} equipamento(s) sem data de validade definida`);
+    }
+    if (totalEquipamentos > 0 && vencido === 0 && proximoVencimento === 0 && semData === 0) {
       alertas.push("Todos os equipamentos estão em dia com as inspeções.");
     }
 
     return NextResponse.json({
       stats: {
         totalEquipamentos,
-        totalLaudos: laudosVigentes,
+        regulares,
         proximoVencimento,
         vencido,
+        semData,
+        totalLaudos: laudosVigentes,
         totalDocumentos: documentosCount,
       },
       alertas,
