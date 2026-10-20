@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/portal/ui/Button";
+import { Input } from "@/components/portal/ui/Input";
 
 export default function PortalLoginPage() {
   const [primeiroNome, setPrimeiroNome] = useState("");
@@ -36,43 +39,71 @@ export default function PortalLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-navy/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Portal EngeServ</h1>
-          <p className="text-sm text-slate-500 mt-1">Portal do Cliente</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo header */}
+        <div className="text-center mb-10">
+          <Link href="/portal" className="inline-flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-navy/10 flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+          </Link>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Portal EngeServ</h1>
+          <p className="text-base text-slate-500 dark:text-slate-400 mt-2">Portal do Cliente — Gestão NR-13</p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm text-center" role="alert">
-            {error}
-          </div>
-        )}
+        {/* Login Card */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300" role="alert">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
+              </div>
+            </div>
+          )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label htmlFor="primeiroNome" className="block text-sm font-medium text-slate-700 mb-1.5">Usuário</label>
-            <input id="primeiroNome" value={primeiroNome} onChange={e => setPrimeiroNome(e.target.value)} type="text" placeholder="Primeiro nome da empresa" className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 outline-none transition-all" required />
-          </div>
-          <div>
-            <label htmlFor="cnpj" className="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
-            <input id="cnpj" value={cnpj} onChange={e => setCnpj(e.target.value)} type="text" placeholder="CNPJ (ou 6 dígitos)" className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm focus:border-navy focus:ring-2 focus:ring-navy/20 outline-none transition-all" required />
-          </div>
-          <button type="submit" disabled={loading} className="w-full rounded-lg bg-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-navy/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                Entrando...
-              </span>
-            ) : "Entrar"}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-xs text-slate-400">Credenciais iniciais: primeiro nome da empresa + 6 primeiros dígitos do CNPJ</p>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <Input
+              id="primeiroNome"
+              label="Usuário"
+              type="text"
+              placeholder="Primeiro nome da empresa"
+              value={primeiroNome}
+              onChange={(e) => setPrimeiroNome(e.target.value)}
+              required
+              autoComplete="username"
+              autoFocus
+            />
+
+            <Input
+              id="cnpj"
+              label="Senha"
+              type="password"
+              placeholder="CNPJ (ou 6 dígitos)"
+              value={cnpj}
+              onChange={(e) => setCnpj(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+
+            <Button type="submit" fullWidth loading={loading} size="lg" className="mt-2">
+              Entrar
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
+            Credenciais iniciais: primeiro nome da empresa + 6 primeiros dígitos do CNPJ
+          </p>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
+          EngeServ Inspector — Engenharia + Confiabilidade + Tecnologia
+        </p>
       </div>
     </div>
   );

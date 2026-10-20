@@ -3,6 +3,10 @@ import { getPortalSession } from "@/portal/lib/portal-auth";
 import { prisma } from "@/lib/prisma";
 import { buildValidadeInfo, ordenarPorVencimento } from "@/lib/validades";
 
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getPortalSession();
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error("[PORTAL_CALENDARIO_ERROR]", error?.message ?? error);
     return NextResponse.json(
-      { error: "Erro interno: " + (error?.message ?? "desconhecido") },
+      { error: "Erro interno." },
       { status: 500 }
     );
   }

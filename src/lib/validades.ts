@@ -36,9 +36,9 @@ export function calcularProximaData(
 }
 
 /**
- * Define a janela de "próximo vencimento" em dias (default 60).
+ * Define a janela de "próximo vencimento" em dias (default 30).
  */
-const DEFAULT_PROXIMO_WINDOW_DAYS = 60;
+const DEFAULT_PROXIMO_WINDOW_DAYS = 30;
 
 /**
  * Retorna o status de validade com base na data de vencimento.
@@ -93,3 +93,14 @@ export function ordenarPorVencimento(validades: ValidadeInfo[]): ValidadeInfo[] 
     return a.nextDueDate.getTime() - b.nextDueDate.getTime();
   });
 }
+
+/**
+ * Dias restantes até o vencimento (arredondamento para cima, alinhado com
+ * getValidadeStatus). Fonte única para /api/portal/equipamentos e
+ * /api/portal/frentes/[id] — evita drift de arredondamento entre rotas.
+ */
+export function diasRestantesAte(nextDueDate: Date | null): number | null {
+  if (!nextDueDate) return null;
+  return Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+}
+

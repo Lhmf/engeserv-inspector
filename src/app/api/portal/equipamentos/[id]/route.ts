@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
+import {
+  PORTAL_VISIBLE_INSPECTION_STATUSES,
+  PORTAL_VISIBLE_REPORT_STATUSES,
+} from "@/portal/lib/portal-visible-states";
+import { formatarRecomendacoes } from "@/portal/lib/portal-recommendations";
 import { prisma } from "@/lib/prisma";
+
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: NextRequest,
@@ -23,8 +32,14 @@ export async function GET(
         client: { select: { id: true, companyName: true } },
         site: { select: { id: true, name: true, address: true } },
         inspections: {
+          // Visibilidade: apenas inspeções APROVADAS (estados internos
+          // EM_ANDAMENTO/AGUARDANDO_APROVACAO/REJEITADA ficam ocultos).
+          where: { status: { in: PORTAL_VISIBLE_INSPECTION_STATUSES } },
           include: {
-            technicalReport: true,
+            technicalReport: {
+              // O laudo anexado só é exposto em estados visíveis.
+              where: { status: { in: PORTAL_VISIBLE_REPORT_STATUSES } },
+            },
           },
           orderBy: { startedAt: "desc" },
         },
@@ -83,9 +98,13 @@ export async function GET(
           dataInicial: insp.startedAt?.toISOString?.()?.split("T")[0],
           dataConclusao: insp.completedAt?.toISOString?.()?.split("T")[0],
           observacoes: insp.notes,
-          recomendacoes: insp.recommendations,
+          // Formatação server-side (texto plano) do JSON cru de
+          // Inspection.recommendations. Idempotente: a página aplica o seu
+          // formatador local por cima e mantém a mesma resposta funcional.
+          recomendacoes: formatarRecomendacoes(insp.recommendations),
           laudo: insp.technicalReport
             ? {
+                id: insp.technicalReport.id,
                 numero: insp.technicalReport.reportNumber,
                 versao: insp.technicalReport.version,
                 status: insp.technicalReport.status,
@@ -101,9 +120,6 @@ export async function GET(
     return NextResponse.json({ equipamento: formatted });
   } catch (err: any) {
     console.error("[PORTAL_EQUIPAMENTO_ID_ERROR]", err?.message ?? err);
-    return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
   }
 }

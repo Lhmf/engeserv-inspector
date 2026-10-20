@@ -107,6 +107,12 @@ interface DashboardClientProps {
   statusData: Array<{ name: string; value: number; color: string }>;
   monthlyData: Array<{ name: string; inspections: number }>;
   equipmentTypeData: Array<{ name: string; value: number }>;
+  equipmentOkCount: number;
+  equipmentProximoCount: number;
+  equipmentVencidoCount: number;
+  equipmentSemDataCount: number;
+  pendingActionsCount: number;
+  upcomingActivitiesCount: number;
 }
 
 export const DashboardClient = memo(function DashboardClient({
@@ -125,6 +131,12 @@ export const DashboardClient = memo(function DashboardClient({
   statusData,
   monthlyData,
   equipmentTypeData,
+  equipmentOkCount,
+  equipmentProximoCount,
+  equipmentVencidoCount,
+  equipmentSemDataCount,
+  pendingActionsCount,
+  upcomingActivitiesCount,
 }: DashboardClientProps) {
   return (
     <div className="space-y-6">
@@ -149,7 +161,7 @@ export const DashboardClient = memo(function DashboardClient({
       </div>
 
       {/* KPIs Principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
         <StatCard
           title="Clientes Ativos"
           value={clientCount}
@@ -161,13 +173,40 @@ export const DashboardClient = memo(function DashboardClient({
           href="/clientes"
         />
         <StatCard
-          title="Equipamentos Cadastrados"
+          title="Equipamentos Total"
           value={equipmentCount}
-          subtitle={`${criticalEquipments.length} críticos, ${criticalEquipments.filter(e => e.status === "ATENCAO").length} atenção`}
+          subtitle="Total de equipamentos cadastrados"
           icon={Box}
           iconBg="bg-emerald-50"
           iconColor="text-emerald-600"
           trend={{ value: 3, label: "novos este mês", positive: true }}
+          href="/equipamentos"
+        />
+        <StatCard
+          title="Equipamentos Regulares"
+          value={equipmentOkCount}
+          subtitle="Equipamentos em dia"
+          icon={CheckCircle}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+          href="/equipamentos"
+        />
+        <StatCard
+          title="Equipamentos Atenção"
+          value={equipmentProximoCount}
+          subtitle="Próximos do vencimento"
+          icon={AlertTriangle}
+          iconBg="bg-amber-50"
+          iconColor="text-amber-600"
+          href="/equipamentos"
+        />
+        <StatCard
+          title="Equipamentos Vencidos"
+          value={equipmentVencidoCount}
+          subtitle="Equipamentos vencidos"
+          icon={XCircle}
+          iconBg="bg-rose-50"
+          iconColor="text-rose-600"
           href="/equipamentos"
         />
         <StatCard

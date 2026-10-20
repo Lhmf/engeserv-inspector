@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
 import { prisma } from "@/lib/prisma";
+import { buildValidadeInfo, diasRestantesAte } from "@/lib/validades";
+
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,31 +32,17 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Calcular validades para cada equipamento
+    // Calcular validades usando a lib unificada
     const equipamentosComValidade = equipamentos.map((eq) => {
-      const lastInspection = eq.inspections[0];
-      const periodicityMonths = 12;
-      let status = "SEM_DATA";
-      let diasRestantes = null;
-      let venceEm = null;
-
-      if (lastInspection?.approvedAt) {
-        const vence = new Date(lastInspection.approvedAt);
-        vence.setMonth(vence.getMonth() + periodicityMonths);
-        venceEm = vence.toISOString().split("T")[0];
-
-        const hoje = new Date();
-        const diffMs = vence.getTime() - hoje.getTime();
-        diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diasRestantes < 0) {
-          status = "VENCIDO";
-        } else if (diasRestantes <= 30) {
-          status = "PROXIMO";
-        } else {
-          status = "OK";
-        }
-      }
+      const info = buildValidadeInfo({
+        equipmentId: eq.id,
+        equipmentTag: eq.tag,
+        equipmentType: eq.type,
+        clientName: session.name || "",
+        clientId: session.clientId,
+        lastApprovedAt: eq.inspections[0]?.approvedAt || null,
+        periodicityMonths: 12,
+      });
 
       return {
         id: eq.id,
@@ -62,10 +53,10 @@ export async function GET(req: NextRequest) {
         manufactureYear: eq.manufactureYear,
         site: eq.site?.name,
         siteId: eq.site?.id,
-        status,
-        diasRestantes,
-        venceEm,
-        lastInspectionAt: lastInspection?.approvedAt?.toISOString().split("T")[0] || null,
+        status: info.status,
+        diasRestantes: diasRestantesAte(info.nextDueDate),
+        venceEm: info.nextDueDate?.toISOString().split("T")[0] || null,
+        lastInspectionAt: eq.inspections[0]?.approvedAt?.toISOString().split("T")[0] || null,
       };
     });
 
@@ -73,7 +64,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_EQUIPAMENTOS_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
+      { error: "Erro interno." },
       { status: 500 }
     );
   }

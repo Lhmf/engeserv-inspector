@@ -188,7 +188,30 @@ Todas as funcionalidades do MVP estão implementadas e validadas.
 - [ ] Definir política de rotação do `AUTH_SECRET` em produção
 - [ ] Avaliar rate limiting no endpoint de login
 
+## Portal do Cliente — pendências pós Lotes 1-3 (auditoria 19/07/2026)
+
+- [x] **Lote 10: Melhorias no portal do cliente** — Adicionado filtragem e busca nas páginas de equipamentos, laudos, documentos, frentes e recomendações. Atualização de terminologia no dashboard. Preservação de funcionalidade e identidade visual.
+- [x] ~~**DECISÃO: proteção server-side do portal**~~ — IMPLEMENTADO no Lote 4A (opção a): `src/middleware.ts` valida `portal_session` server-side para `/portal/**`; `/api/portal/**` continua com 401 JSON. `/portal/login` pública. Testes de redirect sem/forjado/expirado passaram.
+- [ ] **DECISÃO: remoção do código duplicado** `src/portal/app/**` e `src/portal/api/**` (árvore zombie, não roteável pelo App Router — sugere-se backup antes da remoção)
+- [ ] Limpar `src/portal/middleware.ts` (agora obsoleto após o Lote 4A) e a árvore `src/portal/app|api` — registrar remoção num commit separado, conforme decisão acima
+- [ ] Teste de isolamento entre dois clientes reais (requer PostgreSQL válido + 2 sessões; hoje o ambiente local tem POSTGRES_URL dummy)
+- [ ] `src/portal/middleware.ts` não é carregado pelo Next.js e tem matcher inválido (observado no Lote 3) — mesmo destino da decisão acima
+- [ ] `/api/portal/frentes/[id]`: periodicidade fixa em 12 meses; **validação técnica da periodicidade NR-13 por categoria ainda pendente** (regra de negócio — não alterar sem aprovação)
+- [ ] Auditoria visual manual do Portal Premium no navegador (navegação, responsividade, dark mode) — estrutura do código OK; teste manual pendente
+- [ ] Funções mortas `getInspectionStatusLabel/getInspectionStatusColor` na página `portal/equipamentos/[id]` (referenciam status inexistentes `AGENDADA/CONCLUIDA/REPROVADA/CANCELADA`) — podem ser removidas numa limpeza posterior; `StatusBadge` agora mapeia os status reais
+
 ## Concluído na Sessão 29-30/07/2026 — MVP Final
+
+## Concluído na Sessão 19/07/2026 — Lote 5C: Validação pós-correção e estados de erro
+- [x] **Proteção server-side do portal** — middleware valida `portal_session` para `/portal/**` (exceto `/portal/login`); `/api/portal/**` retorna 401 JSON. (Lote 4A)
+- [x] **Navegação removida da tela de login** — `PortalNavigationClient` condicionalmente não renderiza em `/portal/login` via `usePathname`.
+- [x] **Erro de hidratação corrigido** — `src/app/portal/layout.tsx` não duplica `<html>`/`<body>`.
+- [x] **Estados de erro nas listagens** — equipamentos, laudos, documentos, frentes e recomendações agora exibem mensagem amigável e botão "Tentar novamente" quando a API falha.
+- [x] **Estados de erro no calendário** — implementado com tratamento de erro de rede e HTTP, loading, vazio e retry (Lote 6B).
+- [x] **Testes** — `npx tsc --noEmit` passa, `npm run build` sucesso, redirecionamentos e APIs funcionam.
+- [x] **Tratamento de erro em p�ginas de detalhe** � equipamentos, laudos e frentes detalhe agora limpam erro ao iniciar nova tentativa e exibem mensagem amig�vel.
+- [ ] **Teste de isolamento entre clientes** — pendente (banco dummy offline).
+- [ ] **Auditoria visual completa** — pendente (próximo lote).
 
 - [x] Schema: adicionar type, notes, recommendations, city, state, corrosionAllowanceMm
 - [x] Wizard: corrigir carregamento, navegação entre passos, save measurements batch
@@ -204,3 +227,16 @@ Todas as funcionalidades do MVP estão implementadas e validadas.
 - [x] Manifest PWA: instalação como aplicativo
 - [x] Offline Sync: IndexedDB, fila, retry automático
 - [x] BUILD PASS: 0 erros TypeScript, 35+ rotas
+
+## Conclu�do na Sess�o 26/09/2026 � Lote 8: Robustez do banco de dados e integridade do Portal do Cliente
+
+- [x] **�ndices de desempenho** � adicionado �ndice [clientId, active] aos modelos Equipment e ClientSite para melhorar o desempenho das consultas que filtram por cliente e status ativo.
+
+
+
+## Concluído na Sessão 26/09/2026 — Lote 9: Evolução do Portal do Cliente para um produto B2B premium
+
+- [x] **Dashboard reformulado** — adicionado indicadores reais baseados nos dados do cliente autenticado: total de equipamentos, equipamentos regulares (espessura OK), equipamentos que exigem atenção (espessura em atenção), equipamentos vencidos (espessura crítica), laudos disponíveis, inspeções no período, ações pendentes e atividades futuras.
+- [x] **DashboardClient atualizado** — redesenhado a grade de KPIs principal para exibir sete cards: Clientes Ativos, Equipamentos Total, Equipamentos Regulares, Equipamentos Atenção, Equipamentos Vencidos, Inspeções no Período, Laudos.
+- [x] **Mantidos existentes** — gráficos de inspeções por status, dados mensais, tipos de equipamentos e textos/legendas atualizados.
+

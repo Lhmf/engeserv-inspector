@@ -1,5 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import {
+  INTERNAL_SESSION_AUDIENCE,
+  INTERNAL_SESSION_ISSUER,
+} from "@/portal/lib/portal-session-claims";
 
 // ================================================================
 // Camada de autenticacao (isolada da interface, conforme
@@ -33,6 +37,8 @@ function getSecretKey() {
 export async function createSession(payload: SessionPayload) {
   const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuer(INTERNAL_SESSION_ISSUER)
+    .setAudience(INTERNAL_SESSION_AUDIENCE)
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
     .sign(getSecretKey());
@@ -52,8 +58,27 @@ export function destroySession() {
 
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getSecretKey());
-    return payload as unknown as SessionPayload;
+    // Issuer/audience exclusivos do sistema interno: rejeita tokens do
+    // Portal (engeserv-portal) e vice-versa (separação de sessões).
+    const { payload } = await jwtVerify(token, getSecretKey(), {
+      issuer: INTERNAL_SESSION_ISSUER,
+      audience: INTERNAL_SESSION_AUDIENCE,
+    });
+
+    // Validação estrutural do payload antes de confiar nele.
+    const raw = payload as Record<string, unknown>;
+    if (typeof raw.userId !== "string" || raw.userId.length === 0) return null;
+    if (typeof raw.email !== "string") return null;
+    if (typeof raw.role !== "string") return null;
+    const role = raw.role as Role;
+    if (!(["ADMIN_MASTER", "GESTOR", "FUNCIONARIO"] as Role[]).includes(role)) return null;
+
+    return {
+      userId: raw.userId,
+      name: typeof raw.name === "string" ? raw.name : "",
+      email: raw.email,
+      role,
+    };
   } catch {
     return null;
   }

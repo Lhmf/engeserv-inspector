@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
 import { prisma } from "@/lib/prisma";
 
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getPortalSession();
@@ -33,7 +37,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_FRENTES_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
+      { error: "Erro interno." },
       { status: 500 }
     );
   }

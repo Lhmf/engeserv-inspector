@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/portal/dashboard", icon: HomeIcon },
@@ -70,9 +71,56 @@ function RecommendationIcon({ className }: { className?: string }) {
   );
 }
 
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function LogoutIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
 export function PortalNavigation() {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [clientName, setClientName] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    // Exibe o nome real do cliente logado no rodapé da navegação.
+    // Sem sessão (ex.: login), mantém o rótulo genérico.
+    fetch("/api/portal/session", { credentials: "include" })
+      .then((resp) => (resp.ok ? resp.json() : null))
+      .then((data) => {
+        if (data?.session?.name) setClientName(data.session.name as string);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     await fetch("/api/portal/logout", { method: "POST", credentials: "include" });
@@ -80,66 +128,127 @@ export function PortalNavigation() {
     router.refresh();
   }
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-slate-200 dark:border-gray-700 transform transition-transform duration-200 lg:translate-x-0">
-      <div className="flex flex-col h-full">
-        {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-gray-700">
-          <Link href="/portal/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <span className="font-bold text-slate-900 dark:text-white text-lg">EngeServ</span>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-navy/10 text-navy dark:bg-navy/20 dark:text-navy-300"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-gray-800"
-                }`}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                {item.name}
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-navy" aria-hidden="true" />}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer - User info */}
-        <div className="p-4 border-t border-slate-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  if (!mounted) {
+    return (
+      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 transform transition-transform duration-200 lg:translate-x-0">
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-slate-700">
+            <Link href="/portal/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">Cliente EngeServ</p>
-                <p className="text-xs text-slate-500 truncate">Portal do Cliente</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            >
-              Sair
-            </button>
+              <span className="font-bold text-slate-900 dark:text-white text-lg">EngeServ</span>
+            </Link>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    );
+  }
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700
+          transform transition-transform duration-300 ease-in-out
+          lg:translate-x-0
+          ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+        aria-label="Navegação principal"
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 dark:border-slate-700">
+            <Link href="/portal/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <span className="font-bold text-slate-900 dark:text-white text-lg">EngeServ</span>
+            </Link>
+            <button
+              className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Fechar menu"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto" aria-label="Menu principal">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                    ${isActive
+                      ? "bg-navy/10 text-navy dark:bg-navy/20 dark:text-navy-300"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    }
+                  `}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                  {item.name}
+                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-navy" aria-hidden="true" />}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Footer - User info */}
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{clientName || "Portal do Cliente"}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Portal EngeServ</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors dark:text-slate-400 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
+              >
+                <LogoutIcon className="w-4 h-4" />
+                <span>Sair</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile menu button */}
+      <button
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg"
+        onClick={() => setMobileMenuOpen(true)}
+        aria-label="Abrir menu"
+        aria-expanded={mobileMenuOpen}
+      >
+        <MenuIcon className="w-6 h-6 text-slate-700 dark:text-slate-300" />
+      </button>
+    </>
   );
 }

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
+import { PORTAL_VISIBLE_REPORT_STATUSES } from "@/portal/lib/portal-visible-states";
 import { prisma } from "@/lib/prisma";
+import { buildValidadeInfo } from "@/lib/validades";
+
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,8 +31,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Calcular validades - 4 estados explícitos
-    const periodicityMonths = 12;
+    // Calcular validades usando a lib unificada
     let totalEquipamentos = equipamentos.length;
     let regulares = 0;
     let proximoVencimento = 0;
@@ -34,29 +39,26 @@ export async function GET(req: NextRequest) {
     let semData = 0;
 
     for (const eq of equipamentos) {
-      const lastInspection = eq.inspections[0];
-      if (lastInspection?.approvedAt) {
-        const vence = new Date(lastInspection.approvedAt);
-        vence.setMonth(vence.getMonth() + periodicityMonths);
-        const hoje = new Date();
-        const diffMs = vence.getTime() - hoje.getTime();
-        const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      const info = buildValidadeInfo({
+        equipmentId: eq.id,
+        equipmentTag: eq.tag,
+        equipmentType: eq.type,
+        clientName: session.name || "",
+        clientId: clientId,
+        lastApprovedAt: eq.inspections[0]?.approvedAt || null,
+        periodicityMonths: 12,
+      });
 
-        if (diasRestantes < 0) {
-          vencido++;
-        } else if (diasRestantes <= 30) {
-          proximoVencimento++;
-        } else {
-          regulares++;
-        }
-      } else {
-        semData++;
-      }
+      if (info.status === "VENCIDO") vencido++;
+      else if (info.status === "PROXIMO") proximoVencimento++;
+      else if (info.status === "OK") regulares++;
+      else semData++;
     }
 
-    // Buscar laudos do cliente
+    // Buscar laudos do cliente (apenas estados visíveis ao portal)
     const laudos = await prisma.technicalReport.findMany({
       where: {
+        status: { in: PORTAL_VISIBLE_REPORT_STATUSES },
         inspection: {
           equipment: {
             clientId,
@@ -103,7 +105,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_DASHBOARD_API_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
+      { error: "Erro interno." },
       { status: 500 }
     );
   }

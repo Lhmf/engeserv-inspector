@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
 
+// Rota protegida por cookie de sessão: nunca prerender durante o build.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getPortalSession();
   if (!session) {

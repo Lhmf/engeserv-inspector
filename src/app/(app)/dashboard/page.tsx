@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./DashboardClient";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -9,9 +10,9 @@ export default async function DashboardPage() {
     equipmentCount,
     userCount,
     inspections,
-    criticalEquipmentsRaw,
     upcomingInspections,
     recentActivitiesRaw,
+    allEquipments,
   ] = await Promise.all([
     prisma.client.count({ where: { active: true } }),
     prisma.equipment.count({ where: { active: true } }),
@@ -24,23 +25,6 @@ export default async function DashboardPage() {
       },
       orderBy: { startedAt: "desc" },
       take: 10,
-    }),
-    prisma.equipment.findMany({
-      where: {
-        active: true,
-        minThicknessMm: { not: null },
-        originalThicknessMm: { not: null },
-      },
-      include: {
-        client: { select: { companyName: true, id: true } },
-        inspections: {
-          where: { status: { in: ["APROVADA", "EM_ANDAMENTO", "AGUARDANDO_APROVACAO"] } },
-          orderBy: { startedAt: "desc" },
-          take: 1,
-          include: { measurements: { orderBy: { createdAt: "desc" }, take: 1 } },
-        },
-      },
-      take: 20,
     }),
     prisma.inspection.findMany({
       where: {
@@ -89,7 +73,47 @@ export default async function DashboardPage() {
       ORDER BY "createdAt" DESC
       LIMIT 10
     `,
+    prisma.equipment.findMany({
+      where: { active: true },
+      include: {
+        client: { select: { companyName: true, id: true } },
+        inspections: {
+          where: { status: { in: ["APROVADA", "EM_ANDAMENTO", "AGUARDANDO_APROVACAO"] } },
+          orderBy: { startedAt: "desc" },
+          take: 1,
+          include: { measurements: { orderBy: { createdAt: "desc" }, take: 1 } },
+        },
+      },
+    }),
   ]);
+
+  // Process all equipment to compute thickness status and counts
+  const allEquipmentsWithStatus = allEquipments.map((eq) => {
+    const latestInspection = eq.inspections[0];
+    const lastMeasurement = latestInspection?.measurements[0];
+    const currentThickness = lastMeasurement?.thicknessMm ?? eq.originalThicknessMm ?? 0;
+    const minThickness = eq.minThicknessMm ?? 0;
+    const originalThickness = eq.originalThicknessMm ?? 0;
+    const wearPercent = originalThickness > 0 ? ((originalThickness - currentThickness) / originalThickness) * 100 : 0;
+    const marginPercent = minThickness > 0 ? ((currentThickness - minThickness) / minThickness) * 100 : 100;
+    let status: "CRITICO" | "ATENCAO" | "OK" = "OK";
+    if (currentThickness <= minThickness) status = "CRITICO";
+    else if (marginPercent < 20) status = "ATENCAO";
+    return { ...eq, currentThickness, wearPercent, marginPercent, status };
+  });
+
+  const equipmentOkCount = allEquipmentsWithStatus.filter((eq) => eq.status === "OK").length;
+  const equipmentProximoCount = allEquipmentsWithStatus.filter((eq) => eq.status === "ATENCAO").length;
+  const equipmentVencidoCount = allEquipmentsWithStatus.filter((eq) => eq.status === "CRITICO").length;
+
+  // Critical equipment list (for the StatCard subtitle and/or list)
+  const criticalEquipments = allEquipmentsWithStatus
+    .filter((eq) => eq.status !== "OK")
+    .sort((a, b) => {
+      const order = { CRITICO: 0, ATENCAO: 1, OK: 2 };
+      return order[a.status] - order[b.status];
+    })
+    .slice(0, 5);
 
   // Calculate inspection stats
   const totalInspections = inspections.length;
@@ -97,30 +121,6 @@ export default async function DashboardPage() {
   const pendingInspections = inspections.filter((i) => i.status === "AGUARDANDO_APROVACAO").length;
   const inProgressInspections = inspections.filter((i) => i.status === "EM_ANDAMENTO").length;
   const rejectedInspections = inspections.filter((i) => i.status === "REJEITADA").length;
-
-  // Calculate critical equipment
-  const criticalEquipments = criticalEquipmentsRaw
-    .map((eq) => {
-      const latestInspection = eq.inspections[0];
-      const lastMeasurement = latestInspection?.measurements[0];
-      const currentThickness = lastMeasurement?.thicknessMm ?? eq.originalThicknessMm ?? 0;
-      const minThickness = eq.minThicknessMm ?? 0;
-      const originalThickness = eq.originalThicknessMm ?? 0;
-      const wearPercent = originalThickness > 0 ? ((originalThickness - currentThickness) / originalThickness) * 100 : 0;
-      const marginPercent = minThickness > 0 ? ((currentThickness - minThickness) / minThickness) * 100 : 100;
-      
-      let status: "CRITICO" | "ATENCAO" | "OK" = "OK";
-      if (currentThickness <= minThickness) status = "CRITICO";
-      else if (marginPercent < 20) status = "ATENCAO";
-      
-      return { ...eq, currentThickness, wearPercent, marginPercent, status };
-    })
-    .filter((eq) => eq.status !== "OK")
-    .sort((a, b) => {
-      const order = { CRITICO: 0, ATENCAO: 1, OK: 2 };
-      return order[a.status] - order[b.status];
-    })
-    .slice(0, 5);
 
   // Process activities
   const activities = recentActivitiesRaw.map((act) => ({
@@ -174,6 +174,15 @@ export default async function DashboardPage() {
     value: e._count,
   }));
 
+  // Calculate pending actions count
+  const pendingActionsCount =
+    pendingInspections + // inspections awaiting approval
+    equipmentProximoCount + // equipment needing attention (thickness)
+    equipmentVencidoCount; // equipment expired (thickness)
+
+  // Upcoming activities count (inspections in progress or pending approval)
+  const upcomingActivitiesCount = upcomingInspections.length;
+
   // Pass all data to client component
   return (
     <DashboardClient
@@ -192,6 +201,12 @@ export default async function DashboardPage() {
       statusData={statusData}
       monthlyData={monthlyData}
       equipmentTypeData={equipmentTypeData}
+      equipmentOkCount={equipmentOkCount}
+      equipmentProximoCount={equipmentProximoCount}
+      equipmentVencidoCount={equipmentVencidoCount}
+      equipmentSemDataCount={0}
+      pendingActionsCount={pendingActionsCount}
+      upcomingActivitiesCount={upcomingActivitiesCount}
     />
   );
 }

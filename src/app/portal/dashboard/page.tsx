@@ -3,22 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-/**
- * Formata uma string de data (ISO 8601 com ou sem horário) para DD/MM/YYYY.
- * Aceita tanto "2026-10-01" quanto "2026-10-01T14:30:00.000Z".
- * Não introduz deslocamento de dia por timezone quando a origem representa apenas uma data.
- */
-function formatDataBR(iso: string): string {
-  if (!iso) return "";
-  // Se a string contém apenas a data (YYYY-MM-DD), parse como local para evitar deslocamento de timezone
-  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
-  const date = dateOnly ? new Date(iso + "T00:00:00") : new Date(iso);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
+import {
+  formatDataBR,
+  EmptyState,
+  EmptyStateIcons,
+  KPICard,
+  Loading,
+  PageHeader,
+} from "@/components/portal/ui";
 
 interface PortalStats {
   totalEquipamentos: number;
@@ -82,6 +74,37 @@ interface Alerta {
   mensagem: string;
 }
 
+/**
+ * Normaliza os alertas do backend, que podem vir como string[]
+ * (contrato atual de /api/portal/dashboard) ou como objetos { tipo, mensagem }.
+ * Infere o tipo pela mensagem para manter a cor correta do card.
+ */
+function normalizarAlertas(raw: unknown): Alerta[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item): Alerta | null => {
+      if (typeof item === "string") {
+        if (!item.trim()) return null;
+        if (/vencid/i.test(item)) return { tipo: "vencido", mensagem: item };
+        if (/pr[óo]xim/i.test(item)) return { tipo: "proximo", mensagem: item };
+        return { tipo: "ok", mensagem: item };
+      }
+      if (item && typeof item === "object") {
+        const alerta = item as Partial<Alerta> & Record<string, unknown>;
+        const mensagem = typeof alerta.mensagem === "string" ? alerta.mensagem : null;
+        if (!mensagem?.trim()) return null;
+        if (alerta.tipo === "vencido" || alerta.tipo === "proximo" || alerta.tipo === "ok") {
+          return { tipo: alerta.tipo, mensagem };
+        }
+        if (/vencid/i.test(mensagem)) return { tipo: "vencido", mensagem };
+        if (/pr[óo]xim/i.test(mensagem)) return { tipo: "proximo", mensagem };
+        return { tipo: "ok", mensagem };
+      }
+      return null;
+    })
+    .filter((alerta): alerta is Alerta => alerta !== null);
+}
+
 export default function PortalDashboardPage() {
   const [session, setSession] = useState<PortalSession | null>(null);
   const [stats, setStats] = useState<PortalStats | null>(null);
@@ -114,10 +137,20 @@ export default function PortalDashboardPage() {
         fetch("/api/portal/documentos", { credentials: "include" }),
       ]);
 
+      // Sessão expirada em qualquer endpoint protegido → login
+      if (
+        [dashboardResp, equipamentosResp, laudosResp, documentosResp].some(
+          (resp) => resp.status === 401
+        )
+      ) {
+        router.replace("/portal/login");
+        return;
+      }
+
       if (dashboardResp.ok) {
         const data = await dashboardResp.json();
-        setStats(data.stats);
-        setAlertas(data.alertas);
+        setStats(data.stats || null);
+        setAlertas(normalizarAlertas(data.alertas));
       }
       if (equipamentosResp.ok) {
         const data = await equipamentosResp.json();
@@ -137,29 +170,32 @@ export default function PortalDashboardPage() {
     init();
   }, [router]);
 
+  // Redireciona para o login somente depois de concluído o carregamento
+  // inicial sem sessão — como efeito, nunca durante o render.
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace("/portal/login");
+    }
+  }, [loading, session, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-white dark:bg-gray-800">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy"></div>
+        <Loading size="lg" text="Carregando dashboard..." />
       </div>
     );
   }
 
   if (!session) {
-    router.replace("/portal/login");
     return null;
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 min-h-screen">
-      <header className="border-b border-slate-200 bg-white/80 px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-sm text-slate-500">Olá, {session.name} — Portal do Cliente EngeServ</p>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        subtitle={`Olá, ${session.name} — visão geral das inspeções NR-13 dos seus equipamentos`}
+      />
 
       <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Alertas */}
@@ -180,17 +216,17 @@ export default function PortalDashboardPage() {
                 <div className="flex items-center gap-2">
                   {alerta.tipo === "vencido" && (
                     <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 100-2V6a1 1 0 100-2V6a1 1 0 100-2V6a1 1 0 100-2z" clipRule="evenodd" />
                     </svg>
                   )}
                   {alerta.tipo === "proximo" && (
                     <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 100-2v-3a1 1 0 100-2z" clipRule="evenodd" />
                     </svg>
                   )}
                   {alerta.tipo === "ok" && (
                     <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   )}
                   <p className="text-sm">{alerta.mensagem}</p>
@@ -203,75 +239,66 @@ export default function PortalDashboardPage() {
         {/* KPI Cards */}
         {stats && (
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Equipamentos</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{stats.totalEquipamentos}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-navy/10 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Laudos Vigentes</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{stats.totalLaudos}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Próximos do Vencimento</p>
-                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400 mt-1">{stats.proximoVencimento}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Vencidos</p>
-                  <p className="text-3xl font-bold text-rose-600 dark:text-rose-400 mt-1">{stats.vencido}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Documentos</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{stats.totalDocumentos}</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <KPICard
+              label="Total Equipamentos"
+              value={stats.totalEquipamentos}
+              href="/portal/equipamentos"
+              iconBgColor="bg-navy/10"
+              iconColor="text-navy"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 012-2H5a2 2 0 012-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              }
+            />
+            <KPICard
+              label="Laudos Vigentes"
+              value={stats.totalLaudos}
+              href="/portal/laudos?vigente=true"
+              iconBgColor="bg-emerald-100 dark:bg-emerald-900/30"
+              iconColor="text-emerald-600 dark:text-emerald-400"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            />
+            <KPICard
+              label="Próximos do Vencimento"
+              value={stats.proximoVencimento}
+              href="/portal/calendario"
+              iconBgColor="bg-amber-100 dark:bg-amber-900/30"
+              iconColor="text-amber-600"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+            <KPICard
+              label="Vencidos"
+              value={stats.vencido}
+              href="/portal/calendario"
+              iconBgColor="bg-rose-100 dark:bg-rose-900/30"
+              iconColor="text-rose-600"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
+                </svg>
+              }
+            />
+            <KPICard
+              label="Documentos"
+              value={stats.totalDocumentos}
+              href="/portal/documentos"
+              iconBgColor="bg-slate-100 dark:bg-slate-800"
+              iconColor="text-slate-600 dark:text-slate-400"
+              icon={
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            />
           </div>
         )}
 
@@ -303,7 +330,7 @@ export default function PortalDashboardPage() {
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                     <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
                 </div>
@@ -318,7 +345,7 @@ export default function PortalDashboardPage() {
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
                     <svg className="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 14l2-2m0 0l2-2m-2 2l2-2m-2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                 </div>
@@ -333,7 +360,7 @@ export default function PortalDashboardPage() {
                   </div>
                   <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                     <svg className="w-6 h-6 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
                 </div>
@@ -344,123 +371,178 @@ export default function PortalDashboardPage() {
         )}
 
         {/* Próximos Vencimentos */}
-        {equipamentos.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Próximos vencimentos</h2>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Equipamento</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Tipo</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Local</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Última inspeção</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Vence em</th>
-                      <th className="px-4 py-3 text-left font-medium text-slate-500">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                    {equipamentos
-                      .filter((e) => e.status !== "SEM_DATA")
-                      .sort((a, b) => (a.diasRestantes ?? 999) - (b.diasRestantes ?? 999))
-                      .slice(0, 10)
-                      .map((eq) => (
-                        <tr key={eq.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{eq.tag}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{eq.type}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{eq.site || "—"}</td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                            {eq.lastInspectionAt ? formatDataBR(eq.lastInspectionAt) : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                            {eq.venceEm ? formatDataBR(eq.venceEm) : "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                eq.status === "VENCIDO"
-                                  ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
-                                  : eq.status === "PROXIMO"
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                                  : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              }`}
-                            >
-                              {eq.status === "VENCIDO" && "Vencido"}
-                              {eq.status === "PROXIMO" && "Atenção"}
-                              {eq.status === "OK" && "Regular"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-              {equipamentos.filter((e) => e.status !== "SEM_DATA").length === 0 && (
-                <div className="p-6 text-center text-slate-500">
-                  Nenhum equipamento com data de validade definida.
-                </div>
-              )}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Próximos vencimentos</h2>
+            <Link
+              href="/portal/equipamentos"
+              className="text-sm text-navy hover:underline"
+            >
+              Ver equipamentos
+            </Link>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Equipamento</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Tipo</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Local</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Última inspeção</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Vence em</th>
+                    <th className="px-4 py-3 text-left font-medium text-slate-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {equipamentos
+                    .filter((e) => e.status !== "SEM_DATA")
+                    .sort((a, b) => (a.diasRestantes ?? 999) - (b.diasRestantes ?? 999))
+                    .slice(0, 10)
+                    .map((eq) => (
+                      <tr key={eq.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                          <Link
+                            href={`/portal/equipamentos/${eq.id}`}
+                            className="font-mono hover:text-navy hover:underline"
+                          >
+                            {eq.tag}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{eq.type}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{eq.site || "—"}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {eq.lastInspectionAt ? formatDataBR(eq.lastInspectionAt) : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                           {eq.venceEm ? formatDataBR(eq.venceEm) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              eq.status === "VENCIDO"
+                                ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                                : eq.status === "PROXIMO"
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            }`}
+                          >
+                            {eq.status === "VENCIDO" && "Vencido"}
+                            {eq.status === "PROXIMO" && "Atenção"}
+                            {eq.status === "OK" && "Regular"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
-          </section>
-        )}
+            {equipamentos.filter((e) => e.status !== "SEM_DATA").length === 0 && (
+              <EmptyState
+                size="sm"
+                icon={EmptyStateIcons.calendar}
+                title="Nenhum vencimento no radar"
+                description="Quando houver equipamentos com data de validade definida, os próximos vencimentos aparecerão aqui."
+              />
+            )}
+          </div>
+        </section>
 
         {/* Atividade Recente */}
-        {(laudos.length > 0 || documentos.length > 0) && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Atividade recente</h2>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                {laudos
-                  .slice(0, 5)
-                  .map((laudo) => (
-                    <div key={`laudo-${laudo.id}`} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50">
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Atividade recente</h2>
+            <div className="flex items-center gap-4">
+              <Link href="/portal/laudos" className="text-sm text-navy hover:underline">Ver laudos</Link>
+              <Link href="/portal/documentos" className="text-sm text-navy hover:underline">Ver documentos</Link>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                {(() => {
+                  const combined = [
+                    ...laudos.map(laudo => ({
+                      type: 'laudo' as const,
+                      id: laudo.id,
+                      date: laudo.issuedAt || laudo.inspectionDate,
+                      data: laudo
+                    })),
+                    ...documentos.map(doc => ({
+                      type: 'documento' as const,
+                      id: doc.id,
+                      date: doc.createdAt,
+                      data: doc
+                    }))
+                  ];
+
+                  const sorted = combined.sort((a, b) => {
+                    const dateA = a.date ? new Date(a.date) : new Date(0);
+                    const dateB = b.date ? new Date(b.date) : new Date(0);
+                    const timeA = isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+                    const timeB = isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+                    return timeB - timeA;
+                  });
+
+                  return sorted.slice(0, 5);
+                })().map((item, index) => (
+                  item.type === 'laudo' ? (
+                    <Link key={item.id} href={`/portal/laudos/${item.data.id}`} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                           <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">Laudo {laudo.reportNumber} v{laudo.version}</p>
-                          <p className="text-xs text-slate-500">{laudo.equipmentTag} — {laudo.equipmentType}</p>
+                          <p className="font-medium text-slate-900 dark:text-white">Laudo {item.data.reportNumber} v{item.data.version}</p>
+                          <p className="text-xs text-slate-500">{item.data.equipmentTag} — {item.data.equipmentType}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500">{formatDataBR(laudo.issuedAt || laudo.inspectionDate)}</p>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${laudo.vigente ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"}`}>
-                          {laudo.vigente ? "Vigente" : "Vencido"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                {documentos
-                  .slice(0, 5)
-                  .map((doc) => (
-                    <div key={`doc-${doc.id}`} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <p className="text-xs text-slate-500">{formatDataBR(item.data.issuedAt || item.data.inspectionDate)}</p>
+                         <span
+                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                             item.data.vigente
+                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                               : item.data.expiresAt
+                               ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
+                               : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                           }`}
+                         >
+                           {item.data.vigente ? "Vigente" : item.data.expiresAt ? "Vencido" : "Sem data"}
+                          </span>
+                        </div>
+                      </Link>
+                    ) : (
+                    <Link key={item.id} href={item.data.url} target="_blank" className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 012-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">{doc.originalName}</p>
-                          <p className="text-xs text-slate-500">{doc.type} — {doc.site || "Sem local"}</p>
+                          <p className="font-medium text-slate-900 dark:text-white">{item.data.originalName}</p>
+                          <p className="text-xs text-slate-500">{item.data.type} — {item.data.site || "Sem local"}</p>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-500">{formatDataBR(doc.createdAt)}</p>
-                    </div>
-                  ))}
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">{formatDataBR(item.data.createdAt)}</p>
+                      </div>
+                    </Link>
+                  )
+                ))}
               </div>
               {laudos.length === 0 && documentos.length === 0 && (
-                <div className="p-6 text-center text-slate-500">
-                  Nenhuma atividade recente.
-                </div>
+                <EmptyState
+                  size="sm"
+                  icon={EmptyStateIcons.document}
+                  title="Nenhuma atividade recente"
+                  description="Laudos e documentos recém-liberados pela EngeServ aparecem aqui."
+                />
               )}
             </div>
           </section>
-        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -470,7 +552,7 @@ export default function PortalDashboardPage() {
           >
             <div className="w-12 h-12 rounded-lg bg-navy/10 flex items-center justify-center group-hover:bg-navy/20 transition-colors">
               <svg className="w-6 h-6 text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 012-2H5a2 2 0 012-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
             <div>
@@ -484,7 +566,7 @@ export default function PortalDashboardPage() {
             className="group flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white dark:bg-gray-800 dark:border-slate-700 hover:border-navy/30 hover:shadow-md transition-all"
           >
             <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 transition-colors">
-              <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
@@ -500,7 +582,7 @@ export default function PortalDashboardPage() {
           >
             <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
               <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 002 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
@@ -514,8 +596,8 @@ export default function PortalDashboardPage() {
             className="group flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white dark:bg-gray-800 dark:border-slate-700 hover:border-navy/30 hover:shadow-md transition-all"
           >
             <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
-              <svg className="w-6 h-6 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>

@@ -152,6 +152,7 @@ model Equipment {
   inspections Inspection[]
 
   @@unique([clientId, tag])
+  @@index([clientId, active])
   @@map("equipments")
 }
 
@@ -171,6 +172,7 @@ model ClientSite {
   documents  ClientDocument[]
 
   @@unique([clientId, name])
+  @@index([clientId, active])
   @@map("client_sites")
 }
 
@@ -330,5 +332,6 @@ model TechnicalReport {
   inspectionId      String   @unique
   inspection        Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
   
-  @@map("technical_reports")
+
+@@map("technical_reports")
 }

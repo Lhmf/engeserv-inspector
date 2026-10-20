@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPortalSession } from "@/portal/lib/portal-auth";
+import { PORTAL_VISIBLE_REPORT_STATUSES } from "@/portal/lib/portal-visible-states";
 import { prisma } from "@/lib/prisma";
+
+// Rota protegida por cookie de sessão: nunca prerender e produzir
+// logs falsos de "Dynamic server usage" durante o build.
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,8 +15,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
+    // Visibilidade: apenas laudos APROVADOS/PUBLICADOS pela EngeServ
+    // (DRAFT/UNDER_REVIEW/REJECTED/ARCHIVED nunca são expostos).
     const technicalReports = await prisma.technicalReport.findMany({
       where: {
+        status: { in: PORTAL_VISIBLE_REPORT_STATUSES },
         inspection: {
           equipment: {
             clientId: session.clientId,
@@ -52,7 +60,7 @@ export async function GET(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_LAUDOS_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
+      { error: "Erro interno." },
       { status: 500 }
     );
   }

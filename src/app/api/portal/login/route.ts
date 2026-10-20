@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { portalLogin } from "@/portal/lib/portal-auth";
 
+// Rota pública, mas depende de cookies (createPortalSession): nunca prerender.
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -15,6 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: result.error }, { status: 401 });
   } catch (err: any) {
     console.error("[PORTAL_LOGIN_API_ERROR]", err?.message ?? err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    // Mensagem genérica, mesmo padrão das demais rotas do portal.
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
   }
 }
