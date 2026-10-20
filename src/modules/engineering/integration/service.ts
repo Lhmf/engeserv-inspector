@@ -377,6 +377,42 @@ export class EngineeringIntegrationService {
   }
 
   /**
+   * Executa análise completa a partir de um CalculationInput já montado
+   * (dados reais do banco: equipamento, inspeção e medições registradas).
+   * Diferente de runCalculation, NÃO usa casos predefinidos nem medições simuladas.
+   */
+  async runCalculationFromInput(
+    calcInput: CalculationInput,
+    caseId: string
+  ): Promise<IntegrationResult<FormattedIntegrityAnalysis>> {
+    const startTime = Date.now();
+    const calculationId = `calc-${generateId().slice(0, 8)}`;
+
+    try {
+      const validation = this.validateInput(calcInput);
+      if (!validation.isValid) {
+        return this.createErrorResult(
+          calculationId,
+          caseId,
+          `Validação falhou: ${validation.errors.map(e => e.message).join('; ')}`,
+          startTime
+        );
+      }
+
+      const analysis = await this.engine.analyzeIntegrity(calcInput);
+      return this.formatIntegrityAnalysis(
+        calculationId,
+        caseId,
+        analysis,
+        startTime,
+        validation.warnings.map(w => w.message)
+      );
+    } catch (error) {
+      return this.createErrorResult(calculationId, caseId, error instanceof Error ? error.message : 'Erro desconhecido', startTime);
+    }
+  }
+
+  /**
    * Executa simulação
    */
   async runSimulation(input: IntegrationInput): Promise<IntegrationResult<FormattedSimulationResult>> {

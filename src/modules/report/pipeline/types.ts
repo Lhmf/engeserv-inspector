@@ -212,7 +212,7 @@ export interface ValidationConfig {
 // ============================================================
 
 export interface RawInspectionData {
-  inspection: InspectionData;
+  inspection: InspectionData & { inspectorName?: string };
   equipment: EquipmentData;
   measurements: MeasurementPoint[];
   photos: Array<{

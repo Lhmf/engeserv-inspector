@@ -649,7 +649,7 @@ export function validateCalculationInput(input: CalculationInput): ValidationRes
   }
   
   return {
-    isValid: errors.filter(e => e.severity === 'ERROR' || e.severity === 'CRITICAL').length === 0,
+    isValid: errors.filter(e => e.severity === 'ERROR' || e.severity === 'CRITICAL').length === 0 && missingFields.length === 0,
     errors,
     warnings,
     missingFields,

@@ -409,16 +409,35 @@ export class InspectionReportPipeline {
 
   private async buildCalculationInput(context: PipelineStepContext): Promise<PipelineStepData> {
       const { rawData } = context;
-   
+    
       if (!rawData) throw new Error('Dados da inspeção não disponíveis');
-   
+    
+      // Buscar inspeção anterior aprovada/rejeitada do mesmo equipamento para
+      // calcular taxa de corrosão real (espessura mínima anterior + data)
+      const previousInspection = await prisma.inspection.findFirst({
+        where: {
+          equipmentId: rawData.inspection.equipmentId,
+          id: { not: rawData.inspection.id },
+          status: { in: ['APROVADA', 'REJEITADA'] },
+          completedAt: { not: null },
+        },
+        orderBy: { completedAt: 'desc' },
+        include: {
+          measurements: { orderBy: { thicknessMm: 'asc' }, take: 1 },
+        },
+      });
+
+      const previousMinThicknessMm = previousInspection?.measurements?.[0]?.thicknessMm;
+      const previousInspectionDate = previousInspection?.completedAt ?? undefined;
+
       // Usar a função buildCalculationInput do módulo de engenharia
       const calculationInput = buildCalculationInput(
         rawData.equipment as any,
         rawData.inspection as any,
         rawData.measurements as any,
         {
-          previousInspectionDate: rawData.inspection?.completedAt ? new Date(rawData.inspection.completedAt) : undefined,
+          previousInspectionDate,
+          previousMinThicknessMm,
           material: rawData.equipment?.bodyMaterial ? {
             name: rawData.equipment.bodyMaterial,
             specification: 'ASME',
@@ -435,7 +454,31 @@ export class InspectionReportPipeline {
     
       if (!rawData) throw new Error('Dados da inspeção não disponíveis');
     
-      // Executar análise completa via Engineering Engine
+      // Caminho preferencial: executar o motor com o CalculationInput montado
+      // a partir dos dados REAIS da inspeção (equipamento + medições registradas)
+      if (calculationInput) {
+        const realAnalysis = await this.integrationService.runCalculationFromInput(
+          calculationInput,
+          rawData.equipment.id
+        );
+
+        if (realAnalysis.success && realAnalysis.data) {
+          return { 
+            integrityAnalysis: realAnalysis.data,
+            formulaVersion: realAnalysis.metadata.formulaVersion,
+            normativeVersion: realAnalysis.metadata.normativeVersion,
+          };
+        }
+
+        // Falhou com dados reais (ex.: ficha técnica incompleta) — erro explícito,
+        // NÃO silenciar com dados de caso predefinido/mocks
+        throw new Error(
+          `Engineering Engine falhou com os dados da inspeção: ${realAnalysis.error || 'Erro desconhecido'}. ` +
+          `Verifique a ficha técnica do equipamento (espessuras, pressão de projeto) e as medições registradas.`
+        );
+      }
+
+      // Fallback legado: nenhum calculationInput disponível — usar caso predefinido
       // Usar o equipmentId do equipamento real, mas o Engineering Engine espera um caseId pré-definido
       // Se não existir case pré-definido, usar o caso 'V-101' (Vaso de Pressão) que tem material completo
       let caseId = rawData.equipment.id;
@@ -481,7 +524,7 @@ export class InspectionReportPipeline {
         templateVersion: context.options?.templateVersion,
         includeSimulations: context.options?.includeSimulations,
         inspectorId: rawData.inspection.inspectorId,
-        inspectorName: 'Inspetor', // Inspector name not in InspectionData, using placeholder
+        inspectorName: rawData.inspection.inspectorName || 'Inspetor', // Nome real do inspetor quando disponível
         engineerId: context.options?.initiatedBy?.id,
         engineerName: context.options?.initiatedBy?.name,
       },
@@ -709,10 +752,13 @@ export class InspectionReportPipeline {
                 id: inspection.id,
                 equipmentId: inspection.equipmentId,
                 inspectorId: inspection.inspectorId,
+                inspectorName: inspection.inspector?.name ?? undefined,
                 status: inspection.status as 'EM_ANDAMENTO' | 'AGUARDANDO_APROVACAO' | 'APROVADA' | 'REJEITADA',
                 startedAt: inspection.startedAt,
                 completedAt: inspection.completedAt ?? undefined,
                 approvedAt: inspection.approvedAt ?? undefined,
+                approvedById: inspection.approvedById ?? undefined,
+                rejectionReason: inspection.rejectionReason ?? undefined,
                 type: inspection.type as 'INICIAL' | 'PERIODICA' | 'EXTRAORDINARIA',
                 notes: inspection.notes ?? undefined,
                 recommendations,
