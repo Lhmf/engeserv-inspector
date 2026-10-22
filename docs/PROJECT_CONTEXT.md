@@ -4,7 +4,8 @@ Atualizado em 2026-10-22 para esta etapa.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`
-- Commit mais recente: `e838da5` (atualizado em D3)
+- Commit mais recente: `b962070` (atualizado em D5)
+- Lockfile de `@playwright/test` sincronizado; workflow continua usando Node 24.x, Prisma 5.19.1 e PostgreSQL temporário
 - Preview anterior válida (sem mudanças funcionais de aplicação): https://engeserv-inspector-2ci8l04si-the-castilho.vercel.app
 - Preview oficial: https://engeserv-inspector-2tgi0u0h5-the-castilho.vercel.app
 - Target da implantação: `preview`
