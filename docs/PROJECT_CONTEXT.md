@@ -4,7 +4,8 @@ Atualizado em 2026-10-22 para esta etapa.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`
-- Commit mais recente: `4a08877e6bbde435e9d214baee405f6985342eac`
+- Commit mais recente: `e838da5` (atualizado em D3)
+- Preview anterior válida (sem mudanças funcionais de aplicação): https://engeserv-inspector-2ci8l04si-the-castilho.vercel.app
 - Preview oficial: https://engeserv-inspector-2tgi0u0h5-the-castilho.vercel.app
 - Target da implantação: `preview`
 - Produção não foi modificada.
