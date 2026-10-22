@@ -13,7 +13,7 @@ import {
 // equipamentos etc. Roda no Edge Runtime, por isso usa jose
 // diretamente (nao pode importar Prisma aqui).
 
-const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user", "/api/debug/bcrypt-test-v2", "/portal/login", "/api/portal"];
+const PUBLIC_PATHS = ["/login", "/cadastrar", "/esqueci-senha", "/api/auth/login", "/api/auth/register", "/api/auth/forgot-password", "/api/admin/seed", "/api/admin/create-user", "/portal/login", "/api/portal"];
 
 // Cookie de sessão do Portal do Cliente. ATENÇÃO: este middleware roda no
 // Edge Runtime e NÃO pode importar `portal-auth.ts` (ela importa Prisma).

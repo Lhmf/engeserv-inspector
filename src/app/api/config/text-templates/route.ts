@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
 
   const templates = await prisma.textTemplate.findMany({
@@ -19,23 +19,27 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  if (session.role === "FUNCIONARIO") {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
   if (!body) {
-    return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    return NextResponse.json({ error: "Dados invalidos." }, { status: 400 });
   }
 
   const { code, title, content, category } = body;
 
   if (!code || !title || !content) {
-    return NextResponse.json({ error: "Código, título e conteúdo são obrigatórios." }, { status: 400 });
+    return NextResponse.json({ error: "Codigo, titulo e conteudo sao obrigatorios." }, { status: 400 });
   }
 
   const existing = await prisma.textTemplate.findUnique({ where: { code: code.toUpperCase() } });
   if (existing) {
-    return NextResponse.json({ error: "Já existe um texto com este código." }, { status: 409 });
+    return NextResponse.json({ error: "Ja existe um texto com este codigo." }, { status: 409 });
   }
 
   const template = await prisma.textTemplate.create({

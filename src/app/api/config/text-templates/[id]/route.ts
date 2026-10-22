@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
   }
 
   const { id } = await params;
@@ -18,7 +18,7 @@ export async function GET(
   });
 
   if (!template) {
-    return NextResponse.json({ error: "Texto padrão não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Texto padrao nao encontrado." }, { status: 404 });
   }
 
   return NextResponse.json({ template });
@@ -30,27 +30,31 @@ export async function PUT(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  if (session.role === "FUNCIONARIO") {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
   const { id } = await params;
   const body = await req.json().catch(() => null);
 
   if (!body) {
-    return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+    return NextResponse.json({ error: "Dados invalidos." }, { status: 400 });
   }
 
   const { code, title, content, category, active } = body;
 
   const existing = await prisma.textTemplate.findUnique({ where: { id } });
   if (!existing) {
-    return NextResponse.json({ error: "Texto padrão não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Texto padrao nao encontrado." }, { status: 404 });
   }
 
   if (code && code !== existing.code) {
     const conflict = await prisma.textTemplate.findUnique({ where: { code } });
     if (conflict) {
-      return NextResponse.json({ error: "Já existe um texto com este código." }, { status: 409 });
+      return NextResponse.json({ error: "Ja existe um texto com este codigo." }, { status: 409 });
     }
   }
 
@@ -74,17 +78,21 @@ export async function DELETE(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+  }
+
+  if (session.role === "FUNCIONARIO") {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
   const { id } = await params;
 
   const existing = await prisma.textTemplate.findUnique({ where: { id } });
   if (!existing) {
-    return NextResponse.json({ error: "Texto padrão não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Texto padrao nao encontrado." }, { status: 404 });
   }
 
   await prisma.textTemplate.delete({ where: { id } });
 
-  return NextResponse.json({ message: "Texto padrão excluído com sucesso." });
+  return NextResponse.json({ message: "Texto padrao excluido com sucesso." });
 }
