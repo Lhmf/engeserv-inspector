@@ -37,6 +37,10 @@ export async function PUT(
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
+  if (session.role === "FUNCIONARIO") {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  }
+
   const { id } = await params;
   const body = await req.json().catch(() => null);
 
@@ -86,6 +90,10 @@ export async function DELETE(
   }
 
   const { id } = await params;
+
+  if (session.role === "FUNCIONARIO") {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  }
 
   const existing = await prisma.textTemplate.findUnique({ where: { id } });
   if (!existing) {
