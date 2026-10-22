@@ -26,20 +26,29 @@ export async function GET(req: NextRequest) {
         },
         inspector: { select: { id: true, name: true } },
         technicalReport: { select: { id: true } },
+        measurements: { select: { id: true, point: true, thicknessMm: true } },
       },
       orderBy: { approvedAt: "desc" },
     });
 
-    const items = inspections.map((insp) => ({
-      id: insp.id,
-      inspectionId: insp.id,
-      status: "PRONTO_PARA_GERAR",
-      equipmentTag: insp.equipment.tag,
-      equipmentType: insp.equipment.type,
-      clientName: insp.equipment.client.companyName,
-      approvedAt: insp.approvedAt?.toISOString() || null,
-      inspectorName: insp.inspector.name,
-    }));
+    const items = inspections.map((insp) => {
+      const thicknesses = insp.measurements.map((m) => m.thicknessMm);
+      const uniquePoints = new Set(insp.measurements.map((m) => m.point));
+      return {
+        id: insp.id,
+        inspectionId: insp.id,
+        status: "PRONTO_PARA_GERAR",
+        equipmentTag: insp.equipment.tag,
+        equipmentType: insp.equipment.type,
+        clientName: insp.equipment.client.companyName,
+        approvedAt: insp.approvedAt?.toISOString() || null,
+        inspectorName: insp.inspector.name,
+        measurementsCount: insp.measurements.length,
+        uniqueMeasurementPoints: uniquePoints.size,
+        hasMeasurements: insp.measurements.length > 0,
+        minThicknessMm: thicknesses.length ? Math.min(...thicknesses) : null,
+      };
+    });
 
     return NextResponse.json({ items });
   } catch (error: any) {

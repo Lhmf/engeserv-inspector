@@ -399,6 +399,12 @@ export interface TechnicalReport {
     lastModifiedBy: string;
     lastModifiedAt: Date;
     placeholderMode: boolean;       // true se usando placeholders do Engine
+    // Rastreabilidade (Lote Paralelo B)
+    measurementsCount?: number;
+    measurementPointIds?: string[];
+    engineeringCalculationIds?: string[];
+    unvalidatedFormulaIds?: string[];
+    minimumThicknessRegisteredMm?: number | null;
   };
 }
 

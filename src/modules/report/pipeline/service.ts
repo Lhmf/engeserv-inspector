@@ -158,7 +158,15 @@ export class InspectionReportPipeline {
         });
 
         steps.push(stepResult);
-        
+
+        // Propagar avisos das etapas para o resultado do pipeline (visibilidade de estados incompletos)
+        if (Array.isArray(stepResult.data?.warnings)) {
+          warnings.push(...stepResult.data.warnings.filter((w: unknown) => typeof w === 'string'));
+        }
+        if (typeof stepResult.data?.message === 'string' && stepResult.status === 'FAILED') {
+          // message já refletido no erro; mantém apenas avisos textuais acima
+        }
+
         // Atualizar auditoria
         audit.steps.push({
           step: stepConfig.name,
@@ -392,7 +400,7 @@ export class InspectionReportPipeline {
       const points = rawData.measurements.map(m => m.point);
       const duplicates = points.filter((p, i) => points.indexOf(p) !== i);
       if (duplicates.length > 0) {
-        warnings.push(`Pontos de medição duplicados detectados: ${[...new Set(duplicates)].join(', ')}`);
+        errors.push(`Pontos de medição duplicados detectados: ${[...new Set(duplicates)].join(', ')}`);
       }
     }
     
@@ -478,32 +486,14 @@ export class InspectionReportPipeline {
         );
       }
 
-      // Fallback legado: nenhum calculationInput disponível — usar caso predefinido
-      // Usar o equipmentId do equipamento real, mas o Engineering Engine espera um caseId pré-definido
-      // Se não existir case pré-definido, usar o caso 'V-101' (Vaso de Pressão) que tem material completo
-      let caseId = rawData.equipment.id;
-      const availableCases = this.integrationService.getAllCases();
-      const matchedCase = availableCases.find(c => c.id === caseId);
-    
-      if (!matchedCase) {
-        // Fallback: usar o caso 'V-101' que tem material completo com allowableStressByTempMpa
-        caseId = 'V-101';
-      }
-    
-      const integrityAnalysis = await this.integrationService.runCalculation({
-        caseId,
-        calculationType: 'FULL_INTEGRITY',
-      });
-
-      if (!integrityAnalysis.success || !integrityAnalysis.data) {
-        throw new Error(`Engineering Engine falhou: ${integrityAnalysis.error || 'Erro desconhecido'}`);
-      }
-
-      return { 
-        integrityAnalysis: integrityAnalysis.data,
-        formulaVersion: integrityAnalysis.metadata.formulaVersion,
-        normativeVersion: integrityAnalysis.metadata.normativeVersion,
-      };
+      // Lote 23A / T11: removido o fallback para o caso predefinido 'V-101'.
+      // O pipeline NUNCA mais calcula a partir de caso mock/equipamento
+      // inventado: sem calculationInput real, o pipeline falha com erro
+      // explícito para o operador corrigir os dados de origem.
+      throw new Error(
+        `Executar pipeline de cálculo exige equipamento/medições REAIS da inspeção. ` +
+        `Não foi possível montar o CalculationInput para a inspeção (verifique medições registradas e ficha técnica do equipamento).`
+      );
     }
 
   private async buildTechnicalReport(context: PipelineStepContext): Promise<PipelineStepData> {

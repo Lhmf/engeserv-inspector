@@ -40,6 +40,7 @@ import type {
 } from '../../engineering/types';
 
 import { generateId } from '../utils/id-generator';
+import { UNVALIDATED_FORMULA_DISCLAIMER } from '../safety/emission';
 
 // ============================================================
 // ENTIDADE PRINCIPAL - TECHNICAL REPORT
@@ -489,7 +490,16 @@ export class TechnicalReportBuilder {
         generatedBy: options?.inspectorId || '',
         lastModifiedBy: options?.inspectorId || '',
         lastModifiedAt: now,
-        placeholderMode: false, // Não é mais placeholder
+        // Verdade factual: true enquanto houver fórmulas placeholder no engine.
+        placeholderMode: Object.values(engineeringAnalysis.formulaVersions || {})
+          .some((version) => /placeholder/i.test(String(version))),
+        measurementsCount: measurements.length,
+        measurementPointIds: measurements.map((m: any) => m.id || m.point),
+        engineeringCalculationIds: this.formatCalculations(engineeringAnalysis).map((c: any) => c.id),
+        unvalidatedFormulaIds: Object.entries(engineeringAnalysis.formulaVersions || {})
+          .filter(([, version]) => /placeholder/i.test(String(version)))
+          .map(([id]) => id),
+        minimumThicknessRegisteredMm: equipment.minThicknessMm ?? null,
       },
     } as TechnicalReport;
   }
@@ -578,18 +588,31 @@ export class TechnicalReportBuilder {
       'CONDENADO': 'CONDENADO',
       'INDETERMINADO': 'INDETERMINADO',
     };
-    
+
+    // Lote 23A: enquanto houver fórmula placeholder, o laudo NÃO pode
+    // alegar conformidade normativa nem apresentar conclusão definitiva.
+    const formulaVersions = analysis.formulaVersions || {};
+    const unvalidatedFormulaIds = Object.entries(formulaVersions)
+      .filter(([, version]) => /placeholder/i.test(String(version)))
+      .map(([id]) => id);
+    const hasUnvalidatedFormulas = unvalidatedFormulaIds.length > 0;
+
     return {
       conclusion: conclusionMap[analysis.overallStatus] || 'INDETERMINADO',
-      justification: analysis.recommendations.join('; ') || 'Análise técnica baseada em medições ultrassônicas e cálculos conforme ASME BPVC VIII-1 e NR-13.',
+      justification: analysis.recommendations.join('; ') ||
+        (hasUnvalidatedFormulas
+          ? 'Análise baseada em medições ultrassônicas registradas e em cálculos de fórmulas NÃO validadas (placeholder).'
+          : 'Análise baseada em medições ultrassônicas registradas — cálculos sujeitos a validação por engenheiro responsável.'),
       riskFactors: analysis.riskFactors.map(rf => ({
         factor: rf.factor,
         description: rf.description,
         severity: rf.severity,
         mitigation: rf.mitigation,
       })),
-      complianceStatement: 'Laudo elaborado conforme NR-13, ASME BPVC VIII-1, API 570/510.',
-      restrictions: analysis.overallStatus === 'CONDENADO' ? ['Equipamento fora de serviço'] : 
+      complianceStatement: hasUnvalidatedFormulas
+        ? UNVALIDATED_FORMULA_DISCLAIMER
+        : 'Cálculos de referência ASME BPVC VIII-1 - NÃO validados por engenheiro responsável.',
+      restrictions: analysis.overallStatus === 'CONDENADO' ? ['Equipamento fora de serviço'] :
                     analysis.overallStatus === 'REQUER_REPARO' ? ['Operação com restrições até reparo'] : [],
     };
   }
@@ -599,6 +622,14 @@ export class TechnicalReportBuilder {
     const shortTerm = analysis.recommendations.filter(r => r.includes('repar') || r.includes('substitu'));
     const mediumTerm = analysis.recommendations.filter(r => r.includes('monitor') || r.includes('inspeç'));
     const longTerm = analysis.recommendations.filter(r => !immediate.includes(r) && !shortTerm.includes(r) && !mediumTerm.includes(r));
+
+    // Lote 23A: critérios não devem alegar conformidade normativa
+    // enquanto os cálculos não forem validados por engenheiro.
+    const hasUnvalidatedFormulas = Object.values(analysis.formulaVersions || {})
+      .some((version) => /placeholder/i.test(String(version)));
+    const defaultCriteria = hasUnvalidatedFormulas
+      ? 'Critérios a definir após validação dos cálculos por engenheiro responsável'
+      : 'Critérios por definição do engenheiro responsável';
     
     return {
       immediate: immediate.map((desc, i) => ({ id: `imm-${i}`, description: desc, priority: 'CRITICAL', category: 'REPAIR' })),
@@ -610,19 +641,23 @@ export class TechnicalReportBuilder {
         intervalMonths: 12,
         type: 'PERIODIC',
         scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
-        criteria: 'Conforme NR-13 e normas aplicáveis',
+        criteria: defaultCriteria,
       },
     };
   }
-  
+
   private static buildNextInspection(analysis: IntegrityAnalysis): any {
+    const hasUnvalidatedFormulas = Object.values(analysis.formulaVersions || {})
+      .some((version) => /placeholder/i.test(String(version)));
     return {
       recommendedDate: analysis.nextInspectionDate?.value || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       maxIntervalMonths: 12,
       type: 'PERIODIC',
       justification: 'Intervalo padrão NR-13 para vasos de pressão',
       scope: ['Inspeção visual', 'Medições de espessura', 'Testes não destrutivos'],
-      acceptanceCriteria: 'Conforme NR-13 e normas aplicáveis',
+      acceptanceCriteria: hasUnvalidatedFormulas
+        ? 'Critérios a definir após validação dos cálculos por engenheiro responsável'
+        : 'Critérios por definição do engenheiro responsável',
     };
   }
   
