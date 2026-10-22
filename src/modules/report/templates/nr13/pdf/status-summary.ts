@@ -12,6 +12,7 @@ import {
   formatDateLong, truncateText, LAYOUT, getAvailableHeight, addNewPage,
 } from './context';
 import { sanitizeTextForWinAnsi } from './context';
+import { extractEmissionIndicators } from '../../../safety/emission';
 
 const STATUS_BOX_HEIGHT = 50;
 const INDICATOR_CARD_HEIGHT = 32;
@@ -106,12 +107,12 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
 
   const indicators = [
     { label: 'Esp. Nominal', value: equipment.originalThicknessMm ? `${equipment.originalThicknessMm} mm` : '-' },
-    { label: 'Esp. Mínima Req.', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '-' },
-    { label: 'Menor Esp. Encontrada', value: stats.minThicknessMm ? `${stats.minThicknessMm.toFixed(2)} mm` : '-' },
+    { label: 'Esp. min. cadastrada', value: equipment.minThicknessMm ? `${equipment.minThicknessMm} mm` : '-' },
+    { label: 'Esp. min. calculada', value: extractEmissionIndicators(report).minimumThicknessCalculated.text },
     { label: 'Espessura Média', value: stats.avgThicknessMm ? `${stats.avgThicknessMm.toFixed(2)} mm` : '-' },
-    { label: 'Taxa Corrosão', value: '-' },
-    { label: 'Vida Útil Rem.', value: '-' },
-    { label: 'PMTA Calculada', value: '-' },
+    { label: 'Taxa Corrosão', value: extractEmissionIndicators(report).corrosionRate.text },
+    { label: 'Vida Útil Rem.', value: extractEmissionIndicators(report).remainingLife.text },
+    { label: 'PMTA Calculada', value: extractEmissionIndicators(report).mawp.text },
     { label: '% Abaixo Min.', value: `${(stats.belowMinPercentage || 0).toFixed(1)}%` },
   ];
 
@@ -182,6 +183,14 @@ export function drawStatusSummaryPdf(ctx: PdfRenderingContext, y: number): numbe
   }
 
   y -= SUMMARY_CARD_HEIGHT + 12;
+
+  const divergenceNote = extractEmissionIndicators(report).minThicknessDivergenceNote;
+  if (divergenceNote) {
+    ctx.page.drawText(sanitizeTextForWinAnsi(truncateText(divergenceNote, fonts.helvetica, 7, contentWidth)), {
+      x: margin + 4, y, font: fonts.helvetica, size: 7, color: D.colors.statusRed,
+    });
+    y -= 10;
+  }
 
   // === NEXT INSPECTION ===
   const nextHeight = 12 + NEXT_INSPECTION_HEIGHT + 38;

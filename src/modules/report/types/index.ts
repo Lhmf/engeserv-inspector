@@ -398,7 +398,7 @@ export interface TechnicalReport {
     generatedAt: Date;
     lastModifiedBy: string;
     lastModifiedAt: Date;
-    placeholderMode: boolean;       // true se usando placeholders do Engine
+    placeholderMode?: boolean;       // true se usando placeholders do Engine
   };
 }
 

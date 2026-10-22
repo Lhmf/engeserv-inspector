@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { buildNr13Pdf } from '@/modules/report/templates/nr13/pdf/builder';
-import { MOCK_COMPANY } from '@/modules/report/templates/nr13/mock-data';
+import { resolveCompanyInfoFromEnv } from '@/modules/report/company-info';
 import type { TechnicalReport } from '@/modules/report/types';
 import type { CompanyInfo } from '@/modules/report/templates/nr13/types';
 
@@ -64,8 +64,15 @@ export async function GET(
       });
     }
 
-    // Build PDF using the modular template
-    const pdfBytes = await buildNr13Pdf(report, MOCK_COMPANY);
+    // Build PDF using the modular template (empresa real vinda do ambiente)
+    const company = resolveCompanyInfoFromEnv();
+    if (!company) {
+      return NextResponse.json(
+        { error: 'Empresa emitente não configurada.' },
+        { status: 500 }
+      );
+    }
+    const pdfBytes = await buildNr13Pdf(report, company);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

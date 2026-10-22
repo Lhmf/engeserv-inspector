@@ -14,7 +14,14 @@
  */
 import type { TechnicalReport } from '../../../types';
 import type { CompanyInfo } from '../types';
-import { MOCK_COMPANY } from '../mock-data';
+import { isDefinitiveCompanyInfo } from '../../../company-info';
+import {
+  EmissionMode,
+  EmissionBarrierError,
+  assessTechnicalReportEmission,
+  sanitizeForEmission,
+} from '../../../safety/emission';
+import { stampDemoBanners, drawEmissionWarningsBlock, estimateEmissionWarningsHeight } from './emission-banners';
 import {
   createPdfContext, addNewPage, addNewPageFullHeader, getAvailableHeight,
   PdfRenderingContext, LAYOUT, SECTION_TITLE_HEIGHT,
@@ -44,11 +51,32 @@ function ensureSpaceFor(ctx: PdfRenderingContext, estimatedHeight: number): numb
 /**
  * Build the complete NR-13 PDF from a TechnicalReport.
  */
+export interface BuildNr13PdfOptions {
+  mode?: EmissionMode;
+}
+
 export async function buildNr13Pdf(
   report: TechnicalReport,
-  company: CompanyInfo = MOCK_COMPANY
+  company: CompanyInfo,
+  options: BuildNr13PdfOptions = {}
 ): Promise<Uint8Array> {
-  const ctx = await createPdfContext(report, company);
+  const mode: EmissionMode = options.mode ?? 'DEFINITIVE';
+  const assessment = assessTechnicalReportEmission(report);
+
+  if (mode === 'DEFINITIVE') {
+    if (!isDefinitiveCompanyInfo(company)) {
+      throw new EmissionBarrierError(assessment, true, [
+        'Empresa emitente não configurada com dados reais (nome + CNPJ).',
+      ]);
+    }
+    if (!assessment.canEmitDefinitive) {
+      throw new EmissionBarrierError(assessment, false, assessment.reasons);
+    }
+  }
+
+  const safeReport = sanitizeForEmission(report, mode, assessment) as TechnicalReport;
+
+  const ctx = await createPdfContext(safeReport, company);
 
   // ============================================================
   // PASS 1: RENDER ALL CONTENT (flow-based)
@@ -82,7 +110,7 @@ export async function buildNr13Pdf(
 
   // --- Measurements ---
   // Measurements handle their own internal pagination.
-  const measurements = report.inspectionData.measurements;
+  const measurements = safeReport.inspectionData.measurements;
   if (measurements && measurements.length > 0) {
     const minMeasureHeight = SECTION_TITLE_HEIGHT + 58 + 40;
     if (getAvailableHeight(ctx) < minMeasureHeight) {
@@ -94,7 +122,7 @@ export async function buildNr13Pdf(
   ctx.y = y; // Keep ctx.y in sync
 
   // --- Photo Register ---
-  const photos = report.attachments.photos;
+  const photos = safeReport.attachments.photos;
   if (photos && photos.length > 0) {
     const photoHeight = 50;
     if (getAvailableHeight(ctx) < photoHeight) {
@@ -123,6 +151,17 @@ export async function buildNr13Pdf(
   y = drawConclusionPdf(ctx, y);
   ctx.y = y; // Keep ctx.y in sync
 
+  // Avisos de emissão para documentos de demonstração / laudos não definitivos
+  if (mode === 'DEMO' || !assessment.canEmitDefinitive) {
+    const warningsHeight = estimateEmissionWarningsHeight(ctx, assessment);
+    if (getAvailableHeight(ctx) < warningsHeight) {
+      addNewPage(ctx);
+      y = ctx.y;
+    }
+    y = drawEmissionWarningsBlock(ctx, y, assessment);
+    ctx.y = y;
+  }
+
   // --- Signatures (keep-together: move entire block if needed) ---
   const sigHeight = estimateSignaturesHeight(ctx);
   if (getAvailableHeight(ctx) < sigHeight) {
@@ -138,6 +177,9 @@ export async function buildNr13Pdf(
   const actualTotalPages = ctx.doc.getPages().length;
   stampAllHeaders(ctx, actualTotalPages);
   stampAllFooters(ctx, actualTotalPages);
+  if (mode === 'DEMO') {
+    stampDemoBanners(ctx);
+  }
 
   return await ctx.doc.save();
 }

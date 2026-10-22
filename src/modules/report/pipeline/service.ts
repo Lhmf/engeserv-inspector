@@ -478,32 +478,12 @@ export class InspectionReportPipeline {
         );
       }
 
-      // Fallback legado: nenhum calculationInput disponível — usar caso predefinido
-      // Usar o equipmentId do equipamento real, mas o Engineering Engine espera um caseId pré-definido
-      // Se não existir case pré-definido, usar o caso 'V-101' (Vaso de Pressão) que tem material completo
-      let caseId = rawData.equipment.id;
-      const availableCases = this.integrationService.getAllCases();
-      const matchedCase = availableCases.find(c => c.id === caseId);
-    
-      if (!matchedCase) {
-        // Fallback: usar o caso 'V-101' que tem material completo com allowableStressByTempMpa
-        caseId = 'V-101';
-      }
-    
-      const integrityAnalysis = await this.integrationService.runCalculation({
-        caseId,
-        calculationType: 'FULL_INTEGRITY',
-      });
-
-      if (!integrityAnalysis.success || !integrityAnalysis.data) {
-        throw new Error(`Engineering Engine falhou: ${integrityAnalysis.error || 'Erro desconhecido'}`);
-      }
-
-      return { 
-        integrityAnalysis: integrityAnalysis.data,
-        formulaVersion: integrityAnalysis.metadata.formulaVersion,
-        normativeVersion: integrityAnalysis.metadata.normativeVersion,
-      };
+      // Sem calculationInput não existe caminho de fallback com caso predefinido (V-101)
+      // nem com mocks — a emissão exige dados reais da inspeção.
+      throw new Error(
+        'Dados reais da inspeção ausentes (calculationInput). ' +
+          'Verifique a ficha técnica do equipamento e as medições registradas.'
+      );
     }
 
   private async buildTechnicalReport(context: PipelineStepContext): Promise<PipelineStepData> {

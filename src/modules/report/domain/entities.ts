@@ -489,7 +489,6 @@ export class TechnicalReportBuilder {
         generatedBy: options?.inspectorId || '',
         lastModifiedBy: options?.inspectorId || '',
         lastModifiedAt: now,
-        placeholderMode: false, // Não é mais placeholder
       },
     } as TechnicalReport;
   }
@@ -588,7 +587,7 @@ export class TechnicalReportBuilder {
         severity: rf.severity,
         mitigation: rf.mitigation,
       })),
-      complianceStatement: 'Laudo elaborado conforme NR-13, ASME BPVC VIII-1, API 570/510.',
+      complianceStatement: 'Analise tecnica preliminar - sujeita a validacao dos calculos pelo engenheiro responsavel.',
       restrictions: analysis.overallStatus === 'CONDENADO' ? ['Equipamento fora de serviço'] : 
                     analysis.overallStatus === 'REQUER_REPARO' ? ['Operação com restrições até reparo'] : [],
     };

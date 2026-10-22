@@ -25,6 +25,7 @@ export interface CompanyInfo {
   email?: string;
   website?: string;
   cnpj?: string;
+  isDemoPlaceholder?: boolean;
 }
 
 // ============================================================
