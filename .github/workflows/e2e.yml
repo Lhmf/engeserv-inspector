@@ -1,0 +1,51 @@
+name: E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'lote-c-correcao-tipos-build'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: engeserv_test
+          POSTGRES_USER: engeserv_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U engeserv_test -d engeserv_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://engeserv_test:test_password@localhost:5432/engeserv_test?schema=public
+      POSTGRES_URL: postgresql://engeserv_test:test_password@localhost:5432/engeserv_test?schema=public
+      PRISMA_DATABASE_URL: postgresql://engeserv_test:test_password@localhost:5432/engeserv_test?schema=public
+      AUTH_SECRET: e2e_test_secret_not_for_production_1234567890
+      SEED_DEFAULT_PASSWORD: demo123456
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma db push --accept-data-loss
+      - run: npm run db:seed
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
