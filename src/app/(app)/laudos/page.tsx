@@ -158,6 +158,7 @@ export default function LaudosPage() {
           <div className="p-12 flex flex-col items-center gap-3 text-rose-600">
             <AlertCircle className="w-8 h-8" />
             <p>{error}</p>
+            <Button onClick={loadLaudos} className="mt-2">Tentar novamente</Button>
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
