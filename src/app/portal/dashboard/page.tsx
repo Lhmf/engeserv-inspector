@@ -113,62 +113,84 @@ export default function PortalDashboardPage() {
   const [laudos, setLaudos] = useState<Laudo[]>([]);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     async function init() {
-      const sessionResp = await fetch("/api/portal/session", { credentials: "include" });
-      if (!sessionResp.ok) {
-        router.replace("/portal/login");
-        return;
-      }
-      const sessionData = await sessionResp.json();
-      if (!sessionData.session) {
-        router.replace("/portal/login");
-        return;
-      }
-      setSession(sessionData.session);
+      setLoading(true);
+      setError(null);
+      try {
+        const sessionResp = await fetch("/api/portal/session", { credentials: "include" });
+        if (!sessionResp.ok) {
+          router.replace("/portal/login");
+          return;
+        }
+        const sessionData = await sessionResp.json();
+        if (!sessionData.session) {
+          router.replace("/portal/login");
+          return;
+        }
+        setSession(sessionData.session);
 
-      // Após validar a sessão, buscar todos os dados protegidos em paralelo
-      const [dashboardResp, equipamentosResp, laudosResp, documentosResp] = await Promise.all([
-        fetch("/api/portal/dashboard", { credentials: "include" }),
-        fetch("/api/portal/equipamentos", { credentials: "include" }),
-        fetch("/api/portal/laudos", { credentials: "include" }),
-        fetch("/api/portal/documentos", { credentials: "include" }),
-      ]);
+        // Após validar a sessão, buscar todos os dados protegidos em paralelo
+        const [dashboardResp, equipamentosResp, laudosResp, documentosResp] = await Promise.all([
+          fetch("/api/portal/dashboard", { credentials: "include" }),
+          fetch("/api/portal/equipamentos", { credentials: "include" }),
+          fetch("/api/portal/laudos", { credentials: "include" }),
+          fetch("/api/portal/documentos", { credentials: "include" }),
+        ]);
 
-      // Sessão expirada em qualquer endpoint protegido → login
-      if (
-        [dashboardResp, equipamentosResp, laudosResp, documentosResp].some(
-          (resp) => resp.status === 401
-        )
-      ) {
-        router.replace("/portal/login");
-        return;
-      }
+        // Sessão expirada em qualquer endpoint protegido → login
+        if (
+          [dashboardResp, equipamentosResp, laudosResp, documentosResp].some(
+            (resp) => resp.status === 401
+          )
+        ) {
+          router.replace("/portal/login");
+          return;
+        }
 
-      if (dashboardResp.ok) {
-        const data = await dashboardResp.json();
-        setStats(data.stats || null);
-        setAlertas(normalizarAlertas(data.alertas));
+        let failed = false;
+        if (dashboardResp.ok) {
+          const data = await dashboardResp.json();
+          setStats(data.stats || null);
+          setAlertas(normalizarAlertas(data.alertas));
+        } else {
+          failed = true;
+        }
+        if (equipamentosResp.ok) {
+          const data = await equipamentosResp.json();
+          setEquipamentos(data.equipamentos || []);
+        } else {
+          failed = true;
+        }
+        if (laudosResp.ok) {
+          const data = await laudosResp.json();
+          setLaudos(data.laudos || []);
+        } else {
+          failed = true;
+        }
+        if (documentosResp.ok) {
+          const data = await documentosResp.json();
+          setDocumentos(data.documentos || []);
+        } else {
+          failed = true;
+        }
+
+        if (failed) {
+          setError("Não foi possível carregar todos os dados do dashboard. Tente novamente.");
+        }
+      } catch (err) {
+        setError("Erro de conexão. Verifique sua internet e tente novamente.");
+      } finally {
+        setLoading(false);
       }
-      if (equipamentosResp.ok) {
-        const data = await equipamentosResp.json();
-        setEquipamentos(data.equipamentos || []);
-      }
-      if (laudosResp.ok) {
-        const data = await laudosResp.json();
-        setLaudos(data.laudos || []);
-      }
-      if (documentosResp.ok) {
-        const data = await documentosResp.json();
-        setDocumentos(data.documentos || []);
-      }
-      setLoading(false);
     }
 
     init();
-  }, [router]);
+  }, [router, reloadKey]);
 
   // Redireciona para o login somente depois de concluído o carregamento
   // inicial sem sessão — como efeito, nunca durante o render.
@@ -198,7 +220,20 @@ export default function PortalDashboardPage() {
       />
 
       <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Alertas */}
+        {error && (
+          <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300" role="alert">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm">{error}</p>
+              <button
+                type="button"
+                onClick={() => setReloadKey((value) => value + 1)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        )}
         {alertas.length > 0 && (
           <div className="mb-6 space-y-2">
             {alertas.map((alerta, index) => (
@@ -545,7 +580,7 @@ export default function PortalDashboardPage() {
           </section>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link
             href="/portal/equipamentos"
             className="group flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white dark:bg-gray-800 dark:border-slate-700 hover:border-navy/30 hover:shadow-md transition-all"
@@ -603,6 +638,36 @@ export default function PortalDashboardPage() {
             <div>
               <p className="font-medium text-slate-900 dark:text-white group-hover:text-navy transition-colors">Documentos</p>
               <p className="text-xs text-slate-500">ARTs, certificados e anexos</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/portal/recomendacoes"
+            className="group flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white dark:bg-gray-800 dark:border-slate-700 hover:border-navy/30 hover:shadow-md transition-all"
+          >
+            <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white group-hover:text-navy transition-colors">Recomendações</p>
+              <p className="text-xs text-slate-500">Ações técnicas de inspeções e laudos</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/portal/frentes"
+            className="group flex items-center gap-4 p-5 rounded-xl border border-slate-200 bg-white dark:bg-gray-800 dark:border-slate-700 hover:border-navy/30 hover:shadow-md transition-all"
+          >
+            <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
+              <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white group-hover:text-navy transition-colors">Frentes de Serviço</p>
+              <p className="text-xs text-slate-500">Locais e equipamentos por frente</p>
             </div>
           </Link>
         </div>
