@@ -124,6 +124,45 @@ export function ExecutiveSummary({ report, onVerdictChange }: ExecutiveSummaryPr
           </div>
         )}
 
+        {/* Rastreabilidade (Lote 27) */}
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-slate-700">Rastreabilidade do laudo</h3>
+          <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-500">Medições registradas</p>
+              <p className="font-semibold text-slate-800">{report.metadata?.measurementsCount ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-500">Espessura mínima cadastrada</p>
+              <p className="font-semibold text-slate-800">
+                {report.metadata?.minimumThicknessRegisteredMm != null ? `${report.metadata.minimumThicknessRegisteredMm} mm` : "Não cadastrada"}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs uppercase tracking-wider text-slate-500">Pontos medidos</p>
+              <p className="font-medium text-slate-800">
+                {report.metadata?.measurementPointIds?.length ? report.metadata.measurementPointIds.join(", ") : "Sem identificadores de ponto"}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs uppercase tracking-wider text-slate-500">Cálculos de engenharia</p>
+              <p className="font-medium text-slate-800">
+                {report.metadata?.engineeringCalculationIds?.length ? report.metadata.engineeringCalculationIds.join(", ") : "Sem cálculos registrados"}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs uppercase tracking-wider text-slate-500">Status de validação</p>
+              {report.metadata?.placeholderMode ? (
+                <p className="font-medium text-amber-700">
+                  Fórmulas não validadas: {report.metadata.unvalidatedFormulaIds?.length ? report.metadata.unvalidatedFormulaIds.join(", ") : "detectadas"}
+                </p>
+              ) : (
+                <p className="font-medium text-emerald-700">Sem fórmulas placeholder identificadas no laudo</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Key Findings */}
         {report.executiveSummary.keyFindings.length > 0 && (
           <div>
