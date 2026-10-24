@@ -9,3 +9,6 @@ prisma/dev.db-journal
 .vercel
 .env*
 cookies.txt
+
+.tmp/
+
