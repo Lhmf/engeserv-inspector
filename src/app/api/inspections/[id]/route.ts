@@ -3,11 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { canApproveInspection } from "@/lib/auth";
+import { serializeRecommendations } from "@/lib/inspection-normalization";
 
 const updateInspectionSchema = z.object({
   type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
   notes: z.string().optional().nullable(),
-  recommendations: z.string().optional(), // JSON string array
+  recommendations: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]).optional(),
   status: z.enum(["EM_ANDAMENTO", "AGUARDANDO_APROVACAO", "APROVADA", "REJEITADA"]).optional(),
   rejectionReason: z.string().optional(),
   completedAt: z.string().datetime().optional(),
@@ -109,7 +110,7 @@ export async function PUT(
   if (type) updateData.type = type;
   if (status) updateData.status = status;
   if (notes !== undefined) updateData.notes = notes;
-  if (recommendations !== undefined) updateData.recommendations = recommendations;
+  if (recommendations !== undefined) updateData.recommendations = serializeRecommendations(recommendations);
   if (rejectionReason) updateData.rejectionReason = rejectionReason;
   if (completedAt) updateData.completedAt = new Date(completedAt);
 

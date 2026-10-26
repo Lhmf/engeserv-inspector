@@ -324,7 +324,8 @@ export class InspectionReportPipeline {
     if (!rawData.inspection) errors.push('Inspeção não encontrada');
     if (!rawData.inspection?.id) errors.push('ID da inspeção ausente');
     if (!rawData.inspection?.equipmentId) errors.push('Equipamento não vinculado à inspeção');
-    if (rawData.inspection?.status === 'EM_ANDAMENTO') errors.push('Inspeção ainda em andamento - não é possível gerar laudo');
+    const isMasterGeneration = context.options?.initiatedBy?.role === 'MANAGER';
+    if (rawData.inspection?.status === 'EM_ANDAMENTO' && !isMasterGeneration) errors.push('Inspeção ainda em andamento - não é possível gerar laudo');
     if (rawData.inspection?.status === 'REJEITADA') errors.push('Inspeção foi rejeitada - não é possível gerar laudo');
     if (!rawData.inspection?.completedAt) console.warn('[Pipeline] Inspeção sem data de conclusão (campo ausente em registros legados)');
     if (!rawData.inspection?.inspectorId) errors.push('Inspetor não identificado');

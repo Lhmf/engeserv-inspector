@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { renderOfficialNr13Html } from '@/modules/report/templates/nr13/official-html';
 
 function parseJson(value: unknown) {
-  return typeof value === 'string' ? JSON.parse(value) : value;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return null; }
 }
 
 export async function GET(

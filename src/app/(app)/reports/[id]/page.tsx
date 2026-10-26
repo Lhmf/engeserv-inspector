@@ -146,7 +146,7 @@ export default function ReportPage() {
         if (res.ok) {
                   const data = await res.json();
                   if (data.report) {
-                    setReport(parseDates(data.report));
+                    setReport(normalizeReport(data.report));
                     // Priorizar technicalReportId (ID real do banco) sobre reportId (ID do factory)
                     setTechnicalReportId(data.technicalReportId || data.reportId || urlReportId);
                     setLoading(false);
@@ -180,7 +180,7 @@ export default function ReportPage() {
             if (techRes.ok) {
               const techData = await techRes.json();
               if (techData.report) {
-                setReport(parseDates(techData.report));
+                setReport(normalizeReport(techData.report));
                 setLoading(false);
                 return;
               }
@@ -972,4 +972,35 @@ function parseDates(obj: any): TechnicalReport {
     }
   }
   return obj;
+}
+
+function normalizeReport(input: any): TechnicalReport {
+  const report = parseDates(input) as any;
+  return {
+    ...report,
+    identification: {
+      reportNumber: '', version: 1, type: 'NR13', status: 'DRAFT',
+      createdAt: new Date(), updatedAt: new Date(), inspectionDate: new Date(),
+      inspectorId: '', inspectorName: '', ...report.identification,
+    },
+    client: { id: '', name: '', cnpj: '', address: '', city: '', state: '', ...report.client },
+    equipment: { id: '', tag: '', type: '', ...report.equipment },
+    executiveSummary: { overview: '', keyFindings: [], overallStatus: 'INDETERMINADO', criticalityLevel: 'LOW', requiresImmediateAction: false, ...report.executiveSummary },
+    inspectionData: {
+      inspection: { status: 'EM_ANDAMENTO', recommendations: [], ...report.inspectionData?.inspection },
+      equipment: { id: '', tag: '', type: '', ...report.inspectionData?.equipment },
+      client: { id: '', name: '', cnpj: '', address: '', city: '', state: '', ...report.inspectionData?.client },
+      photos: [], measurements: [], measurementStats: { count: 0, minThicknessMm: 0, maxThicknessMm: 0, avgThicknessMm: 0, belowMinCount: 0, belowMinPercentage: 0, ...report.inspectionData?.measurementStats },
+      ...report.inspectionData,
+    },
+    engineeringResults: { integrityAnalysis: {}, calculations: [], simulations: [], normativeReferences: [], formulaVersions: {}, ...report.engineeringResults },
+    technicalConclusion: { conclusion: 'INDETERMINADO', justification: '', riskFactors: [], complianceStatement: '', restrictions: [], ...report.technicalConclusion },
+    recommendations: { immediate: [], shortTerm: [], mediumTerm: [], longTerm: [], inspection: { scope: [] }, ...report.recommendations },
+    nextInspection: { recommendedDate: new Date(), maxIntervalMonths: 0, type: 'PERIODIC', justification: '', scope: [], acceptanceCriteria: '', ...report.nextInspection },
+    attachments: { photos: [], documents: [], calculations: [], ...report.attachments },
+    history: { versions: [], currentVersion: 0, totalVersions: 0, ...report.history },
+    validations: Array.isArray(report.validations) ? report.validations : [],
+    signatures: { requiredRoles: [], missingRoles: [], isComplete: false, ...report.signatures },
+    metadata: { templateId: 'DEFAULT_NR13', templateVersion: '1.0', generatedBy: '', generatedAt: new Date(), lastModifiedBy: '', lastModifiedAt: new Date(), ...report.metadata },
+  } as TechnicalReport;
 }

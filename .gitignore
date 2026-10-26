@@ -12,6 +12,9 @@ cookies.txt
 
 .tmp/
 
+# Banco local persistente do modo de desenvolvimento
+.tmp/pg/
+
 # Artefatos locais de agentes e QA
 .aider.chat.history.md
 .aider.input.history

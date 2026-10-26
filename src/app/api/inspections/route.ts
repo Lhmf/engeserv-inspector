@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 
 const inspectionSchema = z.object({
   equipmentId: z.string().cuid("Equipamento inválido."),
+  clientId: z.string().cuid().optional(),
   type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
 });
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { equipmentId, type } = parsed.data;
+  const { equipmentId, clientId, type } = parsed.data;
 
   const equipment = await prisma.equipment.findUnique({
     where: { id: equipmentId },
@@ -58,6 +59,10 @@ export async function POST(req: NextRequest) {
 
   if (!equipment || !equipment.active) {
     return NextResponse.json({ error: "Equipamento inválido ou inativo." }, { status: 400 });
+  }
+
+  if (clientId && equipment.clientId !== clientId) {
+    return NextResponse.json({ error: "O equipamento nÃ£o pertence ao cliente selecionado." }, { status: 409 });
   }
 
   const existing = await prisma.inspection.findFirst({

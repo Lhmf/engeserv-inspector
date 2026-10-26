@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { CameraCapture, compressImage } from "@/components/CameraCapture";
 import { useOnline } from "@/lib/useOnline";
+import { normalizeRecommendations, serializeRecommendations } from "@/lib/inspection-normalization";
 import {
   saveDraft,
   getDraft,
@@ -133,7 +134,7 @@ export default function InspectionWizardPage() {
         setPhotos(insp.photos || []);
         setMeasurements(insp.measurements || []);
         setNotes(insp.notes || "");
-        setRecommendations(insp.recommendations || []);
+        setRecommendations(normalizeRecommendations(insp.recommendations));
         setValue("type", insp.type || "PERIODICA");
         setValue("initialNotes", insp.notes || "");
       } else if (!res.ok) {
@@ -166,7 +167,7 @@ export default function InspectionWizardPage() {
     setPhotos(insp?.photos || []);
     setMeasurements(draft.measurements || []);
     setNotes(draft.notes || "");
-    setRecommendations(draft.recommendations || []);
+    setRecommendations(normalizeRecommendations(draft.recommendations));
     setValue("type", (draft.type as any) || insp?.type || "PERIODICA");
     setValue("initialNotes", draft.notes || "");
   }
@@ -174,7 +175,7 @@ export default function InspectionWizardPage() {
   function setPhysicalFromDraft(draft: InspectionDraft) {
     setMeasurements(draft.measurements || []);
     setNotes(draft.notes || "");
-    setRecommendations(draft.recommendations || []);
+    setRecommendations(normalizeRecommendations(draft.recommendations));
     setValue("type", (draft.type as any) || "PERIODICA");
     setValue("initialNotes", draft.notes || "");
   }
@@ -238,7 +239,7 @@ export default function InspectionWizardPage() {
           body: JSON.stringify({
             type: selectedType,
             notes: notes || null,
-            recommendations: JSON.stringify(recommendations),
+            recommendations: serializeRecommendations(recommendations),
           }),
         });
       } catch (e) {
@@ -320,7 +321,8 @@ export default function InspectionWizardPage() {
   }
 
   async function saveMeasurements() {
-    if (!inspectionId || measurements.length === 0) return;
+    if (!inspectionId) throw new Error("Inspeção inválida.");
+    if (measurements.length < 9) throw new Error("Informe pelo menos 9 medições reais: 5 do casco e 4 dos tampos.");
     if (!navigator.onLine) {
       console.log("[Offline] medições preservadas no rascunho local");
       return;
@@ -333,6 +335,7 @@ export default function InspectionWizardPage() {
       });
       if (!res.ok) {
         const err = await res.json();
+        throw new Error(err.error || "Erro ao salvar medições.");
         console.error("Erro ao salvar medições:", err);
       }
     } catch (e) {
@@ -366,6 +369,8 @@ export default function InspectionWizardPage() {
         // Garante que fotos da fila sejam enviadas antes de finalizar
         await flushOfflinePhotos();
 
+        await saveMeasurements();
+
         const res = await fetch(`/api/inspections/${inspectionId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -374,13 +379,12 @@ export default function InspectionWizardPage() {
             completedAt: new Date().toISOString(),
             type: selectedType,
             notes: notes || null,
-            recommendations: JSON.stringify(recommendations),
+            recommendations: serializeRecommendations(recommendations),
           }),
         });
 
         if (!res.ok) throw new Error("Erro ao enviar para revisão");
 
-        await saveMeasurements();
         await clearDraft(inspectionId);
         router.push(`/inspecoes/${inspectionId}`);
       } catch (e: any) {
@@ -455,7 +459,7 @@ export default function InspectionWizardPage() {
           />
         );
       case 3:
-        return <StepMeasurements measurements={measurements} setMeasurements={setMeasurements} minThickness={inspection?.equipment?.minThicknessMm} onBack={prevStep} onNext={() => { saveMeasurements(); nextStep(); }} />;
+        return <StepMeasurements measurements={measurements} setMeasurements={setMeasurements} minThickness={inspection?.equipment?.minThicknessMm} onBack={prevStep} onNext={async () => { await saveMeasurements(); nextStep(); }} />;
       case 4:
         return <StepObservations notes={notes} setNotes={setNotes} recommendations={recommendations} setRecommendations={setRecommendations} onBack={prevStep} onNext={nextStep} />;
       case 5:
@@ -977,7 +981,9 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
   onNext: () => void;
 }) {
   const [rows, setRows] = useState<any[]>(
-    measurements.length > 0 ? measurements : [{ point: "", thicknessMm: null, angleDeg: null, notes: "" }]
+    measurements.length > 0
+      ? measurements
+      : Array.from({ length: 9 }, (_, index) => ({ point: `PM-${String(index + 1).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" }))
   );
 
   function updateRow(idx: number, field: string, value: any) {
@@ -1217,6 +1223,8 @@ function StepObservations({ notes, setNotes, recommendations, setRecommendations
   onBack: () => void;
   onNext: () => void;
 }) {
+  const recommendationList = normalizeRecommendations(recommendations);
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -1238,7 +1246,7 @@ function StepObservations({ notes, setNotes, recommendations, setRecommendations
             Recomendações (uma por linha)
           </label>
           <textarea
-            value={recommendations.join("\n")}
+            value={recommendationList.join("\n")}
             onChange={(e) => setRecommendations(e.target.value.split("\n").filter(Boolean))}
             rows={6}
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand font-mono"
@@ -1255,14 +1263,14 @@ function StepObservations({ notes, setNotes, recommendations, setRecommendations
               key={i}
               type="button"
               onClick={() => {
-                if (!recommendations.includes(t)) {
-                  setRecommendations([...recommendations, t]);
+                if (!recommendationList.includes(t)) {
+                  setRecommendations([...recommendationList, t]);
                 }
               }}
-              disabled={recommendations.includes(t)}
+              disabled={recommendationList.includes(t)}
               className={cn(
                 "inline-flex min-h-11 items-center px-4 py-2 text-sm rounded-full border transition-colors active:scale-95",
-                recommendations.includes(t)
+                recommendationList.includes(t)
                   ? "bg-navy text-white border-navy"
                   : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
               )}

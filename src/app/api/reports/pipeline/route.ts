@@ -78,7 +78,10 @@ export async function GET(req: NextRequest) {
       }
 
       // Reconstruir o objeto TechnicalReport a partir dos dados JSON salvos
-            const parseJson = (data: any) => typeof data === 'string' ? JSON.parse(data) : data;
+            const parseJson = (data: any) => {
+              if (typeof data !== 'string') return data;
+              try { return JSON.parse(data); } catch { return null; }
+            };
             const report = {
               id: technicalReport.id,
               identification: {
@@ -156,13 +159,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Verificar se a inspeção está em status válido para gerar laudo
-    if (inspection.status === 'EM_ANDAMENTO') {
+    if (inspection.status === 'EM_ANDAMENTO' && session.role !== 'ADMIN_MASTER') {
       return NextResponse.json({ error: "Inspeção ainda está em andamento. Envie para aprovação primeiro." }, { status: 400 });
     }
     if (inspection.status === 'REJEITADA') {
       return NextResponse.json({ error: "Inspeção foi rejeitada. Não é possível gerar laudo." }, { status: 400 });
     }
-    if (inspection.status === 'AGUARDANDO_APROVACAO') {
+    if (inspection.status === 'AGUARDANDO_APROVACAO' && session.role !== 'ADMIN_MASTER') {
       return NextResponse.json({ error: "Inspeção ainda aguardando aprovação. Não é possível gerar laudo." }, { status: 400 });
     }
 

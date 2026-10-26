@@ -24,6 +24,7 @@ export default function NewInspectionPage() {
   const [clients, setClients] = useState<any[]>([]);
   const [equipments, setEquipments] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -50,9 +51,10 @@ export default function NewInspectionPage() {
     try {
       const res = await fetch("/api/clientes");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Não foi possível carregar os clientes.");
       setClients(data.clientes.filter((c: any) => c.active));
-    } catch (e) {
-      console.error("Erro ao carregar clientes:", e);
+    } catch (e: any) {
+      setLoadError(e.message || "Não foi possível carregar os clientes.");
     }
   };
 
@@ -60,14 +62,18 @@ export default function NewInspectionPage() {
     try {
       const res = await fetch(`/api/equipamentos?clientId=${clientId}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Não foi possível carregar os equipamentos.");
       setEquipments(data.equipamentos.filter((e: any) => e.active));
-    } catch (e) {
-      console.error("Erro ao carregar equipamentos:", e);
+    } catch (e: any) {
+      setLoadError(e.message || "Não foi possível carregar os equipamentos.");
+      setEquipments([]);
     }
   };
 
   const handleClientChange = async (clientId: string) => {
     setClientId(clientId);
+    setEquipmentId("");
+    setValue("equipmentId", "");
     if (clientId) {
       await loadEquipments(clientId);
     } else {
@@ -81,13 +87,13 @@ export default function NewInspectionPage() {
       const res = await fetch("/api/inspections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ equipmentId: data.equipmentId }),
+        body: JSON.stringify({ clientId: data.clientId, equipmentId: data.equipmentId }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       router.push(`/inspecoes/${result.inspection.id}/wizard?step=1`);
     } catch (e: any) {
-      alert(e.message);
+      setLoadError(e.message || "Não foi possível iniciar a inspeção.");
     } finally {
       setCreating(false);
     }
@@ -116,6 +122,11 @@ export default function NewInspectionPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
           <h2 className="text-lg font-semibold text-slate-800">Selecionar Cliente e Equipamento</h2>
+          {loadError && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {loadError}
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
