@@ -19,7 +19,7 @@ cookies.txt
 .codex/
 playwright-report/
 test-results/
-*.bak
+*.bak*
 *.backup
 *.working
 *.tmp
