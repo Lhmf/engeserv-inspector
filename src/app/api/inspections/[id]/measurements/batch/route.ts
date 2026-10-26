@@ -36,11 +36,22 @@ export async function POST(
 
   const inspection = await prisma.inspection.findUnique({
     where: { id },
-    select: { id: true, inspectorId: true },
+    select: { id: true, inspectorId: true, status: true },
   });
 
   if (!inspection) {
     return NextResponse.json({ error: "Inspeção não encontrada." }, { status: 404 });
+  }
+
+  const canEditMeasurements =
+    inspection.inspectorId === session.userId ||
+    session.role === "GESTOR" ||
+    session.role === "ADMIN_MASTER";
+  if (!canEditMeasurements) {
+    return NextResponse.json({ error: "Sem permissão para alterar medições." }, { status: 403 });
+  }
+  if (inspection.status !== "EM_ANDAMENTO") {
+    return NextResponse.json({ error: "A inspeção não está aberta para medições." }, { status: 409 });
   }
 
   // Delete existing measurements and recreate (simpler than merge)

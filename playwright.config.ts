@@ -12,8 +12,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: process.env.PLAYWRIGHT_PORT ? `npm run dev -- -p ${process.env.PLAYWRIGHT_PORT}` : 'npm run dev',
+    url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

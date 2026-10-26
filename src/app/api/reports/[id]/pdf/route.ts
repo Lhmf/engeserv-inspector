@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { buildNr13Pdf } from '@/modules/report/templates/nr13/pdf/builder';
 import { resolveCompanyInfoFromEnv } from '@/modules/report/company-info';
+import { DEMO_COMPANY_INFO } from '@/modules/report/company-info';
+import { assessTechnicalReportEmission, sanitizeForEmission } from '@/modules/report/safety/emission';
 import type { TechnicalReport } from '@/modules/report/types';
 import type { CompanyInfo } from '@/modules/report/templates/nr13/types';
 
@@ -64,21 +66,41 @@ export async function GET(
       });
     }
 
-    // Build PDF using the modular template (empresa real vinda do ambiente)
-    const company = resolveCompanyInfoFromEnv();
+    const demoMode = req.nextUrl.searchParams.get('mode')?.toLowerCase() === 'demo';
+    const assessment = assessTechnicalReportEmission(report);
+    if (!demoMode && !assessment.canEmitDefinitive) {
+      return NextResponse.json(
+        {
+          error: 'Emissão definitiva bloqueada: os cálculos de engenharia ainda não foram validados.',
+          code: 'EMISSION_BLOCKED_UNVALIDATED_ENGINEERING',
+          reasons: assessment.reasons,
+        },
+        { status: 409 }
+      );
+    }
+
+    const emissionReport = demoMode
+      ? sanitizeForEmission(report, 'DEMO', assessment)
+      : report;
+
+    // O modo definitivo exige dados reais da empresa emitente. O modo demo
+    // usa identificação explícita e nunca pode ser confundido com laudo técnico.
+    const company = demoMode ? DEMO_COMPANY_INFO : resolveCompanyInfoFromEnv();
     if (!company) {
       return NextResponse.json(
         { error: 'Empresa emitente não configurada.' },
         { status: 500 }
       );
     }
-    const pdfBytes = await buildNr13Pdf(report, company);
+    const pdfBytes = await buildNr13Pdf(emissionReport, company, {
+      mode: demoMode ? 'DEMO' : 'DEFINITIVE',
+    });
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="laudo-${report.identification.reportNumber}.pdf"`,
+        'Content-Disposition': `attachment; filename="laudo-${emissionReport.identification.reportNumber}.pdf"`,
         'Cache-Control': 'no-cache',
       },
     });

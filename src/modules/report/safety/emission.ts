@@ -124,6 +124,21 @@ function collectCalculations(report: any): Map<string, RawCalculation> {
     const raw = readRawCalculation(analysis?.[id]);
     if (raw) calcs.set(id, raw);
   }
+
+  for (const calculation of analysis?.calculations || []) {
+    const label = String(calculation?.label || '').toLowerCase();
+    const calculationId = String(calculation?.id || '').toLowerCase();
+    const id = label.includes('corros') || calculationId.startsWith('cr-')
+      ? 'corrosionRate'
+      : label.includes('pmta') || calculationId.startsWith('mawp-')
+        ? 'mawp'
+        : label.includes('espessura m') || calculationId.startsWith('tmin-')
+          ? 'minimumThickness'
+          : label.includes('vida') || calculationId.startsWith('rl-')
+            ? 'remainingLife'
+            : null;
+    if (id && !calcs.has(id)) calcs.set(id, calculation);
+  }
   return calcs;
 }
 

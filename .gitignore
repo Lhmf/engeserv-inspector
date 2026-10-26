@@ -12,3 +12,28 @@ cookies.txt
 
 .tmp/
 
+# Artefatos locais de agentes e QA
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v4/
+.codex/
+playwright-report/
+test-results/
+*.bak
+*.backup
+*.working
+*.tmp
+temp.txt
+test.txt
+tmp_kpi.txt
+tsconfig*.tmp.tsbuildinfo
+docs/CHANGELOG.md.bak
+qa/lote21b/*.pdf
+qa/lote21b/laudo-text.txt
+qa/lote21b/integration-results.json
+qa/lote21b/seed-output.json
+qa/lote21b/seed-test-data.ts
+qa/lote23a/*.pdf
+qa/lote23b/integration-results.json
+scripts/seed-qa-ficticio.ts
+

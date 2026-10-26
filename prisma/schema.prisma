@@ -327,6 +327,7 @@ model TechnicalReport {
   validations       Json
   signatures        Json
   metadata          Json
+  rejectionReason   String?
   
   // Relacionamentos
   inspectionId      String   @unique

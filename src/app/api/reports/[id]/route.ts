@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, canIssueFinalReport } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
@@ -46,6 +46,13 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json({ error: "Laudo não encontrado." }, { status: 404 });
+  }
+
+  if (!canIssueFinalReport(session.role)) {
+    return NextResponse.json(
+      { error: "Funcionário não pode revisar, aprovar ou publicar laudos." },
+      { status: 403 }
+    );
   }
 
   // Regras de transição de status (baseado no TechnicalReportStatus enum)
@@ -98,7 +105,7 @@ export async function PATCH(
     authorId: session.userId,
     authorName: session.name,
     authorRole: session.role === "ADMIN_MASTER" ? "MANAGER" : session.role === "GESTOR" ? "ENGINEER" : "INSPECTOR",
-    changes: `${actionLabel}: ${stepNameMap[stepId] || stepId} → ${status}`,
+    changes: `${actionLabel}: ${stepNameMap[stepId] || stepId} -> ${status}`,
     status,
     action: action === "skip" ? "SKIPPED" : "COMPLETED",
     previousVersion: newVersion - 1,
@@ -183,6 +190,7 @@ export async function PATCH(
     validations: parseJson(technicalReport.validations),
     signatures: parseJson(technicalReport.signatures),
     metadata: parseJson(technicalReport.metadata),
+    rejectionReason: technicalReport.rejectionReason,
   };
 
   return NextResponse.json({ 
