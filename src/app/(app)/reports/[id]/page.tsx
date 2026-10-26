@@ -205,6 +205,9 @@ export default function ReportPage() {
           if (!technicalReportId || isExportingPdf) return;
     
           setIsExportingPdf(true);
+          window.open(`/api/reports/${technicalReportId}/official-html`, "_blank");
+          setIsExportingPdf(false);
+          return;
           try {
             const response = await fetch(`/api/reports/${technicalReportId}/pdf`, {
               method: "GET",
@@ -596,7 +599,7 @@ export default function ReportPage() {
                               </span>
                               <button
                                                                                             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
-                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf`, '_blank')}
+                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/official-html`, '_blank')}
                                                                                             aria-label="Baixar PDF"
                                                                                             title="Baixar PDF"
                                                                                           >
@@ -801,18 +804,18 @@ export default function ReportPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf`, '_blank')}
+                            onClick={() => window.open(`/api/reports/${technicalReportId}/official-html`, '_blank')}
                             className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                            Exportar PDF
+                            Abrir layout oficial / imprimir
                           </button>
                         </div>
                       </div>
                       {/* PDF iframe */}
                       <div className="border border-t-0 border-slate-200 rounded-b-xl overflow-hidden bg-slate-100" style={{ height: '800px' }}>
                         <iframe
-                          src={`/api/reports/${technicalReportId}/pdf`}
+                          src={`/api/reports/${technicalReportId}/official-html`}
                           className="w-full h-full border-0"
                           title="Preview do Laudo NR-13"
                         />

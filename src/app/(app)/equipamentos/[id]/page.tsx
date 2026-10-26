@@ -72,6 +72,13 @@ export default async function EquipamentoDetailPage({
             <p className="text-sm text-slate-500 mt-1">{equipment.description}</p>
           )}
         </div>
+        <Link
+          href={`/inspecoes/novo?clientId=${encodeURIComponent(equipment.clientId)}&equipmentId=${encodeURIComponent(equipment.id)}`}
+          className="inline-flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand"
+        >
+          <ClipboardList className="h-4 w-4" />
+          Nova inspeção
+        </Link>
       </div>
 
       {/* Client Info */}

@@ -83,6 +83,8 @@ export default function NewEquipmentForm() {
 
   useEffect(() => {
     loadClients();
+    const requestedClientId = new URLSearchParams(window.location.search).get("clientId");
+    if (requestedClientId) setClientId(requestedClientId);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

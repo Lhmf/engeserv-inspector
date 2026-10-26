@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -25,9 +25,26 @@ export default function NewInspectionPage() {
   const [equipments, setEquipments] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<EquipmentFormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedClientId = params.get("clientId");
+    const requestedEquipmentId = params.get("equipmentId");
+    void loadClients();
+    if (requestedClientId) {
+      setClientId(requestedClientId);
+      setValue("clientId", requestedClientId);
+      void loadEquipments(requestedClientId).then(() => {
+        if (requestedEquipmentId) {
+          setEquipmentId(requestedEquipmentId);
+          setValue("equipmentId", requestedEquipmentId);
+        }
+      });
+    }
+  }, []);
 
   const loadClients = async () => {
     try {
@@ -148,7 +165,7 @@ export default function NewInspectionPage() {
           {clientId && equipments.length === 0 && (
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
               Este cliente não possui equipamentos ativos cadastrados.
-              <Link href="/equipamentos/novo" className="ml-2 font-medium text-amber-700 hover:underline">
+              <Link href={`/equipamentos/novo?clientId=${encodeURIComponent(clientId)}`} className="ml-2 font-medium text-amber-700 hover:underline">
                 Cadastrar equipamento
               </Link>
             </div>
