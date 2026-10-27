@@ -68,6 +68,16 @@ const inspectionSchema = z.object({
 
 type InspectionFormData = z.infer<typeof inspectionSchema>;
 
+const FIELD_CHECKLIST = [
+  { key: "externalAccess", label: "Acesso seguro para manutenção, operação e inspeção" },
+  { key: "externalClearance", label: "Saída ampla e permanentemente desobstruída" },
+  { key: "identificationPlate", label: "Placa de identificação legível e visível" },
+  { key: "safetyValve", label: "Válvula de segurança instalada e identificada" },
+  { key: "pressureGauge", label: "Manômetro instalado e identificado" },
+  { key: "tightnessTest", label: "Teste de estanqueidade realizado" },
+  { key: "lighting", label: "Iluminação adequada para inspeção" },
+] as const;
+
 const RECOMMENDATION_TEMPLATES = [
   "Inspeção visual anual conforme NR-13, item 13.7.2",
   "Teste hidrostático periódico a cada 5 (cinco) anos, ou conforme critério do profissional habilitado",
@@ -92,6 +102,7 @@ export default function InspectionWizardPage() {
   const [measurements, setMeasurements] = useState<any[]>([]);
   const [notes, setNotes] = useState("");
   const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [fieldChecklist, setFieldChecklist] = useState<Record<string, boolean>>({});
   const [loadingInspection, setLoadingInspection] = useState(true);
   const [offlinePhotos, setOfflinePhotos] = useState<any[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
@@ -135,6 +146,7 @@ export default function InspectionWizardPage() {
         setPhotos(insp.photos || []);
         setMeasurements(insp.measurements || []);
         setNotes(insp.notes || "");
+         setFieldChecklist(insp.fieldChecklist || {});
         setRecommendations(normalizeRecommendations(insp.recommendations));
         setValue("type", insp.type || "PERIODICA");
         setValue("initialNotes", insp.notes || "");
@@ -168,6 +180,7 @@ export default function InspectionWizardPage() {
     setPhotos(insp?.photos || []);
     setMeasurements(draft.measurements || []);
     setNotes(draft.notes || "");
+    setFieldChecklist(draft.fieldChecklist || {});
     setRecommendations(normalizeRecommendations(draft.recommendations));
     setValue("type", (draft.type as any) || insp?.type || "PERIODICA");
     setValue("initialNotes", draft.notes || "");
@@ -176,6 +189,7 @@ export default function InspectionWizardPage() {
   function setPhysicalFromDraft(draft: InspectionDraft) {
     setMeasurements(draft.measurements || []);
     setNotes(draft.notes || "");
+    setFieldChecklist(draft.fieldChecklist || {});
     setRecommendations(normalizeRecommendations(draft.recommendations));
     setValue("type", (draft.type as any) || "PERIODICA");
     setValue("initialNotes", draft.notes || "");
@@ -192,11 +206,12 @@ export default function InspectionWizardPage() {
         notes,
         recommendations,
         measurements,
+        fieldChecklist,
         updatedAt: Date.now(),
       }).catch(() => {});
     }, 400);
     return () => clearTimeout(t);
-  }, [selectedType, notes, recommendations, measurements, loadingInspection, inspectionId]);
+  }, [selectedType, notes, recommendations, measurements, fieldChecklist, loadingInspection, inspectionId]);
 
   // Manual save with feedback (RC3: "Salvar rascunho")
   const [draftSaved, setDraftSaved] = useState(false);
@@ -208,6 +223,7 @@ export default function InspectionWizardPage() {
       notes,
       recommendations,
       measurements,
+      fieldChecklist,
       updatedAt: Date.now(),
     }).catch(() => {});
     setDraftSaved(true);
@@ -240,6 +256,7 @@ export default function InspectionWizardPage() {
           body: JSON.stringify({
             type: selectedType,
             notes: notes || null,
+            fieldChecklist,
             recommendations: serializeRecommendations(recommendations),
           }),
         });
@@ -466,7 +483,7 @@ export default function InspectionWizardPage() {
       case 3:
         return <StepMeasurements measurements={measurements} setMeasurements={setMeasurements} minThickness={inspection?.equipment?.minThicknessMm} onBack={prevStep} onNext={async () => { await saveMeasurements(); nextStep(); }} />;
       case 4:
-        return <StepObservations notes={notes} setNotes={setNotes} recommendations={recommendations} setRecommendations={setRecommendations} onBack={prevStep} onNext={nextStep} />;
+        return <StepObservations notes={notes} setNotes={setNotes} recommendations={recommendations} setRecommendations={setRecommendations} fieldChecklist={fieldChecklist} setFieldChecklist={setFieldChecklist} onBack={prevStep} onNext={nextStep} />;
       case 5:
         return (
           <StepReview
@@ -1224,11 +1241,13 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
 // ================================================================
 // STEP 4: Observações
 // ================================================================
-function StepObservations({ notes, setNotes, recommendations, setRecommendations, onBack, onNext }: {
+function StepObservations({ notes, setNotes, recommendations, setRecommendations, fieldChecklist, setFieldChecklist, onBack, onNext }: {
   notes: string;
   setNotes: (n: string) => void;
   recommendations: string[];
   setRecommendations: (r: string[]) => void;
+  fieldChecklist: Record<string, boolean>;
+  setFieldChecklist: (value: Record<string, boolean>) => void;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -1236,6 +1255,17 @@ function StepObservations({ notes, setNotes, recommendations, setRecommendations
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-semibold text-slate-800">Checklist de campo NR-13</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          {FIELD_CHECKLIST.map((item) => (
+            <label key={item.key} className="flex items-start gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={Boolean(fieldChecklist[item.key])} onChange={(event) => setFieldChecklist({ ...fieldChecklist, [item.key]: event.target.checked })} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-navy" />
+              <span>{item.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-lg font-semibold text-slate-800">Observações e Recomendações</h3>
 

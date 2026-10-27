@@ -743,6 +743,9 @@ export class InspectionReportPipeline {
                 rejectionReason: inspection.rejectionReason ?? undefined,
                 type: inspection.type as 'INICIAL' | 'PERIODICA' | 'EXTRAORDINARIA',
                 notes: inspection.notes ?? undefined,
+                fieldChecklist: (inspection.fieldChecklist && typeof inspection.fieldChecklist === 'object'
+                  ? inspection.fieldChecklist as Record<string, boolean>
+                  : undefined),
                 recommendations,
               },
                     equipment: {

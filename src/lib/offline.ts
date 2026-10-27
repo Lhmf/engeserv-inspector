@@ -27,6 +27,7 @@ export interface InspectionDraft {
   notes: string | null;
   recommendations: string[];
   measurements: any[];
+  fieldChecklist?: Record<string, boolean>;
   updatedAt: number;
 }
 

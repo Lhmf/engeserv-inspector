@@ -232,6 +232,7 @@ model Inspection {
 
   type        InspectionType @default(PERIODICA)
   notes       String?
+  fieldChecklist Json?
   recommendations String  // JSON string array
   status      InspectionStatus @default(EM_ANDAMENTO)
   startedAt   DateTime   @default(now())

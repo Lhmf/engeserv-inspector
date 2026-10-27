@@ -86,6 +86,29 @@ function measurementMap(report: AnyRecord) {
   return `<table class="measurement-map"><tr><th>ID</th><th>LOCAL</th><th>ESPESSURA (mm)</th><th>ORIGEM</th></tr>${mapRows}</table><p class="small">${escapeHtml(REGIONAL_ADOPTION_NOTE)}</p>`;
 }
 
+const FIELD_CHECKLIST_LABELS: Array<[string, string]> = [
+  ['externalAccess', 'Acesso seguro para manutenÃ§Ã£o, operaÃ§Ã£o e inspeÃ§Ã£o'],
+  ['externalClearance', 'SaÃ­da ampla e permanentemente desobstruÃ­da'],
+  ['identificationPlate', 'Placa de identificaÃ§Ã£o legÃ­vel e visÃ­vel'],
+  ['safetyValve', 'VÃ¡lvula de seguranÃ§a instalada e identificada'],
+  ['pressureGauge', 'ManÃ´metro instalado e identificado'],
+  ['tightnessTest', 'Teste de estanqueidade realizado'],
+  ['lighting', 'IluminaÃ§Ã£o adequada para inspeÃ§Ã£o'],
+];
+
+function fieldChecklistValue(report: AnyRecord, key: string) {
+  const checklist = report.inspectionData?.fieldChecklist || report.inspectionData?.inspection?.fieldChecklist;
+  const values = checklist && typeof checklist === 'object' ? checklist : {};
+  return typeof values[key] === 'boolean' ? (values[key] ? 'SIM' : 'NÃƒO') : 'NÃƒO INFORMADO';
+}
+
+function fieldChecklist(report: AnyRecord) {
+  const checklistRows = FIELD_CHECKLIST_LABELS.map(([key, label]) => {
+    return `<tr><td>${escapeHtml(label)}</td><td>${fieldChecklistValue(report, key)}</td></tr>`;
+  }).join('');
+  return `<table class="checklist field-checklist"><tr><th>ITEM VERIFICADO EM CAMPO</th><th>RESULTADO</th></tr>${checklistRows}</table>`;
+}
+
 function pageHeader(report: AnyRecord, pageNumber: number, total: number) {
   const metadata = report.metadata || {};
   return `<table class="header"><tr><td>${image(metadata.inspectorLogoUrl, 'Logo EngeServ', 'logo')}</td><td><b>LAUDO TÉCNICO DE INSPEÇÃO PERIÓDICA<br>EM ATENDIMENTO NR-13</b></td><td>DOC: ${escapeHtml(report.identification?.reportNumber)}<br>PÁGINA: ${pageNumber} / ${total}<br>DATA: ${escapeHtml(date(report.identification?.inspectionDate))}</td></tr></table>`;
@@ -123,8 +146,8 @@ export function renderOfficialNr13Html(report: TechnicalReport): string {
     `<div class="section-title">4. PRAZO DAS PRÓXIMAS INSPEÇÕES DE ACORDO COM NR-13</div><table class="checklist"><tr><th>EXAME VISUAL EXTERNO</th><th>EXAME INTERNO</th><th>MEDIÇÃO ULTRASSOM</th><th>TESTE HIDROSTÁTICO</th></tr><tr><td>SIM</td><td>SIM</td><td>SIM</td><td>NÃO INFORMADO</td></tr><tr><th>DATA DA INSPEÇÃO</th><th>PRÓXIMA EXTERNA</th><th>PRÓXIMA INTERNA</th><th>PRÓXIMA END</th></tr><tr><td>${escapeHtml(date(data.identification?.inspectionDate))}</td><td>${escapeHtml(date(nextInspection))}</td><td>${escapeHtml(date(nextInspection))}</td><td>${escapeHtml(date(nextInspection))}</td></tr></table><p class="small">Os prazos devem ser confirmados pelo profissional legalmente habilitado conforme as condições reais de operação e os critérios vigentes da NR-13.</p>`,
     `<div class="section-title">5. CLASSIFICAÇÃO DO VASO DE PRESSÃO</div><table>${rows([['FLUIDO DE SERVIÇO', equipment.fluidType], ['CLASSE DO FLUIDO', equipment.fluidClass], ['GRUPO POTENCIAL DE RISCO', equipment.riskGroup], ['CATEGORIA', equipment.nr13Category], ['TIPO DE VASO', equipment.description || equipment.type], ['TIPO DE INSPEÇÃO', inspection.type]])}</table><p>Os vasos de pressão são classificados segundo o tipo de fluido e o potencial de risco em função do produto P.V, observadas as informações cadastradas e os documentos apresentados.</p>`,
     `<div class="section-title">6. EMPRESA INSPETORA OU PROFISSIONAL LEGALMENTE HABILITADO</div><table>${rows([['EMPRESA', data.metadata?.companyName || 'ENGSERV ENGENHARIA E SERVIÇOS'], ['CNPJ', data.metadata?.companyCnpj], ['ENDEREÇO', data.metadata?.companyAddress], ['PLH RESPONSÁVEL', data.identification?.engineerName || data.identification?.inspectorName], ['CREA / ART', data.identification?.artNumber], ['CONTATO', data.metadata?.companyEmail]])}</table><div class="section-title">7. ANÁLISE DOS DOCUMENTOS</div>${documentChecklist()}`,
-    `<div class="section-title">8. EXAMES REALIZADOS</div><h3>8.1 - EXAME EXTERNO</h3><p>${escapeHtml(inspection.notes || 'Foi realizado exame visual externo do equipamento, verificando condições aparentes, acessibilidade, identificação e conservação.')}</p><h3>8.2 - PLACA DE IDENTIFICAÇÃO</h3><p>Registro da identificação do vaso, TAG e número de série conforme dados cadastrados.</p><h3>8.3 - VÁLVULA DE SEGURANÇA</h3><p>Verificação documental e visual da válvula de segurança, pendente de certificados anexos quando não fornecidos.</p>`,
-    `<div class="section-title">8.4 - MANÔMETRO E TESTE DE ESTANQUEIDADE</div><table>${rows([['MANÔMETRO', 'Conforme registro da inspeção'], ['PRESSÃO DE TESTE', equipment.hydroTestPressureBar ? number(equipment.hydroTestPressureBar) + ' bar' : '-'], ['TEMPO DE TESTE', '-'], ['RESULTADO', 'Registrar conforme evidência de campo']])}</table><div class="section-title">9. ENSAIO NÃO DESTRUTIVO - END E INSPEÇÃO</div><p>Ensaio de medição de espessura por ultrassom realizado nos pontos de controle registrados na tabela deste laudo.</p>`,
+    `<div class="section-title">8. EXAMES REALIZADOS</div><h3>8.1 - EXAME EXTERNO</h3><p>${escapeHtml(inspection.notes || 'Foi realizado exame visual externo do equipamento, verificando condições aparentes, acessibilidade, identificação e conservação.')}</p>${fieldChecklist(data)}<h3>8.2 - PLACA DE IDENTIFICAÇÃO</h3><p>Registro da identificação do vaso, TAG e número de série conforme dados cadastrados. Resultado de campo: <b>${fieldChecklistValue(data, 'identificationPlate')}</b>.</p><h3>8.3 - VÁLVULA DE SEGURANÇA</h3><p>Verificação documental e visual da válvula de segurança. Resultado de campo: <b>${fieldChecklistValue(data, 'safetyValve')}</b>.</p>`,
+    `<div class="section-title">8.4 - MANÔMETRO E TESTE DE ESTANQUEIDADE</div><table>${rows([['MANÔMETRO', fieldChecklistValue(data, 'pressureGauge')], ['PRESSÃO DE TESTE', equipment.hydroTestPressureBar ? number(equipment.hydroTestPressureBar) + ' bar' : '-'], ['TEMPO DE TESTE', '-'], ['RESULTADO', fieldChecklistValue(data, 'tightnessTest')]])}</table><div class="section-title">9. ENSAIO NÃO DESTRUTIVO - END E INSPEÇÃO</div><p>Ensaio de medição de espessura por ultrassom realizado nos pontos de controle registrados na tabela deste laudo.</p>`,
     `<div class="section-title">9.1 - MEDIÇÃO DE ESPESSURA POR ULTRASSOM</div><p>As espessuras mínimas encontradas foram:</p><table><tr><th>REGIÃO</th><th>MÍNIMO</th><th>MÁXIMO</th><th>REGISTROS</th></tr><tr><td>CASCO</td><td>${number(minimum(bodyValues))} mm</td><td>${number(maximum(bodyValues))} mm</td><td>10 pontos</td></tr><tr><td>TAMPOS</td><td>${number(minimum(headValues))} mm</td><td>${number(maximum(headValues))} mm</td><td>8 pontos</td></tr></table><p>${escapeHtml(data.executiveSummary?.overview || 'A integridade do vaso foi analisada pelo ensaio de ultrassom. Os resultados permanecem como estimativa técnica até a validação formal das fórmulas pelo responsável técnico.')}</p>`,
     `<div class="section-title">MAPA DE MEDIÇÃO DE ESPESSURA</div>${measurementMap(data)}`,
     `<div class="section-title">CÁLCULO DE VIDA ÚTIL DO VASO DE PRESSÃO</div><table><tr><th>REGIÃO</th><th>ESP. MÍN. REQ.</th><th>MIN. ENCONTRADA</th><th>TAXA DE CORROSÃO</th><th>SOBREESPESSURA</th><th>VIDA REMANESCENTE</th></tr><tr><td>Casco</td><td>${number(equipment.minThicknessMm)} mm</td><td>${number(minimum(bodyValues))} mm</td><td>${number(data.engineeringResults?.corrosionRate?.value, 3)} mm/ano</td><td>${number(data.engineeringResults?.integrityAnalysis?.marginMm)} mm</td><td>${number(data.engineeringResults?.remainingLife?.value, 1)} anos</td></tr><tr><td>Tampos</td><td>${number(equipment.minThicknessMm)} mm</td><td>${number(minimum(headValues))} mm</td><td>${number(data.engineeringResults?.corrosionRate?.value, 3)} mm/ano</td><td>${number(data.engineeringResults?.integrityAnalysis?.marginMm)} mm</td><td>${number(data.engineeringResults?.remainingLife?.value, 1)} anos</td></tr></table><p class="small">Unidade de medida: milímetros (mm). Pontos com asterisco são valores adotados, não medidos.</p>`,

@@ -244,8 +244,10 @@ function parseTechnicalReport(raw: any): TechnicalReport {
         approvedAt: inspect.approvedAt ? new Date(inspect.approvedAt) : undefined,
         type: inspect.type || 'PERIODICA',
         notes: inspect.notes,
+        fieldChecklist: inspect.fieldChecklist || inspectionData.fieldChecklist || {},
         recommendations: inspect.recommendations,
       },
+      fieldChecklist: inspect.fieldChecklist || inspectionData.fieldChecklist || {},
       equipment: {
         id: equipmentData.id || equip.id || '',
         tag: equipmentData.tag || equip.tag || 'TAG',

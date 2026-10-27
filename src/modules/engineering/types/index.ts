@@ -71,6 +71,7 @@ export interface InspectionData {
   rejectionReason?: string;
   type: InspectionType;
   notes?: string;
+  fieldChecklist?: Record<string, boolean>;
   recommendations?: string[];
   measurements?: MeasurementPoint[];
   photos?: InspectionPhoto[];

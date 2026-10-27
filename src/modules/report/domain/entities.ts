@@ -383,8 +383,10 @@ export class TechnicalReportBuilder {
           rejectionReason: inspection.rejectionReason,
           type: inspection.type,
           notes: inspection.notes,
+          fieldChecklist: inspection.fieldChecklist,
           recommendations: inspection.recommendations,
         },
+        fieldChecklist: inspection.fieldChecklist,
         equipment: {
           id: equipment.id,
           tag: equipment.tag,

@@ -140,6 +140,7 @@ export interface ExecutiveSummary {
 
 export interface InspectionDataSection {
   inspection: InspectionData;
+  fieldChecklist?: Record<string, boolean>;
   equipment: EquipmentInfo;
   client: ClientInfo;
   

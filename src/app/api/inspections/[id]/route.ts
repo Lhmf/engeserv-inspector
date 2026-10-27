@@ -8,6 +8,7 @@ import { serializeRecommendations } from "@/lib/inspection-normalization";
 const updateInspectionSchema = z.object({
   type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
   notes: z.string().optional().nullable(),
+  fieldChecklist: z.record(z.boolean()).optional().nullable(),
   recommendations: z.union([z.string(), z.array(z.unknown()), z.record(z.unknown())]).optional(),
   status: z.enum(["EM_ANDAMENTO", "AGUARDANDO_APROVACAO", "APROVADA", "REJEITADA"]).optional(),
   rejectionReason: z.string().optional(),
@@ -72,7 +73,7 @@ export async function PUT(
     );
   }
 
-  const { type, status, notes, recommendations, rejectionReason, completedAt } = parsed.data;
+  const { type, status, notes, fieldChecklist, recommendations, rejectionReason, completedAt } = parsed.data;
 
   const existing = await prisma.inspection.findUnique({
     where: { id },
@@ -110,6 +111,7 @@ export async function PUT(
   if (type) updateData.type = type;
   if (status) updateData.status = status;
   if (notes !== undefined) updateData.notes = notes;
+  if (fieldChecklist !== undefined) updateData.fieldChecklist = fieldChecklist;
   if (recommendations !== undefined) updateData.recommendations = serializeRecommendations(recommendations);
   if (rejectionReason) updateData.rejectionReason = rejectionReason;
   if (completedAt) updateData.completedAt = new Date(completedAt);

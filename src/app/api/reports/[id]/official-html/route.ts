@@ -25,6 +25,7 @@ export async function GET(
 
   if (!report) return new NextResponse('Laudo não encontrado.', { status: 404 });
 
+  const inspectionData = parseJson(report.inspectionData) || {};
   const document = {
     id: report.id,
     identification: {
@@ -42,7 +43,10 @@ export async function GET(
     client: parseJson(report.clientData),
     equipment: parseJson(report.equipmentData),
     executiveSummary: parseJson(report.executiveSummary),
-    inspectionData: parseJson(report.inspectionData),
+    inspectionData: {
+      ...inspectionData,
+      fieldChecklist: inspectionData.fieldChecklist || (report.inspection as any).fieldChecklist || {},
+    },
     engineeringResults: parseJson(report.engineeringResults),
     technicalConclusion: parseJson(report.technicalConclusion),
     recommendations: parseJson(report.recommendations),
