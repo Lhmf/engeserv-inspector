@@ -20,6 +20,6 @@ test('laudo oficial exibe o checklist de campo sem inventar respostas', () => {
   assert.match(html, /ITEM VERIFICADO EM CAMPO/);
   assert.match(html, /Acesso seguro/);
   assert.match(html, />SIM<\/td>/);
-  assert.match(html, />NÃƒO<\/td>/);
-  assert.match(html, /NÃƒO INFORMADO/);
+  assert.match(html, />NÃO<\/td>/);
+  assert.match(html, /NÃO INFORMADO/);
 });

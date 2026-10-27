@@ -87,19 +87,19 @@ function measurementMap(report: AnyRecord) {
 }
 
 const FIELD_CHECKLIST_LABELS: Array<[string, string]> = [
-  ['externalAccess', 'Acesso seguro para manutenÃ§Ã£o, operaÃ§Ã£o e inspeÃ§Ã£o'],
-  ['externalClearance', 'SaÃ­da ampla e permanentemente desobstruÃ­da'],
-  ['identificationPlate', 'Placa de identificaÃ§Ã£o legÃ­vel e visÃ­vel'],
-  ['safetyValve', 'VÃ¡lvula de seguranÃ§a instalada e identificada'],
-  ['pressureGauge', 'ManÃ´metro instalado e identificado'],
+  ['externalAccess', 'Acesso seguro para manutenção, operação e inspeção'],
+  ['externalClearance', 'Saída ampla e permanentemente desobstruída'],
+  ['identificationPlate', 'Placa de identificação legível e visível'],
+  ['safetyValve', 'Válvula de segurança instalada e identificada'],
+  ['pressureGauge', 'Manômetro instalado e identificado'],
   ['tightnessTest', 'Teste de estanqueidade realizado'],
-  ['lighting', 'IluminaÃ§Ã£o adequada para inspeÃ§Ã£o'],
+  ['lighting', 'Iluminação adequada para inspeção'],
 ];
 
 function fieldChecklistValue(report: AnyRecord, key: string) {
   const checklist = report.inspectionData?.fieldChecklist || report.inspectionData?.inspection?.fieldChecklist;
   const values = checklist && typeof checklist === 'object' ? checklist : {};
-  return typeof values[key] === 'boolean' ? (values[key] ? 'SIM' : 'NÃƒO') : 'NÃƒO INFORMADO';
+  return typeof values[key] === 'boolean' ? (values[key] ? 'SIM' : 'NÃO') : 'NÃO INFORMADO';
 }
 
 function fieldChecklist(report: AnyRecord) {
