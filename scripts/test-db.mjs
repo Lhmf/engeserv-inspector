@@ -35,7 +35,8 @@ function safeHost(url) {
 }
 
 const dotenvTest = parseEnvFile(path.join(root, '.env.test'));
-const testUrl = process.env.TEST_DATABASE_URL || dotenvTest.TEST_DATABASE_URL;
+const dotenvTestExample = parseEnvFile(path.join(root, '.env.test.example'));
+const testUrl = process.env.TEST_DATABASE_URL || dotenvTest.TEST_DATABASE_URL || dotenvTestExample.TEST_DATABASE_URL;
 if (!testUrl) {
   console.error('ERRO: TEST_DATABASE_URL ausente em .env.test ou no ambiente.');
   process.exit(1);
