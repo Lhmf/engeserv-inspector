@@ -2,6 +2,8 @@ import { getSession, canCreateGestor } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NewUserForm } from "./NewUserForm";
 
+export const dynamic = "force-dynamic";
+
 type UserRow = {
   id: string;
   name: string;

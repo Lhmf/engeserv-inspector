@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import NewEquipmentForm from "./NewEquipmentForm";
 
+export const dynamic = "force-dynamic";
+
 export default async function EquipamentosPage() {
   const session = await getSession();
 
