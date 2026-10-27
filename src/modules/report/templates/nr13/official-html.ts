@@ -42,7 +42,18 @@ function maximum(values: number[]) {
 }
 
 function documentChecklist() {
-  return `<table class="checklist"><tr><th>DOCUMENTO / ITEM</th><th>RESULTADO</th></tr><tr><td>Prontuário do vaso</td><td>APRESENTADO / A CONFIRMAR</td></tr><tr><td>Livro de registro de segurança</td><td>APRESENTADO / A CONFIRMAR</td></tr><tr><td>Projeto de alteração e reparos</td><td>NÃO INFORMADO</td></tr><tr><td>Relatório de inspeção anterior</td><td>NÃO INFORMADO</td></tr><tr><td>Certificados dos instrumentos</td><td>NÃO INFORMADO</td></tr></table>`;
+  const items: Array<[string, string[]]> = [
+    ['Prontuário do vaso', ['prontuário', 'prontuario']],
+    ['Livro de registro de segurança', ['livro', 'registro de segurança', 'registro de seguranca']],
+    ['Projeto de alteração e reparos', ['projeto', 'alteração', 'alteracao', 'reparo']],
+    ['Relatório de inspeção anterior', ['inspeção anterior', 'inspecao anterior', 'laudo anterior']],
+    ['Certificados dos instrumentos', ['certificado', 'calibração', 'calibracao', 'instrumento']],
+  ];
+  const rowsMarkup = items.map(([label, terms]) => {
+    const result = documentFor(activeDocuments, ...terms) ? 'APRESENTADO' : 'NÃO INFORMADO';
+    return `<tr><td>${escapeHtml(label)}</td><td>${result}</td></tr>`;
+  }).join('');
+  return `<table class="checklist"><tr><th>DOCUMENTO / ITEM</th><th>RESULTADO</th></tr>${rowsMarkup}</table>`;
 }
 
 let activeDocuments: AnyRecord[] = [];
