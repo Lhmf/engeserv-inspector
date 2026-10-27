@@ -26,6 +26,7 @@ test-results/
 *.backup
 *.working
 *.tmp
+*.tsbuildinfo
 temp.txt
 test.txt
 tmp_kpi.txt
@@ -38,5 +39,11 @@ qa/lote21b/seed-output.json
 qa/lote21b/seed-test-data.ts
 qa/lote23a/*.pdf
 qa/lote23b/integration-results.json
+qa/**/*.log
+qa/**/*.bak
+qa/**/data/
+qa/**/fixtures-generated/
+docs/demo/**/storage*.json
+docs/demo/**/*.log
 scripts/seed-qa-ficticio.ts
 

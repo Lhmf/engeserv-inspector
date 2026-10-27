@@ -20,6 +20,7 @@ import type {
   RiskFactor,
 } from '../types';
 import { validateCalculationInput, validateUnitConsistency } from '../validators';
+import { THICKNESS_THRESHOLDS } from '../constants';
 import { 
   calculators, 
   MinimumThicknessInput,
@@ -67,8 +68,8 @@ export class EngineeringEngineService {
     
     // Preparar parâmetros
     const minThicknessMm = equipment.minThicknessMm || 0;
-    const corrosionAllowanceMm = equipment.corrosionAllowanceMm || 
-      (equipment.type && (require('../constants').DEFAULT_CORROSION_ALLOWANCE_MM as Record<string, number>)[equipment.type]) || 3.0;
+    const corrosionAllowanceMm = equipment.corrosionAllowanceMm ||
+      (equipment.type && THICKNESS_THRESHOLDS.DEFAULT_CORROSION_ALLOWANCE_MM[equipment.type]) || 3.0;
     const jointEfficiency = equipment.jointEfficiency || 1.0;
     const safetyFactor = input.safetyFactor || 1.5;
     

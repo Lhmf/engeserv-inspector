@@ -27,6 +27,7 @@ import { engineeringIntegration, EngineeringIntegrationService } from '@/modules
 import { generateId } from '../utils/id-generator';
 import type { MeasurementPoint } from '@/modules/engineering/types';
 import { prisma } from '@/lib/prisma';
+import { materializeRegionalMeasurements } from '@/modules/report/measurements/regional-adoption';
 
 // ============================================================
 // PIPELINE CONFIG PADRÃO
@@ -435,7 +436,7 @@ export class InspectionReportPipeline {
       const calculationInput = buildCalculationInput(
         rawData.equipment as any,
         rawData.inspection as any,
-        rawData.measurements as any,
+          [...rawData.measurements, ...materializeRegionalMeasurements(rawData.measurements)] as any,
         {
           previousInspectionDate,
           previousMinThicknessMm,

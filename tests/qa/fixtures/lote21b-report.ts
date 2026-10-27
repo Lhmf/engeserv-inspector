@@ -287,6 +287,7 @@ export function makeLote21bReportFixture(options: { validated: boolean }): any {
       lastModifiedBy: 'system',
       lastModifiedAt: new Date('2026-10-21T13:30:00Z'),
       placeholderMode: !v,
+      regionalAdoptionApproved: v,
     },
   };
 }

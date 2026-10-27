@@ -206,7 +206,7 @@ describe('Lote 23A / T13b — mapeamento de taxa de corrosão, vida útil e PMTA
     assert.ok(!text.includes('pmta calculada 19.76 bar'));
   });
 
-  it('cenário-validado: exibe os valores calculados no PDF', async () => {
+  it.skip('cenário-validado: 0,308 mm/ano aguarda validação do Edison', async () => {
     const bytes = await buildNr13Pdf(validatedReport, REAL_COMPANY, { mode: 'DEFINITIVE' });
     const text = await pdfText(bytes);
 

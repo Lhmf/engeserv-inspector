@@ -33,6 +33,8 @@ export interface EmissionAssessment {
   hasEngineeringResults: boolean;
   /** A emissão de laudo técnico DEFINITIVO está permitida? */
   canEmitDefinitive: boolean;
+  /** O critério de adoção dos pontos não medidos foi aprovado pelo RT? */
+  regionalAdoptionApproved: boolean;
   /** Motivos legíveis do bloqueio (para API e UI) */
   reasons: string[];
 }
@@ -155,6 +157,7 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
   const placeholderFormulas: string[] = [];
   const unvalidatedCalculations: Array<{ id: string; reason: string }> = [];
   const reasons: string[] = [];
+  const regionalAdoptionApproved = report?.metadata?.regionalAdoptionApproved === true || report?.inspectionData?.regionalAdoptionApproved === true;
 
   const results = report?.engineeringResults;
   const integrityAnalysis = results?.integrityAnalysis;
@@ -197,6 +200,9 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
       'Laudo sem resultados de engenharia registrados — não é possível emitir conclusão técnica definitiva.'
     );
   }
+  if (!regionalAdoptionApproved) {
+    reasons.push('Critério de adoção dos pontos não medidos ainda não foi aprovado pelo responsável técnico.');
+  }
   if (placeholderFormulas.length > 0) {
     reasons.push(
       `Fórmulas/cálculos não validados (fórmulas placeholder ou reliability THEORETICAL): ${[
@@ -207,12 +213,13 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
     );
   }
 
-  const canEmitDefinitive = hasEngineeringResults && placeholderFormulas.length === 0;
+  const canEmitDefinitive = hasEngineeringResults && placeholderFormulas.length === 0 && regionalAdoptionApproved;
 
   return {
     placeholderFormulas,
     unvalidatedCalculations,
     hasEngineeringResults,
+    regionalAdoptionApproved,
     canEmitDefinitive,
     reasons,
   };

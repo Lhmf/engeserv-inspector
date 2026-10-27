@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, canIssueFinalReport } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { buildNr13Pdf } from '@/modules/report/templates/nr13/pdf/builder';
+import { renderOfficialNr13Html } from '@/modules/report/templates/nr13/official-html';
+import { renderHtmlToPdf } from '@/modules/report/pdf/server-renderer';
 import { resolveCompanyInfoFromEnv } from '@/modules/report/company-info';
 import { DEMO_COMPANY_INFO } from '@/modules/report/company-info';
 import { assessTechnicalReportEmission, sanitizeForEmission } from '@/modules/report/safety/emission';
@@ -67,6 +68,12 @@ export async function GET(
     }
 
     const demoMode = req.nextUrl.searchParams.get('mode')?.toLowerCase() === 'demo';
+    if (!demoMode && !canIssueFinalReport(session.role)) {
+      return NextResponse.json(
+        { error: 'Funcionário não pode emitir ou liberar laudo definitivo.', code: 'DEFINITIVE_EMISSION_FORBIDDEN' },
+        { status: 403 },
+      );
+    }
     const assessment = assessTechnicalReportEmission(report);
     if (!demoMode && !assessment.canEmitDefinitive) {
       return NextResponse.json(
@@ -92,9 +99,15 @@ export async function GET(
         { status: 500 }
       );
     }
-    const pdfBytes = await buildNr13Pdf(emissionReport, company, {
-      mode: demoMode ? 'DEMO' : 'DEFINITIVE',
-    });
+    const html = renderOfficialNr13Html({
+      ...emissionReport,
+      metadata: {
+        ...(emissionReport.metadata || {}),
+        companyName: company.name,
+        companyCnpj: company.cnpj,
+      },
+    } as TechnicalReport);
+    const pdfBytes = await renderHtmlToPdf(html);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       status: 200,

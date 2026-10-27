@@ -323,6 +323,9 @@ export default function InspectionWizardPage() {
   async function saveMeasurements() {
     if (!inspectionId) throw new Error("Inspeção inválida.");
     if (measurements.length < 9) throw new Error("Informe pelo menos 9 medições reais: 5 do casco e 4 dos tampos.");
+    const validMeasurements = measurements.filter((measurement) => measurement.point && Number.isFinite(Number(measurement.thicknessMm)) && Number(measurement.thicknessMm) > 0);
+    if (validMeasurements.length < 9) throw new Error("Preencha ponto e espessura para as 9 medições reais.");
+    if (new Set(validMeasurements.map((measurement) => measurement.point)).size !== validMeasurements.length) throw new Error("Não repita o mesmo ponto de medição.");
     if (!navigator.onLine) {
       console.log("[Offline] medições preservadas no rascunho local");
       return;
@@ -340,6 +343,7 @@ export default function InspectionWizardPage() {
       }
     } catch (e) {
       console.error("Erro ao salvar medições:", e);
+      throw e;
     }
   }
 
@@ -983,7 +987,10 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
   const [rows, setRows] = useState<any[]>(
     measurements.length > 0
       ? measurements
-      : Array.from({ length: 9 }, (_, index) => ({ point: `PM-${String(index + 1).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" }))
+      : [
+          ...Array.from({ length: 5 }, (_, index) => ({ point: `PM-${String(index + 1).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" })),
+          ...Array.from({ length: 4 }, (_, index) => ({ point: `PM-${String(index + 11).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" })),
+        ]
   );
 
   function updateRow(idx: number, field: string, value: any) {

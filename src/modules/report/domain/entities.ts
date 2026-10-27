@@ -489,6 +489,7 @@ export class TechnicalReportBuilder {
         generatedBy: options?.inspectorId || '',
         lastModifiedBy: options?.inspectorId || '',
         lastModifiedAt: now,
+        regionalAdoptionApproved: false,
       },
     } as TechnicalReport;
   }

@@ -399,6 +399,7 @@ export interface TechnicalReport {
     lastModifiedBy: string;
     lastModifiedAt: Date;
     placeholderMode?: boolean;       // true se usando placeholders do Engine
+    regionalAdoptionApproved?: boolean;
   };
 }
 
