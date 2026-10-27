@@ -126,6 +126,11 @@ model Equipment {
   mawpBar Float?                  // PMTA - pressao maxima de trabalho admissivel
   hydroTestPressureBar Float?     // PTH
   headType String?                // ex: "Semieliptico", "Semiesferico", "Torisferico"
+  lengthMm Float?                 // comprimento entre soldas
+  insideDiameterMm Float?         // diâmetro interno
+  orientation String?             // vertical, horizontal ou outra
+  jointType String?               // tipo de união predominante
+  installationLocation String?    // localização textual quando não houver frente cadastrada
   headMaterial String?            // ex: "SA-36"
   bodyMaterial String?            // material do corpo/casco
   headNominalThicknessMm Float?   // DIFERENTE de originalThicknessMm (que e do casco)

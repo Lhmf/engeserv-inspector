@@ -106,6 +106,11 @@ export interface EquipmentInfo {
   designCode?: string;
   volumeLiters?: number;
   headType?: string;
+  lengthMm?: number;
+  insideDiameterMm?: number;
+  orientation?: string;
+  jointType?: string;
+  installationLocation?: string;
   bodyMaterial?: string;
   headMaterial?: string;
   headNominalThicknessMm?: number;

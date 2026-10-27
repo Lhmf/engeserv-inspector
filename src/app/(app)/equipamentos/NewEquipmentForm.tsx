@@ -51,6 +51,11 @@ export default function NewEquipmentForm() {
   const [mawpBar, setMawpBar] = useState("");
   const [hydroTestPressureBar, setHydroTestPressureBar] = useState("");
   const [headType, setHeadType] = useState("");
+  const [lengthMm, setLengthMm] = useState("");
+  const [insideDiameterMm, setInsideDiameterMm] = useState("");
+  const [orientation, setOrientation] = useState("Vertical");
+  const [jointType, setJointType] = useState("Soldada");
+  const [installationLocation, setInstallationLocation] = useState("");
   const [headMaterial, setHeadMaterial] = useState("");
   const [bodyMaterial, setBodyMaterial] = useState("");
   const [originalThicknessMm, setOriginalThicknessMm] = useState("");
@@ -113,6 +118,11 @@ export default function NewEquipmentForm() {
           mawpBar: mawpBar ? parseFloat(mawpBar) : null,
           hydroTestPressureBar: hydroTestPressureBar ? parseFloat(hydroTestPressureBar) : null,
           headType: headType || null,
+          lengthMm: lengthMm ? parseFloat(lengthMm) : null,
+          insideDiameterMm: insideDiameterMm ? parseFloat(insideDiameterMm) : null,
+          orientation: orientation || null,
+          jointType: jointType || null,
+          installationLocation: installationLocation || null,
           headMaterial: headMaterial || null,
           bodyMaterial: bodyMaterial || null,
           originalThicknessMm: originalThicknessMm ? parseFloat(originalThicknessMm) : null,
@@ -371,6 +381,31 @@ export default function NewEquipmentForm() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="Ex: SA-516 Gr.70"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Comprimento entre soldas (mm)</label>
+              <input type="number" step="0.01" value={lengthMm} onChange={(e) => setLengthMm(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Ex: 1200" />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Diâmetro interno (mm)</label>
+              <input type="number" step="0.01" value={insideDiameterMm} onChange={(e) => setInsideDiameterMm(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Ex: 500" />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Orientação</label>
+              <select value={orientation} onChange={(e) => setOrientation(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"><option>Vertical</option><option>Horizontal</option><option>Outra</option></select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Tipo de união</label>
+              <input type="text" value={jointType} onChange={(e) => setJointType(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Ex: Soldada" />
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Local de instalação</label>
+              <input type="text" value={installationLocation} onChange={(e) => setInstallationLocation(e.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Ex: Frente de produção 01" />
             </div>
 
             <div>

@@ -131,6 +131,11 @@ export default async function EquipamentoDetailPage({
           <DataItem label="Material Casco" value={equipment.bodyMaterial} />
           <DataItem label="Material Tampa" value={equipment.headMaterial} />
           <DataItem label="Tipo Tampa" value={equipment.headType} />
+          <DataItem label="Comprimento entre soldas" value={equipment.lengthMm ? `${equipment.lengthMm} mm` : undefined} />
+          <DataItem label="Diâmetro interno" value={equipment.insideDiameterMm ? `${equipment.insideDiameterMm} mm` : undefined} />
+          <DataItem label="Orientação" value={equipment.orientation} />
+          <DataItem label="Tipo de união" value={equipment.jointType} />
+          <DataItem label="Local de instalação" value={equipment.installationLocation} />
           <DataItem
             label="Eficiência Solda"
             value={equipment.jointEfficiency ? `${(equipment.jointEfficiency * 100).toFixed(0)}%` : undefined}
