@@ -19,7 +19,7 @@ export async function GET(
   const report = await prisma.technicalReport.findUnique({
     where: { id },
     include: {
-      inspection: { include: { equipment: { include: { client: true } } } },
+      inspection: { include: { equipment: { include: { client: { include: { documents: true } } } } } },
     },
   });
 
@@ -47,7 +47,20 @@ export async function GET(
     technicalConclusion: parseJson(report.technicalConclusion),
     recommendations: parseJson(report.recommendations),
     nextInspection: parseJson(report.nextInspection),
-    attachments: parseJson(report.attachments),
+    attachments: {
+      ...(parseJson(report.attachments) || {}),
+      documents: (parseJson(report.attachments)?.documents?.length
+        ? parseJson(report.attachments).documents
+        : (report.inspection.equipment.client as any).documents || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || item.originalName,
+          type: item.type || item.mimeType,
+          url: item.url,
+          description: item.description || item.mimeType,
+          uploadedAt: item.uploadedAt || item.createdAt,
+          uploadedBy: item.uploadedBy || item.uploadedById || '',
+        })),
+    },
     metadata: parseJson(report.metadata),
   };
 

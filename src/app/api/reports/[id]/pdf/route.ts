@@ -29,7 +29,7 @@ export async function GET(
           include: {
             equipment: {
               include: {
-                client: true,
+                client: { include: { documents: true } },
               },
             },
             inspector: true,
@@ -141,6 +141,7 @@ function parseTechnicalReport(raw: any): TechnicalReport {
   const equip = inspect.equipment || {};
   const client = equip.client || {};
   const inspector = inspect.inspector || {};
+  const clientDocuments = Array.isArray(client.documents) ? client.documents : [];
 
   // Parse all JSON fields
   const clientData = parseJson(raw.clientData) || {};
@@ -340,7 +341,15 @@ function parseTechnicalReport(raw: any): TechnicalReport {
     },
     attachments: {
       photos: attachments.photos || inspectionData.photos || [],
-      documents: attachments.documents || [],
+      documents: attachments.documents?.length ? attachments.documents : clientDocuments.map((document: any) => ({
+        id: document.id,
+        name: document.originalName,
+        type: document.type,
+        url: document.url,
+        description: document.mimeType,
+        uploadedAt: document.createdAt,
+        uploadedBy: document.uploadedById || '',
+      })),
       calculations: attachments.calculations || [],
     },
     history: history.versions ? history : {

@@ -44,8 +44,38 @@ function documentChecklist() {
   return `<table class="checklist"><tr><th>DOCUMENTO / ITEM</th><th>RESULTADO</th></tr><tr><td>Prontuário do vaso</td><td>APRESENTADO / A CONFIRMAR</td></tr><tr><td>Livro de registro de segurança</td><td>APRESENTADO / A CONFIRMAR</td></tr><tr><td>Projeto de alteração e reparos</td><td>NÃO INFORMADO</td></tr><tr><td>Relatório de inspeção anterior</td><td>NÃO INFORMADO</td></tr><tr><td>Certificados dos instrumentos</td><td>NÃO INFORMADO</td></tr></table>`;
 }
 
-function annexPlaceholder(title: string) {
+let activeDocuments: AnyRecord[] = [];
+
+function annexPlaceholder(title: string): string {
+  const normalized = title.toLowerCase();
+  const terms = normalized.includes('art') || normalized.includes('responsabilidade') ? ['art', 'responsabilidade']
+    : normalized.includes('válvula') || normalized.includes('valvula') ? ['valvula', 'válvula']
+    : normalized.includes('manômetro') || normalized.includes('manometro') ? ['manometro', 'manômetro', 'rbc', 'inmetro']
+    : normalized.includes('bomba') ? ['bomba']
+    : normalized.includes('aparelho') || normalized.includes('espessura') ? ['ultrassom', 'espessura']
+    : ['complementar', 'outro'];
+  const attached = documentFor(activeDocuments, ...terms);
+  if (attached) return annexDocument(attached, title);
   return `<div class="annex-placeholder"><b>${escapeHtml(title)}</b><p>Documento não anexado a esta inspeção. O arquivo deverá ser incluído antes da emissão definitiva.</p></div>`;
+}
+
+function annexDocument(document: AnyRecord | undefined, title: string): string {
+  if (!document) return annexPlaceholder(title);
+  const mimeType = text(document.mimeType || document.type, '').toLowerCase();
+  const name = text(document.name || document.originalName, 'Documento anexado');
+  const url = text(document.url, '');
+  const isImage = mimeType.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(name);
+  const content = isImage && url
+    ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(name)}" style="display:block;width:100%;height:180mm;object-fit:contain;border:1px solid #111;margin:15mm auto 8mm">`
+    : `<div class="annex-file"><b>${escapeHtml(name)}</b><p>Arquivo anexado à base documental do cliente.</p><p>Tipo: ${escapeHtml(mimeType || 'arquivo')}</p></div>`;
+  return `<div class="annex-document"><b>${escapeHtml(title)}</b>${content}<p class="small">${escapeHtml(document.description || 'Documento vinculado ao cliente e à inspeção.')}</p></div>`;
+}
+
+function documentFor(documents: AnyRecord[], ...terms: string[]) {
+  return documents.find((document) => {
+    const value = `${document.type || ''} ${document.name || document.originalName || ''}`.toLowerCase();
+    return terms.some((term) => value.includes(term));
+  });
 }
 
 function measurementMap(report: AnyRecord) {
@@ -71,6 +101,8 @@ export function renderOfficialNr13Html(report: TechnicalReport): string {
   const inspection = data.inspectionData?.inspection || {};
   const nextInspection = data.nextInspection?.recommendedDate || data.identification?.expiresAt;
   const photos = Array.isArray(data.attachments?.photos) ? data.attachments.photos : [];
+  const documents = Array.isArray(data.attachments?.documents) ? data.attachments.documents : [];
+  activeDocuments = documents;
   const recommendations = Array.isArray(data.recommendations) ? data.recommendations : (data.recommendations?.immediate || []);
   const recommendationMarkup = recommendations.map((item: AnyRecord) => `<li>${escapeHtml(item.description || item)}</li>`).join('');
   const measures = buildOfficialMeasurementPoints(Array.isArray(data.inspectionData?.measurements) ? data.inspectionData.measurements : []);
