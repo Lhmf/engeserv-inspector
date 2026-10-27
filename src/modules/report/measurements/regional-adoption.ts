@@ -2,6 +2,11 @@ import type { MeasurementPoint } from '@/modules/engineering/types';
 
 export const REGIONAL_ADOPTION_NOTE = '* Valor adotado (menor valor medido da região), não medido.';
 
+export const OFFICIAL_MEASUREMENT_LABELS = [
+  ...Array.from({ length: 10 }, (_, index) => `PM-${String(index + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 8 }, (_, index) => `PM-${String(index + 11).padStart(2, '0')}`),
+];
+
 export interface OfficialMeasurementPoint {
   label: string;
   value: number | null;

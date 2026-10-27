@@ -57,10 +57,8 @@ test('F1d: Master percorre cliente, equipamento, inspeção, laudo e layout ofic
   await page.locator('button').filter({ hasText: /Próximo/ }).last().click();
   await page.locator('button').filter({ hasText: /Próximo/ }).last().click();
   const rows = page.locator('table tbody tr');
-  await expect(rows).toHaveCount(9);
-  for (let index = 0; index < 9; index += 1) {
-    const point = index < 5 ? `PM-${String(index + 1).padStart(2, '0')}` : `PM-${String(index + 6).padStart(2, '0')}`;
-    await rows.nth(index).locator('input[type="text"]').first().fill(point);
+  await expect(rows).toHaveCount(18);
+  for (let index = 0; index < 18; index += 1) {
     await rows.nth(index).locator('input[type="number"]').first().fill((10 - index * 0.1).toFixed(2));
   }
   await page.screenshot({ path: 'docs/demo/f1d/master-measurements.png', fullPage: true });

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { CameraCapture, compressImage } from "@/components/CameraCapture";
 import { useOnline } from "@/lib/useOnline";
 import { normalizeRecommendations, serializeRecommendations } from "@/lib/inspection-normalization";
+import { OFFICIAL_MEASUREMENT_LABELS } from "@/modules/report/measurements/regional-adoption";
 import {
   saveDraft,
   getDraft,
@@ -334,7 +335,7 @@ export default function InspectionWizardPage() {
       const res = await fetch(`/api/inspections/${inspectionId}/measurements/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ measurements }),
+        body: JSON.stringify({ measurements: validMeasurements }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -988,8 +989,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
     measurements.length > 0
       ? measurements
       : [
-          ...Array.from({ length: 5 }, (_, index) => ({ point: `PM-${String(index + 1).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" })),
-          ...Array.from({ length: 4 }, (_, index) => ({ point: `PM-${String(index + 11).padStart(2, "0")}`, thicknessMm: null, angleDeg: null, notes: "" })),
+          ...OFFICIAL_MEASUREMENT_LABELS.map((point) => ({ point, thicknessMm: null, angleDeg: null, notes: "", fixed: true })),
         ]
   );
 
@@ -1058,6 +1058,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                   value={row.point}
                   onChange={(e) => updateRow(idx, "point", e.target.value)}
                   placeholder="P1, A-1..."
+                  readOnly={row.fixed}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
@@ -1130,6 +1131,7 @@ function StepMeasurements({ measurements, setMeasurements, minThickness, onBack,
                     value={row.point}
                     onChange={(e) => updateRow(idx, "point", e.target.value)}
                     placeholder="P1, A-1..."
+                    readOnly={row.fixed}
                     className="w-full rounded-md border border-slate-300 px-2 py-2 min-h-11 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </td>
