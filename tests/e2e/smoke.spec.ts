@@ -28,3 +28,10 @@ test('rota protegida redireciona sem sessao', async ({ browser }) => {
   await expect(page).toHaveURL(/\/login/);
   await context.close();
 });
+
+test('alias /portal-cliente encaminha para o Portal oficial', async ({ page }) => {
+  await page.goto('/portal-cliente');
+  await expect(page).toHaveURL(/\/portal\/login/);
+  await page.goto('/portal-cliente/login');
+  await expect(page).toHaveURL(/\/portal\/login/);
+});

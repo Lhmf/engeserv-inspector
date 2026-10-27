@@ -34,6 +34,14 @@ const PUBLIC_ASSETS = ["/manifest.json", "/sw.js", "/icons", "/favicon", "/scree
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (pathname === "/portal-cliente" || pathname.startsWith("/portal-cliente/")) {
+    const suffix = pathname.slice("/portal-cliente".length);
+    const destination = suffix === "/login" || suffix.startsWith("/login/")
+      ? `/portal/login${suffix.slice("/login".length)}`
+      : `/portal${suffix}`;
+    return NextResponse.redirect(new URL(destination || "/portal", req.url));
+  }
+
   // ---- Proteção server-side das PÁGINAS do portal (/portal/**) ----
   // Requisito: APIs do portal (/api/portal/**) são propositalmente deixadas
   // de fora — elas retornam 401 em JSON via getPortalSession() em suas rotas
