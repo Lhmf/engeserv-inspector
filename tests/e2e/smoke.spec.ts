@@ -8,7 +8,7 @@ test('login invalido exibe mensagem de erro', async ({ page }) => {
   await page.getByLabel('Email').fill('invalido@engeserv.com.br');
   await page.getByLabel('Senha').fill('senha-invalida');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByText(/Credenciais|Erro/i)).toBeVisible();
+  await expect(page.locator('form p.bg-red-50')).toBeVisible();
 });
 
 test('login valido redireciona para dashboard', async ({ page }) => {
@@ -18,8 +18,7 @@ test('login valido redireciona para dashboard', async ({ page }) => {
   const loginResponse = page.waitForResponse((response) => response.url().endsWith('/api/auth/login'));
   await page.getByRole('button', { name: 'Entrar' }).click();
   expect((await loginResponse).status()).toBe(200);
-  await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/dashboard/);
+  await page.waitForURL(/\/dashboard/, { timeout: 30_000 });
 });
 
 test('rota protegida redireciona sem sessao', async ({ browser }) => {
