@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Browser } from '@playwright/test';
+import fs from 'node:fs';
 
 const password = process.env.E2E_TEST_PASSWORD ?? 'demo123456';
 
@@ -80,6 +81,9 @@ test('F1d: Master percorre cliente, equipamento, inspeção, laudo e layout ofic
   const html = await official.text();
   expect(html).toContain('PM-18');
   expect(html).toContain('* Valor adotado (menor valor medido da região), não medido.');
+  const demoPdf = await page.request.get(`/api/reports/${reportId}/pdf?mode=demo`);
+  expect(demoPdf.status()).toBe(200);
+  fs.writeFileSync('docs/demo/f1d/demo-report.pdf', await demoPdf.body());
   await page.screenshot({ path: 'docs/demo/f1d/master-report-official.png', fullPage: true });
 
   await page.context().storageState({ path: 'docs/demo/f1d/master-storage.json' });

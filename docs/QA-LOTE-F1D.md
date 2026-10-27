@@ -26,9 +26,9 @@ O skip é o caso de `0,308 mm/ano`, mantido sem alteração até validação do 
 
 ## Evidências
 
-As capturas da jornada ficam em `docs/demo/f1d/`. O demonstrativo server-side é `docs/demo/f1d/demo-report.pdf` (4 páginas, 115802 bytes).
+As capturas da jornada ficam em `docs/demo/f1d/`. O demonstrativo server-side é `docs/demo/f1d/demo-report.pdf` (28 páginas, gerado pelo mesmo HTML oficial usado na rota PDF).
 
-Não existe `reference/modelo.pdf` neste repositório. Por isso não há comparação visual oficial concluída. Os PDFs existentes em `qa/pdf/` não foram tratados como modelo aprovado; a diferença formal permanece pendente do arquivo de referência correto.
+O modelo oficial usado como referência é `qa/pdf/LAUDO TECNICO DE INSPEÇÃO PERIODICA  PULVERIZADOR PRESSURIZADO COAGRIL 408-1.docx`. A estrutura do HTML agora reproduz a sequência de 28 páginas, cabeçalho repetido, seções NR-13, mapa de 18 pontos, cálculo de vida útil, conclusão, responsabilidade técnica e anexos. Os anexos sem arquivo fornecido aparecem como áreas reservadas; eles ainda precisam receber os certificados reais para equivalência visual total.
 
 ## Pendências conhecidas
 
