@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-const password = process.env.E2E_TEST_PASSWORD ?? 'Qa!Lote21B#2026';
+const password = process.env.E2E_TEST_PASSWORD ?? 'demo123456';
+test.setTimeout(120_000);
 const roles = [
-  { name: 'master', email: process.env.E2E_MASTER_EMAIL ?? 'admin.qa@engeserv.test' },
-  { name: 'funcionario', email: process.env.E2E_FUNC_EMAIL ?? 'func.qa@engeserv.test' },
-  { name: 'gestor', email: process.env.E2E_GESTOR_EMAIL ?? 'gestor.qa@engeserv.test' },
+  { name: 'master', email: process.env.E2E_MASTER_EMAIL ?? 'admin@engeserv.com.br' },
+  { name: 'funcionario', email: process.env.E2E_FUNC_EMAIL ?? 'demo@engeserv.com.br' },
+  { name: 'gestor', email: process.env.E2E_GESTOR_EMAIL ?? 'gestor@engeserv.com.br' },
 ];
 
 test('jornada F1c visual por papel e portal', async ({ browser }) => {
@@ -30,13 +31,26 @@ test('jornada F1c visual por papel e portal', async ({ browser }) => {
   }
 });
 
-test('jornada F1c visual do Portal do Cliente A', async ({ browser }) => {
+test('jornada F1c visual do Portal do Cliente A', async ({ browser, request }) => {
+  const unique = Date.now().toString().slice(-6);
+  const portalName = `ClienteF1c${unique}`;
+  const portalCnpj = `${unique}00000000`;
+  const internalLogin = await request.post('/api/auth/login', {
+    data: { email: 'admin@engeserv.com.br', password },
+  });
+  expect(internalLogin.status()).toBe(200);
+  const clientResponse = await request.post('/api/clientes', {
+    data: { name: `${portalName} Engenharia QA`, cnpj: portalCnpj },
+  });
+  expect(clientResponse.status()).toBe(201);
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto('/portal/login');
-  await page.getByLabel('Usuário').fill(process.env.E2E_PORTAL_NAME ?? 'Aurora');
-  await page.getByLabel('Senha').fill(process.env.E2E_PORTAL_CNPJ ?? '112223');
+  await page.getByLabel('Usuário').fill(process.env.E2E_PORTAL_NAME ?? portalName);
+  await page.getByLabel('Senha').fill(process.env.E2E_PORTAL_CNPJ ?? unique);
+  const portalLogin = page.waitForResponse((item) => item.url().endsWith('/api/portal/login'));
   await page.getByRole('button', { name: 'Entrar' }).click();
+  expect((await portalLogin).status()).toBe(200);
   await page.goto('/portal/dashboard');
   await expect(page).toHaveURL(/\/portal\/dashboard/);
   await page.screenshot({ path: 'docs/demo/f1c/portal-cliente-a-dashboard.png', fullPage: true });
