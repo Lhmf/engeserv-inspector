@@ -1,5 +1,6 @@
 import type { TechnicalReport } from '@/modules/report/types';
 import { buildOfficialMeasurementPoints, REGIONAL_ADOPTION_NOTE } from '@/modules/report/measurements/regional-adoption';
+import { NR13_STANDARD_TEXT, standardRecommendations } from './standard-text';
 
 type AnyRecord = Record<string, any>;
 
@@ -99,12 +100,14 @@ export function renderOfficialNr13Html(report: TechnicalReport): string {
   const client = data.client || {};
   const equipment = data.equipment || {};
   const inspection = data.inspectionData?.inspection || {};
+  if (!inspection.notes) inspection.notes = NR13_STANDARD_TEXT.externalExam.join(' ');
   const nextInspection = data.nextInspection?.recommendedDate || data.identification?.expiresAt;
   const photos = Array.isArray(data.attachments?.photos) ? data.attachments.photos : [];
   const documents = Array.isArray(data.attachments?.documents) ? data.attachments.documents : [];
   activeDocuments = documents;
   const recommendations = Array.isArray(data.recommendations) ? data.recommendations : (data.recommendations?.immediate || []);
-  const recommendationMarkup = recommendations.map((item: AnyRecord) => `<li>${escapeHtml(item.description || item)}</li>`).join('');
+  const recommendationItems = recommendations.length ? recommendations : standardRecommendations();
+  const recommendationMarkup = recommendationItems.map((item: AnyRecord) => `<li>${escapeHtml(item.description || item)}</li>`).join('');
   const measures = buildOfficialMeasurementPoints(Array.isArray(data.inspectionData?.measurements) ? data.inspectionData.measurements : []);
   const bodyValues = measures.slice(0, 10).filter((item) => item.value !== null).map((item) => Number(item.value));
   const headValues = measures.slice(10).filter((item) => item.value !== null).map((item) => Number(item.value));
