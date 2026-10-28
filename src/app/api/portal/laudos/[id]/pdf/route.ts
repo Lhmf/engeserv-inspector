@@ -8,6 +8,8 @@ import { resolveCompanyInfoFromEnv } from "@/modules/report/company-info";
 import { assessTechnicalReportEmission } from "@/modules/report/safety/emission";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function parseJson(value: unknown) {
   if (typeof value !== "string") return value;
@@ -39,6 +41,7 @@ export async function GET(
 
     if (!report) return NextResponse.json({ error: "Laudo não encontrado ou acesso não autorizado." }, { status: 404 });
 
+    const attachments = parseJson(report.attachments) as Record<string, any> | null;
     const document = {
       id: report.id,
       identification: {
@@ -62,9 +65,9 @@ export async function GET(
       recommendations: parseJson(report.recommendations),
       nextInspection: parseJson(report.nextInspection),
       attachments: {
-        ...(parseJson(report.attachments) || {}),
-        documents: (parseJson(report.attachments) as any)?.documents?.length
-          ? (parseJson(report.attachments) as any).documents
+        ...(attachments || {}),
+        documents: attachments?.documents?.length
+          ? attachments.documents
           : report.inspection.equipment.client.documents.map((item) => ({
               id: item.id,
               name: item.originalName,
@@ -75,7 +78,7 @@ export async function GET(
               uploadedBy: item.uploadedById,
             })),
       },
-      metadata: parseJson(report.metadata),
+      metadata: (parseJson(report.metadata) as Record<string, any> | null) || {},
     };
 
     const assessment = assessTechnicalReportEmission(document);
