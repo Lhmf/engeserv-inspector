@@ -188,6 +188,10 @@ export default function LaudoDetalhePage() {
     }
   };
 
+  const downloadPdf = () => {
+    window.location.assign(`/api/portal/laudos/${laudo.id}/pdf`);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 min-h-screen">
       <PageHeader
@@ -214,6 +218,13 @@ export default function LaudoDetalhePage() {
                   </span>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={downloadPdf}
+                className="inline-flex items-center rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-navy/90"
+              >
+                Baixar PDF
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
