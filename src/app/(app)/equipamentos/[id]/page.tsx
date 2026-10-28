@@ -79,6 +79,12 @@ export default async function EquipamentoDetailPage({
           <ClipboardList className="h-4 w-4" />
           Nova inspeção
         </Link>
+        <Link
+          href={`/equipamentos/${equipment.id}/editar`}
+          className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          Completar ficha técnica
+        </Link>
       </div>
 
       {/* Client Info */}
