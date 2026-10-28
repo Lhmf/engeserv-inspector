@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canIssueFinalReport, getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { renderOfficialNr13Html } from '@/modules/report/templates/nr13/official-html';
-import { assessTechnicalReportEmission } from '@/modules/report/safety/emission';
+import { assessTechnicalReportEmission, sanitizeForEmission } from '@/modules/report/safety/emission';
 
 function parseJson(value: unknown) {
   if (typeof value !== 'string') return value;
@@ -32,7 +32,8 @@ export async function GET(
     metadata: parseJson(report.metadata),
     inspectionData: parseJson(report.inspectionData),
   });
-  if (!assessment.canEmitDefinitive) {
+  const demoMode = _request.nextUrl.searchParams.get('mode')?.toLowerCase() === 'demo';
+  if (!assessment.canEmitDefinitive && !demoMode) {
     return NextResponse.json({
       error: 'Prévia oficial bloqueada até a validação dos cálculos e do critério de pontos não medidos.',
       code: 'EMISSION_BLOCKED_UNVALIDATED_ENGINEERING',
@@ -83,7 +84,11 @@ export async function GET(
     metadata: parseJson(report.metadata),
   };
 
-  return new NextResponse(renderOfficialNr13Html(document as any), {
+  const renderedDocument = demoMode
+    ? sanitizeForEmission(document, 'DEMO', assessment)
+    : document;
+
+  return new NextResponse(renderOfficialNr13Html(renderedDocument as any), {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',

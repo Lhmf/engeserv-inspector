@@ -196,12 +196,15 @@ export async function POST(req: NextRequest) {
         message: s.message,
         error: s.error?.message,
       }));
+      const incompleteTechnicalData = errorMessages.some((message) =>
+        message.includes("Campos obrigatórios ausentes") || message.includes("ficha técnica")
+      );
       return NextResponse.json({
         error: errorMessages.join('; ') || 'Pipeline falhou ao gerar laudo',
         details: errorMessages,
         failedSteps,
         steps: result.steps.map(s => ({ step: s.step, status: s.status, message: s.message })),
-      }, { status: 500 });
+      }, { status: incompleteTechnicalData ? 422 : 500 });
     }
 
     // Buscar o ID real do TechnicalReport salvo no banco

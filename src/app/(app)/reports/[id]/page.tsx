@@ -797,27 +797,14 @@ export default function ReportPage() {
                   )}
                   {activeSection === "preview" && technicalReportId && (
                     <div className="relative">
-                      {/* Preview toolbar */}
-                      <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-t-xl">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-600 font-medium">Preview do Laudo NR-13</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => window.open(`/api/reports/${technicalReportId}/official-html`, '_blank')}
-                            className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg text-sm font-medium hover:bg-navy/90 transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                            Abrir layout oficial / imprimir
-                          </button>
-                        </div>
+                      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        Esta é uma prévia de trabalho. A prévia oficial e o PDF definitivo permanecem bloqueados até a validação técnica.
                       </div>
-                      {/* PDF iframe */}
-                      <div className="border border-t-0 border-slate-200 rounded-b-xl overflow-hidden bg-slate-100" style={{ height: '800px' }}>
+                      <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100" style={{ height: '800px' }}>
                         <iframe
-                          src={`/api/reports/${technicalReportId}/official-html`}
-                          className="w-full h-full border-0"
-                          title="Preview do Laudo NR-13"
+                          src={`/api/reports/${technicalReportId}/official-html?mode=demo`}
+                          className="h-full w-full border-0"
+                          title="Prévia demonstrativa do Laudo NR-13"
                         />
                       </div>
                     </div>

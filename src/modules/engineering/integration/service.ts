@@ -31,6 +31,14 @@ import { engineeringEngine, EngineeringEngineService } from '../services/engine'
 import { buildCalculationInput } from '../index';
 import { validateCalculationInput, validateUnitConsistency } from '../validators';
 
+function formatValidationFailure(validation: { errors: Array<{ message: string }>; missingFields: string[] }): string {
+  const errors = validation.errors.map((error) => error.message);
+  const missing = validation.missingFields.length > 0
+    ? [`Campos obrigatórios ausentes: ${validation.missingFields.join(', ')}`]
+    : [];
+  return [...errors, ...missing].join('; ') || 'dados obrigatórios ausentes';
+}
+
 // Simple UUID generator to avoid external dependency
 function generateId(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -339,7 +347,7 @@ export class EngineeringIntegrationService {
       // Validar
       const validation = this.validateInput(calcInput);
       if (!validation.isValid) {
-        return this.createErrorResult(calculationId, input.caseId, `Validação falhou: ${validation.errors.map(e => e.message).join('; ')}`, startTime);
+        return this.createErrorResult(calculationId, input.caseId, `Validação falhou: ${formatValidationFailure(validation)}`, startTime);
       }
 
       let result: any;
@@ -394,7 +402,7 @@ export class EngineeringIntegrationService {
         return this.createErrorResult(
           calculationId,
           caseId,
-          `Validação falhou: ${validation.errors.map(e => e.message).join('; ')}`,
+          `Validação falhou: ${formatValidationFailure(validation)}`,
           startTime
         );
       }

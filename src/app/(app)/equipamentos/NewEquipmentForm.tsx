@@ -273,6 +273,7 @@ export default function NewEquipmentForm() {
               <input
                 type="number"
                 step="0.01"
+                required
                 value={designPressureBar}
                 onChange={(e) => setDesignPressureBar(e.target.value)}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -413,6 +414,7 @@ export default function NewEquipmentForm() {
               <input
                 type="number"
                 step="0.01"
+                required
                 value={originalThicknessMm}
                 onChange={(e) => setOriginalThicknessMm(e.target.value)}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -437,6 +439,7 @@ export default function NewEquipmentForm() {
               <input
                 type="number"
                 step="0.01"
+                required
                 value={minThicknessMm}
                 onChange={(e) => setMinThicknessMm(e.target.value)}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
