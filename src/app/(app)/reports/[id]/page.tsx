@@ -205,7 +205,7 @@ export default function ReportPage() {
           if (!technicalReportId || isExportingPdf) return;
     
           setIsExportingPdf(true);
-          window.open(`/api/reports/${technicalReportId}/official-html`, "_blank");
+          window.open(`/api/reports/${technicalReportId}/pdf?mode=demo`, "_blank");
           setIsExportingPdf(false);
           return;
           try {
@@ -599,7 +599,7 @@ export default function ReportPage() {
                               </span>
                               <button
                                                                                             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
-                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/official-html`, '_blank')}
+                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf?mode=demo`, '_blank')}
                                                                                             aria-label="Baixar PDF"
                                                                                             title="Baixar PDF"
                                                                                           >
