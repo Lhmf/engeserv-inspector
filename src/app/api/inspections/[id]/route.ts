@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { canApproveInspection } from "@/lib/auth";
 import { serializeRecommendations } from "@/lib/inspection-normalization";
+import { missingRequiredFieldMeasurementPoints } from "@/modules/report/measurements/field-requirements";
 
 const updateInspectionSchema = z.object({
   type: z.enum(["INICIAL", "PERIODICA", "EXTRAORDINARIA"]).optional(),
@@ -105,6 +106,22 @@ export async function PUT(
 
   if (status === "REJEITADA" && !rejectionReason) {
     return NextResponse.json({ error: "Motivo da rejeição é obrigatório." }, { status: 400 });
+  }
+
+  if (status === "AGUARDANDO_APROVACAO") {
+    const measurements = await prisma.inspectionMeasurement.findMany({
+      where: { inspectionId: id },
+      select: { point: true, thicknessMm: true },
+    });
+    const missing = missingRequiredFieldMeasurementPoints(
+      measurements.filter((measurement) => Number.isFinite(measurement.thicknessMm)).map((measurement) => measurement.point)
+    );
+    if (missing.length > 0) {
+      return NextResponse.json({
+        error: "O envio exige 9 medições reais de campo.",
+        missingPoints: missing,
+      }, { status: 422 });
+    }
   }
 
   const updateData: any = {};

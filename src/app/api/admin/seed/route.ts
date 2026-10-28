@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 const MANAGEMENT_CODE = process.env.MANAGEMENT_CODE;
 // Known plain text code from .env.example
-const KNOWN_PLAIN_CODE = "LHMF1218ENGSERV2026";
-
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN_MASTER") {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+  }
   if (!MANAGEMENT_CODE) {
     return NextResponse.json({ error: "MANAGEMENT_CODE não configurado no servidor." }, { status: 500 });
   }
@@ -27,11 +30,6 @@ export async function POST(req: NextRequest) {
     codeValid = providedCode === MANAGEMENT_CODE;
   }
   
-  // Final fallback: compare with known plain text code from .env.example
-  if (!codeValid) {
-    codeValid = providedCode === KNOWN_PLAIN_CODE;
-  }
-
   if (!codeValid) {
     return NextResponse.json({ error: "Código de gerência inválido" }, { status: 403 });
   }

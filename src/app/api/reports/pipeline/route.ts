@@ -123,7 +123,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Laudo não encontrado em armazenamento permanente." }, { status: 404 });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Erro ao carregar laudo" }, { status: 500 });
+      console.error("[REPORT_PIPELINE_GET_ERROR]", error?.message ?? error);
+      return NextResponse.json({ error: "Não foi possível carregar o laudo." }, { status: 503 });
   }
 }
 
@@ -217,8 +218,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    return NextResponse.json({
-      error: error.message || "Erro ao gerar laudo",
-    }, { status: 500 });
+    console.error("[REPORT_PIPELINE_POST_ERROR]", error?.message ?? error);
+    return NextResponse.json({ error: "Não foi possível gerar o laudo." }, { status: 503 });
   }
 }

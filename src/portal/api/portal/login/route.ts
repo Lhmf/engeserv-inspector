@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { portalLogin } from "@/portal/lib/portal-auth";
+import { getRequestIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await portalLogin(primeiroNome, cnpj);
+    const result = await portalLogin(primeiroNome, cnpj, getRequestIp(req));
 
     if (result.success) {
       return NextResponse.json({
@@ -30,8 +31,8 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_LOGIN_ERROR]", err?.message ?? err);
     return NextResponse.json(
-      { error: "Erro interno: " + (err?.message ?? "desconhecido") },
-      { status: 500 }
+      { error: "Não foi possível processar o login." },
+      { status: 503 }
     );
   }
 }

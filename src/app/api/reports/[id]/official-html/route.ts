@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { canIssueFinalReport, getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { renderOfficialNr13Html } from '@/modules/report/templates/nr13/official-html';
+import { assessTechnicalReportEmission } from '@/modules/report/safety/emission';
 
 function parseJson(value: unknown) {
   if (typeof value !== 'string') return value;
@@ -14,6 +15,7 @@ export async function GET(
 ) {
   const session = await getSession();
   if (!session) return new NextResponse('Não autenticado.', { status: 401 });
+  if (!canIssueFinalReport(session.role)) return new NextResponse('Sem permissão para acessar o laudo oficial.', { status: 403 });
 
   const { id } = await params;
   const report = await prisma.technicalReport.findUnique({
@@ -24,6 +26,19 @@ export async function GET(
   });
 
   if (!report) return new NextResponse('Laudo não encontrado.', { status: 404 });
+
+  const assessment = assessTechnicalReportEmission({
+    engineeringResults: parseJson(report.engineeringResults),
+    metadata: parseJson(report.metadata),
+    inspectionData: parseJson(report.inspectionData),
+  });
+  if (!assessment.canEmitDefinitive) {
+    return NextResponse.json({
+      error: 'Prévia oficial bloqueada até a validação dos cálculos e do critério de pontos não medidos.',
+      code: 'EMISSION_BLOCKED_UNVALIDATED_ENGINEERING',
+      reasons: assessment.reasons,
+    }, { status: 409 });
+  }
 
   const inspectionData = parseJson(report.inspectionData) || {};
   const document = {

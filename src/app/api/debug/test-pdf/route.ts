@@ -5,8 +5,13 @@
 import { NextResponse } from 'next/server';
 import { buildNr13Pdf } from '@/modules/report/templates/nr13/pdf/builder';
 import { MOCK_REPORT, MOCK_COMPANY } from '@/modules/report/templates/nr13/mock-data';
+import { getSession } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getSession();
+  if (!session || session.role !== 'ADMIN_MASTER') {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+  }
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json({ error: 'Debug only' }, { status: 403 });
   }

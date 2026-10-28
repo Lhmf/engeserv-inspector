@@ -21,8 +21,14 @@ export function normalizeRecommendations(value: unknown): string[] {
       .filter(Boolean);
   }
 
-  if (parsed && typeof parsed === "object" && "immediate" in parsed) {
-    return normalizeRecommendations((parsed as { immediate?: unknown }).immediate);
+  if (parsed && typeof parsed === "object") {
+    const structured = parsed as Record<string, unknown>;
+    const sections = ["immediate", "shortTerm", "mediumTerm", "longTerm", "inspection"]
+      .flatMap((key) => key in structured ? normalizeRecommendations(structured[key]) : []);
+    if (sections.length > 0) return sections;
+    if ("text" in structured || "title" in structured || "message" in structured) {
+      return [String(structured.text ?? structured.title ?? structured.message)].filter(Boolean);
+    }
   }
 
   return [];

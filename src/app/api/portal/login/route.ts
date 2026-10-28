@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { portalLogin } from "@/portal/lib/portal-auth";
+import { getRequestIp } from "@/lib/rate-limit";
 
 // Rota pública, mas depende de cookies (createPortalSession): nunca prerender.
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (!primeiroNome || !cnpj) {
       return NextResponse.json({ error: "Informe o primeiro nome e o CNPJ." }, { status: 400 });
     }
-    const result = await portalLogin(primeiroNome, cnpj);
+    const result = await portalLogin(primeiroNome, cnpj, getRequestIp(req));
     if (result.success) {
       return NextResponse.json({ success: true, clientId: result.clientId, name: result.name });
     }
@@ -19,6 +20,6 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("[PORTAL_LOGIN_API_ERROR]", err?.message ?? err);
     // Mensagem genérica, mesmo padrão das demais rotas do portal.
-    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+    return NextResponse.json({ error: "Não foi possível processar o login." }, { status: 503 });
   }
 }

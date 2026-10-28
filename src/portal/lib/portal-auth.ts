@@ -6,6 +6,7 @@ import {
   PORTAL_SESSION_COOKIE,
   PORTAL_SESSION_ISSUER,
 } from "@/portal/lib/portal-session-claims";
+import { clearRateLimit, isRateLimited, registerFailure } from "@/lib/rate-limit";
 
 // ================================================================
 // Autenticação de cliente para o Portal do EngeServ.
@@ -135,11 +136,16 @@ export const PORTAL_COOKIE = COOKIE_NAME;
  */
 export async function portalLogin(
   primeiroNome: string,
-  cnpj: string
+  cnpj: string,
+  requestKey = "unknown"
 ): Promise<{ success: true; clientId: string; name: string } | { success: false; error: string }> {
+  const genericError = "Credenciais inválidas. Verifique o nome e o CNPJ.";
+  const accountKey = `${requestKey}:${String(primeiroNome).trim().toLowerCase()}:${String(cnpj).replace(/\D/g, "").slice(0, 6)}`;
+  if (isRateLimited(requestKey) || isRateLimited(accountKey)) return { success: false, error: genericError };
   // 0. Validação de tipo/campo — evita estourar 500 com payload malformado.
   if (typeof primeiroNome !== "string" || typeof cnpj !== "string") {
-    return { success: false, error: "Credenciais inválidas. Verifique o nome e o CNPJ." };
+    registerFailure(requestKey); registerFailure(accountKey);
+    return { success: false, error: genericError };
   }
   if (primeiroNome.trim().length === 0 || primeiroNome.trim().length > 120) {
     return { success: false, error: "Credenciais inválidas. Verifique o nome e o CNPJ." };
@@ -148,7 +154,8 @@ export async function portalLogin(
   // 1. Remover máscara do CNPJ (manter apenas dígitos)
   const cnpjLimpo = cnpj.replace(/\D/g, "");
   if (cnpjLimpo.length < 6) {
-    return { success: false, error: "CNPJ inválido." };
+    registerFailure(requestKey); registerFailure(accountKey);
+    return { success: false, error: genericError };
   }
 
   // 2. Buscar clientes ativos e delegar a seleção a uma função pura e testável.
@@ -168,9 +175,11 @@ export async function portalLogin(
       console.warn(
         "[PORTAL_LOGIN] Prefixo de CNPJ ambíguo entre clientes ativos; login recusado."
       );
-      return { success: false, error: "Credenciais inválidas. Verifique o nome e o CNPJ." };
+      registerFailure(requestKey); registerFailure(accountKey);
+      return { success: false, error: genericError };
     }
-    return { success: false, error: selecao.error };
+    registerFailure(requestKey); registerFailure(accountKey);
+    return { success: false, error: genericError };
   }
 
   const clienteEncontrado = selecao.client;
@@ -179,6 +188,8 @@ export async function portalLogin(
     clientId: clienteEncontrado.id,
     name: displayName,
   });
+  clearRateLimit(requestKey);
+  clearRateLimit(accountKey);
 
   return { success: true, clientId: clienteEncontrado.id, name: displayName };
 }
@@ -249,6 +260,6 @@ export function selectLoginClient(
   }
   return {
     kind: "name_mismatch",
-    error: "Nome do cliente não corresponde ao cadastro. Verifique se digitou o primeiro nome corretamente.",
+    error: "Credenciais inválidas. Verifique o nome e o CNPJ.",
   };
 }

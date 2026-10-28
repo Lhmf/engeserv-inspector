@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 const MANAGEMENT_CODE = process.env.MANAGEMENT_CODE;
 const RATE_LIMIT_MAX = 5;
@@ -33,6 +34,10 @@ if (typeof setInterval !== "undefined") {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN_MASTER") {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+  }
   // 1. Rate limiting por IP
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     ?? req.headers.get("x-real-ip")

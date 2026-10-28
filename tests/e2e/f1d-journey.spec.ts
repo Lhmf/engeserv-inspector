@@ -75,10 +75,8 @@ test('F1d: Master percorre cliente, equipamento, inspeção, laudo e layout ofic
   const reportId = new URL(page.url()).pathname.split('/').pop();
   expect(reportId).toBeTruthy();
   const official = await page.request.get(`/api/reports/${reportId}/official-html`);
-  expect(official.status()).toBe(200);
-  const html = await official.text();
-  expect(html).toContain('PM-18');
-  expect(html).toContain('* Valor adotado (menor valor medido da região), não medido.');
+  expect(official.status()).toBe(409);
+  expect(await official.text()).toContain('EMISSION_BLOCKED_UNVALIDATED_ENGINEERING');
   const demoPdf = await page.request.get(`/api/reports/${reportId}/pdf?mode=demo`);
   expect(demoPdf.status()).toBe(200);
   fs.writeFileSync('docs/demo/f1d/demo-report.pdf', await demoPdf.body());
