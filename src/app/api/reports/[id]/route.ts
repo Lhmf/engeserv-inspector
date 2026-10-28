@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, canIssueFinalReport } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { assessTechnicalReportEmission } from "@/modules/report/safety/emission";
 
 export async function PATCH(
   req: NextRequest,
@@ -41,6 +42,9 @@ export async function PATCH(
       inspectionId: true,
       reportNumber: true,
       history: true,
+      engineeringResults: true,
+      inspectionData: true,
+      metadata: true,
     },
   });
 
@@ -70,6 +74,25 @@ export async function PATCH(
       { error: `Transição inválida de ${existing.status} para ${status}.` },
       { status: 400 }
     );
+  }
+
+  if (status === "PUBLISHED") {
+    const parseJson = (value: unknown) => {
+      if (typeof value !== "string") return value;
+      try { return JSON.parse(value); } catch { return null; }
+    };
+    const assessment = assessTechnicalReportEmission({
+      engineeringResults: parseJson(existing.engineeringResults),
+      inspectionData: parseJson(existing.inspectionData),
+      metadata: parseJson(existing.metadata),
+    });
+    if (!assessment.canEmitDefinitive) {
+      return NextResponse.json({
+        error: "Publicação bloqueada: o laudo ainda não possui validação técnica definitiva.",
+        code: "EMISSION_BLOCKED_UNVALIDATED_ENGINEERING",
+        reasons: assessment.reasons,
+      }, { status: 409 });
+    }
   }
 
   // Preparar histórico
