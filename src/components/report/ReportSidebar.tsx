@@ -153,7 +153,7 @@ export function ReportSidebar({ report, sections, activeSection, onSectionChange
                   ) : (
                     <>
                       <FileOutput className="w-4 h-4" />
-                      Exportar PDF
+                      Exportar PDF demonstrativo
                     </>
                   )}
                 </button>

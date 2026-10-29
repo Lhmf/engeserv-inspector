@@ -80,6 +80,12 @@ test('F1d: Master percorre cliente, equipamento, inspeção, laudo e layout ofic
   const demoPdf = await page.request.get(`/api/reports/${reportId}/pdf?mode=demo`);
   expect(demoPdf.status()).toBe(200);
   fs.writeFileSync('docs/demo/f1d/demo-report.pdf', await demoPdf.body());
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('download-demo-pdf').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^Laudo_NR13_.+\.pdf$/);
+  await download.saveAs('test-results/demo-report-click.pdf');
+  expect(fs.statSync('test-results/demo-report-click.pdf').size).toBeGreaterThan(0);
   await page.screenshot({ path: 'docs/demo/f1d/master-report-official.png', fullPage: true });
 
   await page.context().storageState({ path: 'docs/demo/f1d/master-storage.json' });

@@ -50,6 +50,7 @@ qa/**/*.txt
 docs/demo/**/storage*.json
 docs/demo/**/*storage*.json
 docs/demo/**/*.log
+docs/demo/**/demo-report-click.pdf
 scripts/seed-qa-ficticio.ts
 
 # Artefatos locais temporários do ciclo de QA

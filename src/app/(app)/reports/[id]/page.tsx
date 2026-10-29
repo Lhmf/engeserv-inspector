@@ -601,12 +601,14 @@ export default function ReportPage() {
                                 v{report.identification?.version || 1}
                               </span>
                               <button
-                                                                                            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
+                                                                                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 hover:bg-slate-100 text-slate-600"
                                                                                             onClick={handleExportPdf}
-                                                                                            aria-label="Baixar PDF"
-                                                                                            title="Baixar PDF"
+                                                                                            aria-label="Baixar PDF demonstrativo"
+                                                                                            title="Baixar PDF demonstrativo"
+                                                                                            data-testid="download-demo-pdf"
                                                                                           >
                                                               <FileOutput className="w-5 h-5" />
+                                                              <span className="hidden sm:inline">Baixar PDF</span>
                                                             </button>
                               <button
                                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
@@ -771,7 +773,7 @@ export default function ReportPage() {
                     <h3 className="font-semibold">Ação indisponível</h3>
                     <p className="mt-1 text-sm">{exportError.message}</p>
                     {exportError.reasons?.length ? <ul className="mt-2 list-disc pl-5 text-sm">{exportError.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
-                    <p className="mt-3 text-sm">O botão acima gera um PDF demonstrativo para conferência interna. A emissão definitiva só será liberada após a validação técnica.</p>
+                    <p className="mt-3 text-sm">O PDF demonstrativo está disponível para conferência interna. A emissão definitiva só será liberada após a validação técnica.</p>
                   </div>
                 )}
                 <ReportWorkflow
@@ -809,7 +811,7 @@ export default function ReportPage() {
                   {activeSection === "preview" && technicalReportId && (
                     <div className="relative">
                       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        Esta é uma prévia de trabalho. A prévia oficial e o PDF definitivo permanecem bloqueados até a validação técnica.
+                        Esta é uma prévia demonstrativa do layout oficial. O PDF demonstrativo pode ser baixado agora; o PDF definitivo permanece bloqueado até a validação técnica.
                       </div>
                       <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100" style={{ height: '800px' }}>
                         <iframe
