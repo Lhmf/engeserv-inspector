@@ -6,7 +6,7 @@
 - A bateria QA inclui uploads, rate limit do Portal e superfícies de segurança. A Preview continua protegida por SSO; não houve bypass nem alteração de produção.
 - A Preview precisa manter banco de teste, `AUTH_SECRET` e os dados institucionais configurados antes da emissão definitiva. Fórmulas placeholder e critério regional continuam bloqueando a emissão definitiva por `409`.
 
-Atualizado em 2026-10-22 para esta etapa.
+Atualizado em 2026-10-29 para o lote F3.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`

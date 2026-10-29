@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (clientId && equipment.clientId !== clientId) {
-    return NextResponse.json({ error: "O equipamento nÃ£o pertence ao cliente selecionado." }, { status: 409 });
+    return NextResponse.json({ error: "O equipamento não pertence ao cliente selecionado." }, { status: 409 });
   }
 
   const existing = await prisma.inspection.findFirst({
