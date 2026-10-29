@@ -97,6 +97,7 @@ export default function InspectionWizardPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [generationError, setGenerationError] = useState<any>(null);
   const [inspection, setInspection] = useState<any>(null);
   const [photos, setPhotos] = useState<any[]>([]);
   const [measurements, setMeasurements] = useState<any[]>([]);
@@ -418,6 +419,7 @@ export default function InspectionWizardPage() {
 
   async function handleGenerateReport() {
       setGeneratingReport(true);
+      setGenerationError(null);
       try {
         if (!navigator.onLine) {
           alert(
@@ -444,8 +446,9 @@ export default function InspectionWizardPage() {
         });
 
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Erro ao gerar laudo");
+          const err = await res.json().catch(() => ({}));
+          setGenerationError(err);
+          return;
         }
 
         const data = await res.json();
@@ -457,7 +460,7 @@ export default function InspectionWizardPage() {
           router.push(`/laudos`);
         }
       } catch (e: any) {
-        alert("Erro ao gerar laudo: " + e.message);
+        setGenerationError({ error: e.message || "Não foi possível gerar o laudo." });
       } finally {
         setGeneratingReport(false);
       }
@@ -503,6 +506,29 @@ export default function InspectionWizardPage() {
       default:
         return null;
     }
+  }
+
+  function renderGenerationError() {
+    if (!generationError) return null;
+    const fields = generationError.missingFields || [];
+    return (
+      <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-900" role="alert">
+        <h3 className="font-semibold">Não foi possível gerar o laudo</h3>
+        <p className="mt-1 text-sm">{generationError.error}</p>
+        {fields.length > 0 && (
+          <div className="mt-3 rounded-lg bg-white p-3 text-sm">
+            <p className="font-medium">Preencha estes campos na ficha técnica:</p>
+            <ul className="mt-2 list-disc pl-5">
+              {fields.map((field: any) => <li key={field.key}>{field.label} ({field.unit})</li>)}
+            </ul>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {generationError.editUrl && <Link href={generationError.editUrl} className="inline-flex min-h-10 items-center rounded-lg bg-navy px-4 py-2 text-sm font-medium text-white">Preencher ficha técnica</Link>}
+          <button type="button" onClick={handleGenerateReport} className="inline-flex min-h-10 items-center rounded-lg border border-rose-300 px-4 py-2 text-sm font-medium">Tentar novamente</button>
+        </div>
+      </div>
+    );
   }
 
   if (loadingInspection) {
@@ -602,7 +628,8 @@ export default function InspectionWizardPage() {
       {/* Wizard Content */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="p-6">
-          {renderStepContent()}
+      {generationError && renderGenerationError()}
+      {renderStepContent()}
         </div>
       </div>
 

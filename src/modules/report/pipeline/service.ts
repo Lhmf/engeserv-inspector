@@ -28,6 +28,7 @@ import { generateId } from '../utils/id-generator';
 import type { MeasurementPoint } from '@/modules/engineering/types';
 import { prisma } from '@/lib/prisma';
 import { materializeRegionalMeasurements } from '@/modules/report/measurements/regional-adoption';
+import { getMissingTechnicalFields } from './technical-data';
 
 // ============================================================
 // PIPELINE CONFIG PADRÃO
@@ -345,6 +346,10 @@ export class InspectionReportPipeline {
     
     const errors: string[] = [];
     const warnings: string[] = [];
+    const missingTechnicalFields = getMissingTechnicalFields(rawData.equipment as unknown as Record<string, unknown>);
+    if (missingTechnicalFields.length > 0) {
+      errors.push(`Ficha técnica incompleta: ${missingTechnicalFields.map((field) => field.label).join(', ')}`);
+    }
     
     if (!rawData.equipment) errors.push('Equipamento não encontrado');
     if (!rawData.equipment?.tag) errors.push('TAG do equipamento ausente');

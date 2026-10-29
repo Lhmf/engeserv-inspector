@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { InspectionReportPipeline } from "@/modules/report/pipeline/service";
+import { getMissingTechnicalFields, isTechnicalDataError } from "@/modules/report/pipeline/technical-data";
 
 const pipeline = new InspectionReportPipeline();
 
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
         status: true,
         equipmentId: true,
         inspectorId: true,
-        equipment: { select: { id: true, tag: true } },
+        equipment: { select: { id: true, tag: true, originalThicknessMm: true, minThicknessMm: true, designPressureBar: true } },
         inspector: { select: { id: true, name: true } },
       },
     });
@@ -171,6 +172,18 @@ export async function POST(req: NextRequest) {
     }
 
     const eqId = equipmentId || inspection.equipmentId;
+
+    const missingFields = getMissingTechnicalFields(inspection.equipment);
+    if (missingFields.length > 0) {
+      return NextResponse.json({
+        code: "EQUIPMENT_TECHNICAL_DATA_REQUIRED",
+        error: "Complete a ficha técnica do equipamento antes de gerar o laudo.",
+        explanation: "Esses dados são necessários para calcular a integridade do equipamento. Nenhum valor foi inventado.",
+        missingFields,
+        equipmentId: eqId,
+        editUrl: `/equipamentos/${eqId}/editar`,
+      }, { status: 422 });
+    }
 
     // Execute the pipeline
     const result = await pipeline.execute({
@@ -196,6 +209,18 @@ export async function POST(req: NextRequest) {
         message: s.message,
         error: s.error?.message,
       }));
+      if (errorMessages.some(isTechnicalDataError)) {
+        const equipment = await prisma.equipment.findUnique({ where: { id: eqId } });
+        return NextResponse.json({
+          code: "EQUIPMENT_TECHNICAL_DATA_REQUIRED",
+          error: "Complete a ficha técnica do equipamento antes de gerar o laudo.",
+          explanation: "Esses dados são necessários para calcular a integridade do equipamento. Nenhum valor foi inventado.",
+          missingFields: getMissingTechnicalFields(equipment as Record<string, unknown> | null),
+          equipmentId: eqId,
+          editUrl: `/equipamentos/${eqId}/editar`,
+          details: errorMessages,
+        }, { status: 422 });
+      }
       const incompleteTechnicalData = errorMessages.some((message) =>
         message.includes("Campos obrigatórios ausentes") || message.includes("ficha técnica")
       );

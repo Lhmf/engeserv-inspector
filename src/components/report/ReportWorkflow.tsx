@@ -50,8 +50,7 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
   const workflowSteps = [
     { id: "draft", label: "Rascunho", icon: <FileText className="w-4 h-4" />, status: "DRAFT" },
     { id: "review", label: "Em Revisão", icon: <Clock className="w-4 h-4" />, status: "UNDER_REVIEW" },
-    { id: "validation", icon: <ShieldCheck className="w-4 h-4" />, label: "Validação Engenharia", status: "VALIDATION" },
-    { id: "approval", icon: <CheckCircle2 className="w-4 h-4" />, label: "Aprovação Gestor", status: "APPROVAL" },
+    { id: "approved", icon: <ShieldCheck className="w-4 h-4" />, label: "Aprovado tecnicamente", status: "APPROVED" },
     { id: "published", icon: <Share2 className="w-4 h-4" />, label: "Publicado", status: "PUBLISHED" },
   ];
 
@@ -60,8 +59,7 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
     const stepToBackend: Record<string, string> = {
       'DRAFT': 'DRAFT',
       'UNDER_REVIEW': 'UNDER_REVIEW',
-      'VALIDATION': 'APPROVED',
-      'APPROVAL': 'PUBLISHED',
+      'APPROVED': 'APPROVED',
       'PUBLISHED': 'PUBLISHED',
     };
     const backendStatus = stepToBackend[stepStatus];
@@ -177,7 +175,7 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
                           </div>
                         </div>
                         
-                        {stepStatus === "current" && (
+                        {stepStatus === "current" && report.identification.status !== "PUBLISHED" && (
                           <div className="mt-3 pt-3 border-t border-slate-200">
                             <div className="flex flex-wrap gap-2">
                               <button
@@ -196,6 +194,9 @@ export function ReportWorkflow({ report, activePanel, onPanelChange, onAction }:
                               </button>
                             </div>
                           </div>
+                        )}
+                        {stepStatus === "current" && report.identification.status === "PUBLISHED" && (
+                          <p className="mt-3 border-t border-slate-200 pt-3 text-sm text-blue-800">Laudo já publicado. Para alterar, crie uma nova versão.</p>
                         )}
                       </div>
                     </div>

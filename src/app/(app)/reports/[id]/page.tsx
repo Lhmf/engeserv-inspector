@@ -124,6 +124,7 @@ export default function ReportPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [technicalReportId, setTechnicalReportId] = useState<string>("");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<{ message: string; reasons?: string[] } | null>(null);
   const [isDownloadingData, setIsDownloadingData] = useState(false);
   const [workflowAction, setWorkflowAction] = useState<{ loading: boolean; stepId: string | null }>({ loading: false, stepId: null });
   const [manualSignatureMode, setManualSignatureMode] = useState(false);
@@ -205,18 +206,18 @@ export default function ReportPage() {
           if (!technicalReportId || isExportingPdf) return;
     
           setIsExportingPdf(true);
-          window.open(`/api/reports/${technicalReportId}/pdf?mode=demo`, "_blank");
-          setIsExportingPdf(false);
-          return;
+          setExportError(null);
           try {
-            const response = await fetch(`/api/reports/${technicalReportId}/pdf`, {
+            const response = await fetch(`/api/reports/${technicalReportId}/pdf?mode=demo`, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
             });
 
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
-              throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+              const error = new Error(errorData.error || `Erro HTTP: ${response.status}`) as Error & { reasons?: string[] };
+              error.reasons = errorData.reasons;
+              throw error;
             }
 
             // Verificar Content-Type
@@ -240,7 +241,7 @@ export default function ReportPage() {
       
           } catch (err: any) {
             console.error("Erro ao exportar PDF:", err);
-            alert(`Erro ao exportar PDF: ${err.message}`);
+            setExportError({ message: err.message, reasons: err.reasons });
           } finally {
             setIsExportingPdf(false);
           }
@@ -296,6 +297,10 @@ export default function ReportPage() {
           // action format: "complete-stepId" or "skip-stepId"
           const [type, stepId] = action.split("-");
           if (!technicalReportId || !stepId || workflowAction.loading) return;
+          if (report?.identification?.status === "PUBLISHED") {
+            setExportError({ message: "Este laudo já foi publicado. Para alterar, crie uma nova versão." });
+            return;
+          }
     
           setWorkflowAction({ loading: true, stepId });
     
@@ -305,8 +310,7 @@ export default function ReportPage() {
             const targetStatusMap: Record<string, string | null> = {
               "draft": "UNDER_REVIEW",
               "review": "APPROVED",
-              "validation": "PUBLISHED",
-              "approval": "PUBLISHED",
+              "approved": "PUBLISHED",
               "published": null,
             };
             const targetStatus = targetStatusMap[stepId];
@@ -322,8 +326,7 @@ export default function ReportPage() {
             const stepStatusMap: Record<string, string | null> = {
               "draft": "UNDER_REVIEW",
               "review": "APPROVED",      // Em Revisão → Validação Engenharia (muda para APPROVED)
-              "validation": "PUBLISHED", // Validação Engenharia → Aprovação Gestor (muda para PUBLISHED)
-              "approval": "PUBLISHED",    // Aprovação Gestor → Publicado (já em PUBLISHED)
+              "approved": "PUBLISHED",   // Aprovado tecnicamente → Publicado
               "published": null,           // Já publicado — sem transição
             };
       
@@ -498,7 +501,7 @@ export default function ReportPage() {
                   alert(`Nao e possivel publicar: o laudo esta em "${statusLabel[report.identification.status] || report.identification.status}".`);
                   return;
                 }
-                await handleWorkflowAction("complete-validation");
+                await handleWorkflowAction("complete-approved");
                 break;
 
               default:
@@ -599,7 +602,7 @@ export default function ReportPage() {
                               </span>
                               <button
                                                                                             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600"
-                                                                                            onClick={() => window.open(`/api/reports/${technicalReportId}/pdf?mode=demo`, '_blank')}
+                                                                                            onClick={handleExportPdf}
                                                                                             aria-label="Baixar PDF"
                                                                                             title="Baixar PDF"
                                                                                           >
@@ -763,6 +766,14 @@ export default function ReportPage() {
               {/* Report Body */}
               <div className="space-y-6">
                 {/* Workflow Progress */}
+                {exportError && (
+                  <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950" role="alert">
+                    <h3 className="font-semibold">Ação indisponível</h3>
+                    <p className="mt-1 text-sm">{exportError.message}</p>
+                    {exportError.reasons?.length ? <ul className="mt-2 list-disc pl-5 text-sm">{exportError.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
+                    <p className="mt-3 text-sm">O botão acima gera um PDF demonstrativo para conferência interna. A emissão definitiva só será liberada após a validação técnica.</p>
+                  </div>
+                )}
                 <ReportWorkflow
                                   report={report as any}
                                   activePanel={sidebarPanel}
