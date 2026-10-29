@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStorage } from "@/modules/storage";
+import { validateDocumentUpload } from "@/lib/upload-validation";
 
 const validTypes = ["LAUDO", "ART", "INSPECAO", "OUTRO"] as const;
 
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const data = await req.formData();
   const file = data.get("file"); const type = data.get("type"); const siteId = data.get("siteId");
   if (!(file instanceof File) || !validTypes.includes(type as typeof validTypes[number])) return NextResponse.json({ error: "Informe o tipo e selecione um arquivo." }, { status: 400 });
+  const uploadError = validateDocumentUpload(file as File);
+  if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
   const client = await prisma.client.findUnique({ where: { id: params.id }, select: { id: true } });
   if (!client) return NextResponse.json({ error: "Cliente não encontrado." }, { status: 404 });
   if (siteId && typeof siteId === "string") { const site = await prisma.clientSite.findFirst({ where: { id: siteId, clientId: client.id } }); if (!site) return NextResponse.json({ error: "Frente inválida para este cliente." }, { status: 400 }); }

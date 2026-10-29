@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const authHeader = req.headers.get("authorization");
-  const providedCode = authHeader?.replace("Bearer ", "") || req.nextUrl.searchParams.get("code");
+  const providedCode = authHeader?.replace("Bearer ", "");
 
   // Try bcrypt compare first (if stored as hash)
   let codeValid = false;

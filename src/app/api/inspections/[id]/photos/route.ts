@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getStorage } from "@/modules/storage";
+import { validatePhotoUpload } from "@/lib/upload-validation";
 
 const VALID_CATEGORIES = [
   "PLACA", "CORROSAO", "VALVULA", "MANOMETRO",
@@ -75,6 +76,8 @@ export async function POST(
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
+    const uploadError = validatePhotoUpload(file);
+    if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
 
     let url: string;
     if (storage) {
