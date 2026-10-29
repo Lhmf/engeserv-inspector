@@ -105,6 +105,9 @@ export async function GET(
         ...(emissionReport.metadata || {}),
         companyName: company.name,
         companyCnpj: company.cnpj,
+        companyAddress: company.address,
+        companyEmail: company.email,
+        companySite: company.website,
       },
     } as TechnicalReport);
     const pdfBytes = await renderHtmlToPdf(html);
@@ -380,6 +383,7 @@ function parseTechnicalReport(raw: any): TechnicalReport {
       missingRoles: signatures.missingRoles || [],
     },
     metadata: {
+      ...metadata,
       templateId: metadata.templateId || 'NR13_v2',
       templateVersion: metadata.templateVersion || '2.0',
       generatedBy: metadata.generatedBy || '',

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canIssueFinalReport, getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { renderOfficialNr13Html } from '@/modules/report/templates/nr13/official-html';
+import { DEMO_COMPANY_INFO, resolveCompanyInfoFromEnv } from '@/modules/report/company-info';
 import { assessTechnicalReportEmission, sanitizeForEmission } from '@/modules/report/safety/emission';
 
 function parseJson(value: unknown) {
@@ -84,8 +85,17 @@ export async function GET(
     metadata: parseJson(report.metadata),
   };
 
+  const company = demoMode ? DEMO_COMPANY_INFO : resolveCompanyInfoFromEnv();
   const renderedDocument = demoMode
-    ? sanitizeForEmission(document, 'DEMO', assessment)
+    ? sanitizeForEmission({
+        ...document,
+        metadata: {
+          ...(document.metadata || {}),
+          companyName: company?.name,
+          companySite: company?.website,
+          companyEmail: company?.email,
+        },
+      }, 'DEMO', assessment)
     : document;
 
   return new NextResponse(renderOfficialNr13Html(renderedDocument as any), {

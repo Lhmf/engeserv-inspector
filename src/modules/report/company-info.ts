@@ -62,7 +62,8 @@ export function resolveCompanyInfoFromEnv(
  * DEMONSTRAÇÃO. Nunca usada em nenhum laudo definitivo.
  */
 export const DEMO_COMPANY_INFO: CompanyInfo = {
-  name: 'EMPRESA DEMONSTRAÇÃO',
+  name: 'ENGSERV - ENGENHARIA & SERVIÇOS',
   tagline: 'DEMONSTRAÇÃO - NÃO VÁLIDO PARA USO TÉCNICO',
+  website: 'www.engenhariaeinspecoes.com.br',
   isDemoPlaceholder: true,
 };

@@ -7,11 +7,10 @@ import { useState, useEffect } from "react";
  * Retorna `true` quando há conexão, `false` quando offline.
  */
 export function useOnline(): boolean {
-  const [online, setOnline] = useState<boolean>(
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
+    setOnline(navigator.onLine);
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
 
