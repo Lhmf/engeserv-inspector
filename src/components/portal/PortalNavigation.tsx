@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navigation = [
   { name: "Dashboard", href: "/portal/dashboard", icon: HomeIcon },
@@ -216,6 +217,10 @@ export function PortalNavigation() {
 
           {/* Footer - User info */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="mb-3 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800/70">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Preferência visual</span>
+              <ThemeToggle className="min-h-9 min-w-9" />
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-navy/10 flex items-center justify-center">

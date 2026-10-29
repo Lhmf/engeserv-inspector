@@ -220,6 +220,19 @@ export default function PortalDashboardPage() {
       />
 
       <main className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+        <section className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] via-[#12345b] to-[#176b82] p-6 text-white shadow-lg md:p-8">
+          <div className="relative z-10 max-w-2xl">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">EngeServ Inspector</p>
+            <h2 className="text-2xl font-bold md:text-3xl">Seu controle NR-13 em um só lugar</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-200">Acompanhe a validade dos equipamentos, consulte laudos e encontre rapidamente o que precisa de atenção.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/portal/equipamentos" className="inline-flex min-h-11 items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[#0a1628] transition hover:bg-cyan-50">Ver equipamentos</Link>
+              <Link href="/portal/laudos" className="inline-flex min-h-11 items-center rounded-lg border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">Consultar laudos</Link>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute -right-12 -top-16 h-64 w-64 rounded-full border-[32px] border-cyan-200/10" aria-hidden="true" />
+          <div className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full border-[24px] border-white/10" aria-hidden="true" />
+        </section>
         {error && (
           <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-800 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300" role="alert">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/portal/ui/Button";
 import { Input } from "@/components/portal/ui/Input";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function PortalLoginPage() {
   const [primeiroNome, setPrimeiroNome] = useState("");
@@ -39,7 +40,10 @@ export default function PortalLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4 py-12">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4 py-12">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         {/* Logo header */}
         <div className="text-center mb-10">
