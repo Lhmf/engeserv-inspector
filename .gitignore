@@ -52,3 +52,11 @@ docs/demo/**/*storage*.json
 docs/demo/**/*.log
 scripts/seed-qa-ficticio.ts
 
+# Artefatos locais temporários do ciclo de QA
+QA-*.md
+TODO.md
+modifyDashboard.ps1
+qa/lote23b/
+qa/model-compare-*/
+qa/model-media-*/
+
