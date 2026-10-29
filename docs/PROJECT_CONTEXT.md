@@ -10,10 +10,10 @@ Atualizado em 2026-10-29 para o lote F3.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`
-- Commit mais recente: `b962070` (atualizado em D5)
+- Commit mais recente: `0c88e9f` (lote F3)
 - Lockfile de `@playwright/test` sincronizado; workflow continua usando Node 24.x, Prisma 5.19.1 e PostgreSQL temporário
 - Preview anterior válida (sem mudanças funcionais de aplicação): https://engeserv-inspector-2ci8l04si-the-castilho.vercel.app
-- Preview oficial: https://engeserv-inspector-2tgi0u0h5-the-castilho.vercel.app
+- Preview oficial: https://engeserv-inspector-pk25julbs-the-castilho.vercel.app
 - Target da implantação: `preview`
 - Produção não foi modificada.
 
@@ -23,7 +23,7 @@ Atualizado em 2026-10-29 para o lote F3.
 - Testes de segurança/autenticação do Portal do Cliente passando (24 testes).
 - Build Next.js concluído com sucesso.
 - Branch publicada no remoto e Preview Vercel implantada.
-- Commit da Preview confirmado pela metadata Vercel: `4a08877e6bbde435e9d214baee405f6985342eac`.
+- Commit da Preview confirmado pela metadata Vercel: `0c88e9f95ab366ab1e75d2663b4b3c4796887edf`.
 
 ## O que ainda precisa validação funcional
 - Jornada completa autenticada por perfil.
