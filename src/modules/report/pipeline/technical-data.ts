@@ -16,5 +16,5 @@ export function getMissingTechnicalFields(equipment: Record<string, unknown> | n
 }
 
 export function isTechnicalDataError(message: string) {
-  return /Campos obrigatórios ausentes|Validação falhou.*(originalThicknessMm|minThicknessMm|designPressureBar)/i.test(message);
+  return /Campos obrigatórios ausentes|Validação.*falhou.*(originalThicknessMm|minThicknessMm|designPressureBar|ficha técnica)/i.test(message);
 }
