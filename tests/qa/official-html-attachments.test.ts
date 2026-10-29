@@ -28,5 +28,5 @@ test('laudo oficial usa documentos reais do cliente nos anexos', () => {
   assert.match(html, /ART-2026\.jpg/);
   assert.match(html, /https:\/\/example\.test\/art-2026\.jpg/);
   assert.doesNotMatch(html, /APRESENTADO \/ A CONFIRMAR/);
-  assert.doesNotMatch(html, /Documento nÃ£o anexado/);
+  assert.doesNotMatch(html, /Documento não anexado/);
 });

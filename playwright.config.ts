@@ -21,6 +21,26 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /f3-visual\.spec\.ts/,
+    },
+    {
+      name: 'f3-light-desktop',
+      testMatch: /f3-visual\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], colorScheme: 'light' },
+    },
+    {
+      name: 'f3-dark-desktop',
+      testMatch: /f3-visual\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], colorScheme: 'dark' },
+    },
+    {
+      name: 'f3-light-mobile',
+      testMatch: /f3-visual\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        colorScheme: 'light',
+        viewport: { width: 390, height: 844 },
+      },
     },
   ],
 });
