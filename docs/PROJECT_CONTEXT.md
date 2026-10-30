@@ -10,10 +10,10 @@ Atualizado em 2026-10-30 para o lote F3 e o template oficial NR-13.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`
-- Commit mais recente: `9c94e11` (template oficial NR-13)
+- Commit de implementação do template: `bf125a4` (mapa completo de medições NR-13)
 - Lockfile de `@playwright/test` sincronizado; workflow continua usando Node 24.x, Prisma 5.19.1 e PostgreSQL temporário
 - Preview anterior válida (sem mudanças funcionais de aplicação): https://engeserv-inspector-2ci8l04si-the-castilho.vercel.app
-- Preview oficial: https://engeserv-inspector-f77auskq5-the-castilho.vercel.app
+- Preview oficial: https://engeserv-inspector-c1z4caghz-the-castilho.vercel.app
 - Target da implantação: `preview`
 - Produção não foi modificada.
 - O HTML oficial agora usa os assets da identidade EngeServ, capa, segunda página, índice, cabeçalho, rodapé, seções, anexos e 18 pontos PM-01 a PM-18 alinhados ao modelo de referência. O PDF demonstrativo local gerado pelo mesmo HTML possui 29 páginas.
