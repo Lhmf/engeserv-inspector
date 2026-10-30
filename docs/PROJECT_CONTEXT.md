@@ -6,16 +6,17 @@
 - A bateria QA inclui uploads, rate limit do Portal e superfícies de segurança. A Preview continua protegida por SSO; não houve bypass nem alteração de produção.
 - A Preview precisa manter banco de teste, `AUTH_SECRET` e os dados institucionais configurados antes da emissão definitiva. Fórmulas placeholder e critério regional continuam bloqueando a emissão definitiva por `409`.
 
-Atualizado em 2026-10-29 para o lote F3.
+Atualizado em 2026-10-30 para o lote F3 e o template oficial NR-13.
 
 ## Base atual
 - Branch: `lote-c-correcao-tipos-build`
-- Commit mais recente: `0c88e9f` (lote F3)
+- Commit mais recente: `9c94e11` (template oficial NR-13)
 - Lockfile de `@playwright/test` sincronizado; workflow continua usando Node 24.x, Prisma 5.19.1 e PostgreSQL temporário
 - Preview anterior válida (sem mudanças funcionais de aplicação): https://engeserv-inspector-2ci8l04si-the-castilho.vercel.app
-- Preview oficial: https://engeserv-inspector-pk25julbs-the-castilho.vercel.app
+- Preview oficial: https://engeserv-inspector-f77auskq5-the-castilho.vercel.app
 - Target da implantação: `preview`
 - Produção não foi modificada.
+- O HTML oficial agora usa os assets da identidade EngeServ, capa, segunda página, índice, cabeçalho, rodapé, seções, anexos e 18 pontos PM-01 a PM-18 alinhados ao modelo de referência. O PDF demonstrativo local gerado pelo mesmo HTML possui 29 páginas.
 
 ## O que foi concluído
 - Correção dos erros de TypeScript/build.
@@ -38,6 +39,8 @@ Atualizado em 2026-10-29 para o lote F3.
 - HTML oficial, PDF, seed/admin e debug respeitam autenticação e a barreira de emissão; pipeline não expõe exceções internas.
 - Evidências: TypeScript passou; build passou; QA `53 passed, 1 skipped`; smoke `4 passed`; F1c `2 passed`; F1d `4 passed` após atualizar o contrato de HTML bloqueado.
 - Preview possui `POSTGRES_URL`, `PRISMA_DATABASE_URL` e `AUTH_SECRET`; `REPORT_COMPANY_NAME` e `REPORT_COMPANY_CNPJ` estão ausentes e precisam ser cadastradas antes da emissão definitiva.
-- Pendências: credencial Portal ainda é nome + prefixo CNPJ; rate limit em memória; fórmulas aguardam Edison; comparação DOCX/PDF permanece para o próximo lote.
+- Pendências: credencial Portal ainda é nome + prefixo CNPJ; rate limit em memória; fórmulas aguardam Edison; a comparação visual final com o DOCX ainda depende da validação do usuário.
+- O modelo DOCX de referência continua fora do Git por ser um arquivo local do usuário; os assets extraídos do modelo estão versionados em `public/report-template/`.
+- URLs locais de fotos indisponíveis não são mais renderizadas como imagens quebradas no HTML/PDF; o laudo mostra o estado de anexo ausente.
 - Publicação de laudo agora também é bloqueada com `409` quando engenharia ou critérios regionais não estão validados.
 - Não foram executados testes de navegador/fluxo autenticado nesta etapa. O próximo passo é validar end-to-end com credenciais autorizadas e dados claramente identificados como demonstração, sem promoção para produção.
