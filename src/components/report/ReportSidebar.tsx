@@ -45,9 +45,10 @@ interface ReportSidebarProps {
   onDownloadData: () => Promise<void>;
   isExportingPdf?: boolean;
   isDownloadingData?: boolean;
+  canEmitDefinitive?: boolean;
 }
 
-export function ReportSidebar({ report, sections, activeSection, onSectionChange, technicalReportId, onExportPdf, onDownloadData, isExportingPdf, isDownloadingData }: ReportSidebarProps) {
+export function ReportSidebar({ report, sections, activeSection, onSectionChange, technicalReportId, onExportPdf, onDownloadData, isExportingPdf, isDownloadingData, canEmitDefinitive }: ReportSidebarProps) {
   const statusColors = {
     DRAFT: "bg-slate-100 text-slate-700",
     UNDER_REVIEW: "bg-amber-100 text-amber-700",
@@ -153,7 +154,7 @@ export function ReportSidebar({ report, sections, activeSection, onSectionChange
                   ) : (
                     <>
                       <FileOutput className="w-4 h-4" />
-                      Exportar PDF demonstrativo
+                      {canEmitDefinitive ? "Exportar PDF definitivo" : "Exportar PDF demonstrativo"}
                     </>
                   )}
                 </button>

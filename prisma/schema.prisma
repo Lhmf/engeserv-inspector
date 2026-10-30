@@ -78,6 +78,7 @@ model User {
   inspectionsApproved   Inspection[] @relation("InspectionApprover")
   inspectionPhotos      InspectionPhoto[] @relation("InspectionPhotoUploader")
   uploadedClientDocuments ClientDocument[] @relation("ClientDocumentUploader")
+  notifications         Notification[] @relation("UserNotifications")
 
   @@map("users")
 }
@@ -341,4 +342,20 @@ model TechnicalReport {
   
 
 @@map("technical_reports")
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  recipientId String
+  recipient   User      @relation("UserNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  message     String
+  reportId    String?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([recipientId, readAt, createdAt])
+  @@index([reportId])
+  @@map("notifications")
 }

@@ -288,6 +288,12 @@ export function makeLote21bReportFixture(options: { validated: boolean }): any {
       lastModifiedAt: new Date('2026-10-21T13:30:00Z'),
       placeholderMode: !v,
       regionalAdoptionApproved: v,
+      technicalValidation: v ? {
+        status: 'APPROVED',
+        approvedAt: '2026-10-21T14:00:00Z',
+        approvedById: 'rt-qa',
+        approvedByName: 'Responsável Técnico QA',
+      } : undefined,
     },
   };
 }

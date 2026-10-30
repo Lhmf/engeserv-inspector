@@ -95,8 +95,12 @@ export async function GET(
     const company = demoMode ? DEMO_COMPANY_INFO : resolveCompanyInfoFromEnv();
     if (!company) {
       return NextResponse.json(
-        { error: 'Empresa emitente não configurada.' },
-        { status: 500 }
+        {
+          error: 'Emissão definitiva bloqueada: faltam os dados institucionais da EngeServ.',
+          code: 'DEFINITIVE_COMPANY_INFO_REQUIRED',
+          required: ['REPORT_COMPANY_NAME', 'REPORT_COMPANY_CNPJ'],
+        },
+        { status: 409 }
       );
     }
     const html = renderOfficialNr13Html({

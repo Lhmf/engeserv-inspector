@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { TechnicalReport } from "@/modules/report/types";
 import { ReportSidebar } from "@/components/report/ReportSidebar";
 import { ReportWorkflow } from "@/components/report/ReportWorkflow";
+import { TechnicalValidationCard } from "@/components/report/TechnicalValidationCard";
 
 // Seções do laudo: lazy-load sob demanda (RC4 — performance). Cada seção
 // só é carregada quando a aba correspondente é ativa.
@@ -128,6 +129,8 @@ export default function ReportPage() {
   const [isDownloadingData, setIsDownloadingData] = useState(false);
   const [workflowAction, setWorkflowAction] = useState<{ loading: boolean; stepId: string | null }>({ loading: false, stepId: null });
   const [manualSignatureMode, setManualSignatureMode] = useState(false);
+  const [sessionRole, setSessionRole] = useState<string | undefined>();
+  const [emissionAssessment, setEmissionAssessment] = useState<any>(null);
 
   useEffect(() => {
     loadReport();
@@ -138,6 +141,11 @@ export default function ReportPage() {
       setError(null);
 
       try {
+        const meResponse = await fetch("/api/auth/me");
+        if (meResponse.ok) {
+          const meData = await meResponse.json();
+          setSessionRole(meData.user?.role);
+        }
         // First, try to load as technicalReportId directly
         const res = await fetch(`/api/reports/pipeline?id=${urlReportId}`, {
           method: "GET",
@@ -148,6 +156,7 @@ export default function ReportPage() {
                   const data = await res.json();
                   if (data.report) {
                     setReport(normalizeReport(data.report));
+                    setEmissionAssessment(data.emissionAssessment || null);
                     // Priorizar technicalReportId (ID real do banco) sobre reportId (ID do factory)
                     setTechnicalReportId(data.technicalReportId || data.reportId || urlReportId);
                     setLoading(false);
@@ -182,6 +191,7 @@ export default function ReportPage() {
               const techData = await techRes.json();
               if (techData.report) {
                 setReport(normalizeReport(techData.report));
+                setEmissionAssessment(techData.emissionAssessment || null);
                 setLoading(false);
                 return;
               }
@@ -208,14 +218,16 @@ export default function ReportPage() {
           setIsExportingPdf(true);
           setExportError(null);
           try {
-            const response = await fetch(`/api/reports/${technicalReportId}/pdf?mode=demo`, {
+            const emissionMode = emissionAssessment?.canEmitDefinitive ? "definitive" : "demo";
+            const response = await fetch(`/api/reports/${technicalReportId}/pdf?mode=${emissionMode}`, {
               method: "GET",
               headers: { "Content-Type": "application/json" },
             });
 
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
-              const error = new Error(errorData.error || `Erro HTTP: ${response.status}`) as Error & { reasons?: string[] };
+              const requiredFields = Array.isArray(errorData.required) ? ` Campos necessários: ${errorData.required.join(", ")}.` : "";
+              const error = new Error(`${errorData.error || `Erro HTTP: ${response.status}`}${requiredFields}`) as Error & { reasons?: string[] };
               error.reasons = errorData.reasons;
               throw error;
             }
@@ -573,6 +585,7 @@ export default function ReportPage() {
                       onDownloadData={handleDownloadData}
                       isExportingPdf={isExportingPdf}
                       isDownloadingData={isDownloadingData}
+                      canEmitDefinitive={Boolean(emissionAssessment?.canEmitDefinitive)}
                     />
         </aside>
 
@@ -603,12 +616,12 @@ export default function ReportPage() {
                               <button
                                                                                             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 hover:bg-slate-100 text-slate-600"
                                                                                             onClick={handleExportPdf}
-                                                                                            aria-label="Baixar PDF demonstrativo"
-                                                                                            title="Baixar PDF demonstrativo"
-                                                                                            data-testid="download-demo-pdf"
+                                                                                            aria-label={emissionAssessment?.canEmitDefinitive ? "Baixar PDF definitivo" : "Baixar PDF demonstrativo"}
+                                                                                            title={emissionAssessment?.canEmitDefinitive ? "Baixar PDF definitivo" : "Baixar PDF demonstrativo"}
+                                                                                            data-testid={emissionAssessment?.canEmitDefinitive ? "download-definitive-pdf" : "download-demo-pdf"}
                                                                                           >
                                                               <FileOutput className="w-5 h-5" />
-                                                              <span className="hidden sm:inline">Baixar PDF</span>
+                                                              <span className="hidden sm:inline">{emissionAssessment?.canEmitDefinitive ? "Baixar PDF definitivo" : "Baixar prévia PDF"}</span>
                                                             </button>
                               <button
                                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-slate-100"
@@ -773,9 +786,15 @@ export default function ReportPage() {
                     <h3 className="font-semibold">Ação indisponível</h3>
                     <p className="mt-1 text-sm">{exportError.message}</p>
                     {exportError.reasons?.length ? <ul className="mt-2 list-disc pl-5 text-sm">{exportError.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
-                    <p className="mt-3 text-sm">O PDF demonstrativo está disponível para conferência interna. A emissão definitiva só será liberada após a validação técnica.</p>
+                    <p className="mt-3 text-sm">Use o cartão “Validação técnica” nesta tela. O Administrador Master aprova o critério e libera o PDF definitivo; a prévia demonstrativa continua disponível para conferência.</p>
                   </div>
                 )}
+                <TechnicalValidationCard
+                  reportId={technicalReportId}
+                  assessment={emissionAssessment}
+                  role={sessionRole}
+                  onUpdated={loadReport}
+                />
                 <ReportWorkflow
                                   report={report as any}
                                   activePanel={sidebarPanel}
@@ -811,11 +830,11 @@ export default function ReportPage() {
                   {activeSection === "preview" && technicalReportId && (
                     <div className="relative">
                       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        Esta é uma prévia demonstrativa do layout oficial. O PDF demonstrativo pode ser baixado agora; o PDF definitivo permanece bloqueado até a validação técnica.
+                        Prévia demonstrativa do layout oficial. Para liberar o PDF definitivo, conclua a validação técnica no cartão destacado acima.
                       </div>
                       <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100" style={{ height: '800px' }}>
                         <iframe
-                          src={`/api/reports/${technicalReportId}/official-html?mode=demo`}
+                          src={`/api/reports/${technicalReportId}/official-html?mode=${emissionAssessment?.canEmitDefinitive ? "definitive" : "demo"}`}
                           className="h-full w-full border-0"
                           title="Prévia demonstrativa do Laudo NR-13"
                         />

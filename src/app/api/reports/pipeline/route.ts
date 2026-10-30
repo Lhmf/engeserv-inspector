@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { InspectionReportPipeline } from "@/modules/report/pipeline/service";
 import { getMissingTechnicalFields, isTechnicalDataError } from "@/modules/report/pipeline/technical-data";
+import { assessTechnicalReportEmission } from "@/modules/report/safety/emission";
 
 const pipeline = new InspectionReportPipeline();
 
@@ -118,7 +119,12 @@ export async function GET(req: NextRequest) {
               metadata: parseJson(technicalReport.metadata),
             };
 
-      return NextResponse.json({ report, reportId: technicalReport.id });
+      const emissionAssessment = assessTechnicalReportEmission({
+        engineeringResults: report.engineeringResults,
+        inspectionData: report.inspectionData,
+        metadata: report.metadata,
+      });
+      return NextResponse.json({ report, reportId: technicalReport.id, emissionAssessment });
     }
 
     return NextResponse.json({ error: "Laudo não encontrado em armazenamento permanente." }, { status: 404 });
@@ -237,11 +243,15 @@ export async function POST(req: NextRequest) {
       where: { inspectionId },
     });
 
+    const emissionAssessment = result.report
+      ? assessTechnicalReportEmission(result.report)
+      : null;
     return NextResponse.json({
       success: true,
       report: result.report,
       reportId: result.report?.id,
       technicalReportId: technicalReport?.id,
+      emissionAssessment,
       steps: result.steps.map(s => ({ step: s.step, status: s.status })),
     });
 

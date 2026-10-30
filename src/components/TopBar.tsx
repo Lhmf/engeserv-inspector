@@ -24,8 +24,30 @@ export function TopBar({ name, role, email, sidebarCollapsed, onToggleSidebar, o
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState<Array<{ id: string; title: string; description: string; time: string; unread: boolean; reportId?: string | null }>>([]);
   const [darkMode, setDarkMode] = useState(false);
   const online = useOnline();
+
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = () => fetch("/api/notifications")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (!active || !data?.notifications) return;
+        setLiveNotifications(data.notifications.map((notification: any) => ({
+          id: notification.id,
+          title: notification.title,
+          description: notification.message,
+          time: new Date(notification.createdAt).toLocaleString("pt-BR"),
+          unread: !notification.readAt,
+          reportId: notification.reportId,
+        })));
+      })
+      .catch(() => undefined);
+    loadNotifications();
+    const timer = window.setInterval(loadNotifications, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
 
   // Inicializa o estado a partir da classe aplicada (já resolvida no head)
   useEffect(() => {
@@ -45,11 +67,14 @@ export function TopBar({ name, role, email, sidebarCollapsed, onToggleSidebar, o
     });
   }
 
-  const notifications = [
-    { id: 1, title: "Nova inspeção agendada", description: "V-101 - Petrobras", time: "10 min", unread: true },
-    { id: 2, title: "Laudo aprovado", description: "C-201 - Vale", time: "2h", unread: true },
-    { id: 3, title: "Equipamento crítico", description: "V-401 - Espessura abaixo do mínimo", time: "1 dia", unread: false },
-  ];
+  async function markAllNotificationsRead() {
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => undefined);
+    setLiveNotifications((current) => current.map((notification) => ({ ...notification, unread: false })));
+  }
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 backdrop-blur-sm transition-all duration-300 sm:py-3 dark:border-slate-800 dark:bg-[#0d1526]/80">
@@ -101,9 +126,9 @@ export function TopBar({ name, role, email, sidebarCollapsed, onToggleSidebar, o
             aria-label="Notificações"
           >
             <Bell className="w-5 h-5" />
-            {notifications.some(n => n.unread) && (
+            {liveNotifications.some(n => n.unread) && (
               <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center">
-                {notifications.filter(n => n.unread).length}
+                {liveNotifications.filter(n => n.unread).length}
               </span>
             )}
           </button>
@@ -112,10 +137,12 @@ export function TopBar({ name, role, email, sidebarCollapsed, onToggleSidebar, o
             <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-2 dark:bg-[#141e34] dark:border-slate-700">
               <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between dark:border-slate-700">
                 <h3 className="font-semibold text-slate-800 dark:text-slate-100">Notificações</h3>
-                <button className="text-xs text-slate-500 hover:text-slate-700">Marcar todas como lidas</button>
+                <button onClick={markAllNotificationsRead} className="text-xs text-slate-500 hover:text-slate-700">Marcar todas como lidas</button>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                {notifications.map((notif) => (
+                {liveNotifications.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-slate-500">Nenhuma notificação pendente.</p>
+                ) : liveNotifications.map((notif) => (
                   <div
                     key={notif.id}
                     className={cn("px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-700/50 last:border-0", notif.unread && "bg-blue-50/50 dark:bg-blue-900/30")}

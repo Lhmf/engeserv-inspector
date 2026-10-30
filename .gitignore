@@ -47,6 +47,7 @@ qa/**/screenshots/
 qa/**/storage*.json
 qa/**/seed*.json
 qa/**/*.txt
+qa/pdf/
 docs/demo/**/storage*.json
 docs/demo/**/*storage*.json
 docs/demo/**/*.log

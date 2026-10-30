@@ -35,6 +35,8 @@ export interface EmissionAssessment {
   canEmitDefinitive: boolean;
   /** O critério de adoção dos pontos não medidos foi aprovado pelo RT? */
   regionalAdoptionApproved: boolean;
+  technicalValidationApproved: boolean;
+  technicalValidationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   /** Motivos legíveis do bloqueio (para API e UI) */
   reasons: string[];
 }
@@ -158,6 +160,15 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
   const unvalidatedCalculations: Array<{ id: string; reason: string }> = [];
   const reasons: string[] = [];
   const regionalAdoptionApproved = report?.metadata?.regionalAdoptionApproved === true || report?.inspectionData?.regionalAdoptionApproved === true;
+  const technicalValidation = report?.metadata?.technicalValidation;
+  const technicalValidationStatus = technicalValidation?.status === 'APPROVED'
+    ? 'APPROVED'
+    : technicalValidation?.status === 'REJECTED'
+      ? 'REJECTED'
+      : 'PENDING';
+  const technicalValidationApproved = technicalValidationStatus === 'APPROVED' &&
+    typeof technicalValidation?.approvedById === 'string' &&
+    typeof technicalValidation?.approvedAt === 'string';
 
   const results = report?.engineeringResults;
   const integrityAnalysis = results?.integrityAnalysis;
@@ -203,7 +214,10 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
   if (!regionalAdoptionApproved) {
     reasons.push('Critério de adoção dos pontos não medidos ainda não foi aprovado pelo responsável técnico.');
   }
-  if (placeholderFormulas.length > 0) {
+  if (!technicalValidationApproved) {
+    reasons.push('Validação técnica pendente: um administrador responsável precisa revisar e aprovar os resultados e o critério de pontos não medidos.');
+  }
+  if (placeholderFormulas.length > 0 && !technicalValidationApproved) {
     reasons.push(
       `Fórmulas/cálculos não validados (fórmulas placeholder ou reliability THEORETICAL): ${[
         ...new Set(placeholderFormulas),
@@ -213,13 +227,18 @@ export function assessTechnicalReportEmission(report: any): EmissionAssessment {
     );
   }
 
-  const canEmitDefinitive = hasEngineeringResults && placeholderFormulas.length === 0 && regionalAdoptionApproved;
+  // A aprovação explícita do responsável técnico valida o conjunto de
+  // resultados persistido para este laudo. Ela não altera fórmulas, valores
+  // ou medições; apenas registra a decisão auditável que libera a emissão.
+  const canEmitDefinitive = hasEngineeringResults && regionalAdoptionApproved && technicalValidationApproved;
 
   return {
     placeholderFormulas,
     unvalidatedCalculations,
     hasEngineeringResults,
     regionalAdoptionApproved,
+    technicalValidationApproved,
+    technicalValidationStatus,
     canEmitDefinitive,
     reasons,
   };
