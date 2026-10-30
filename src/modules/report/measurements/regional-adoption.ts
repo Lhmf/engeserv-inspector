@@ -18,15 +18,21 @@ function numericMeasurements(measurements: MeasurementPoint[]) {
   return measurements.filter((measurement) => Number.isFinite(Number(measurement.thicknessMm)));
 }
 
+function normalisePointLabel(point: unknown) {
+  const label = String(point ?? '').trim().toUpperCase();
+  const match = label.match(/^P[- ]?(\d{1,2})$/);
+  return match ? `PM-${String(Number(match[1])).padStart(2, '0')}` : label;
+}
+
 export function buildOfficialMeasurementPoints(measurements: MeasurementPoint[]): OfficialMeasurementPoint[] {
   const actual = numericMeasurements(measurements);
-  const byPoint = new Map(actual.map((measurement) => [measurement.point.trim().toUpperCase(), measurement]));
+  const byPoint = new Map(actual.map((measurement) => [normalisePointLabel(measurement.point), measurement]));
   const body = actual.filter((measurement) => {
-    const number = Number(measurement.point.match(/PM-(\d+)/i)?.[1]);
+    const number = Number(normalisePointLabel(measurement.point).match(/PM-(\d+)/i)?.[1]);
     return Number.isFinite(number) && number >= 1 && number <= 10;
   });
   const heads = actual.filter((measurement) => {
-    const number = Number(measurement.point.match(/PM-(\d+)/i)?.[1]);
+    const number = Number(normalisePointLabel(measurement.point).match(/PM-(\d+)/i)?.[1]);
     return Number.isFinite(number) && number >= 11 && number <= 18;
   });
   const bodyMinimum = body.length ? Math.min(...body.map((item) => Number(item.thicknessMm))) : null;

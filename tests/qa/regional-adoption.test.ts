@@ -24,6 +24,18 @@ test('adota o menor valor regional nos pontos não medidos', () => {
   assert.equal(materializeRegionalMeasurements(measurements).length, 9);
 });
 
+test('aceita os identificadores legados P1/P18 e os apresenta como PM-01/PM-18', () => {
+  const points = buildOfficialMeasurementPoints([
+    { ...measurements[0], point: 'P1' },
+    { ...measurements[1], point: 'P18' },
+  ]);
+
+  assert.equal(points[0].value, measurements[0].thicknessMm);
+  assert.equal(points[0].measured, true);
+  assert.equal(points[17].value, measurements[1].thicknessMm);
+  assert.equal(points[17].measured, true);
+});
+
 test('bloqueia emissão definitiva sem aprovação do responsável técnico', () => {
   const assessment = assessTechnicalReportEmission({
     metadata: { regionalAdoptionApproved: false },

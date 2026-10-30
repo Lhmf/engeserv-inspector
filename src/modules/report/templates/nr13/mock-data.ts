@@ -28,14 +28,15 @@ const now = new Date();
 const inspectionDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
 
 export const MOCK_MEASUREMENTS: MeasurementPoint[] = [
-  { id: 'm1', inspectionId: 'insp-001', point: 'P1', thicknessMm: 8.42, angleDeg: 0, notes: 'Ponto frontal - casco', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm2', inspectionId: 'insp-001', point: 'P2', thicknessMm: 8.38, angleDeg: 45, notes: 'Quadrante inferior direito', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm3', inspectionId: 'insp-001', point: 'P3', thicknessMm: 8.51, angleDeg: 90, notes: 'Ponto lateral direito', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm4', inspectionId: 'insp-001', point: 'P4', thicknessMm: 7.89, angleDeg: 135, notes: 'Região de solda longitudinal', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm5', inspectionId: 'insp-001', point: 'P5', thicknessMm: 8.45, angleDeg: 180, notes: 'Ponto traseiro - casco', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm6', inspectionId: 'insp-001', point: 'P6', thicknessMm: 8.32, angleDeg: 225, notes: 'Quadrante inferior esquerdo', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm7', inspectionId: 'insp-001', point: 'P7', thicknessMm: 8.55, angleDeg: 270, notes: 'Ponto lateral esquerdo', createdAt: inspectionDate, updatedAt: inspectionDate },
-  { id: 'm8', inspectionId: 'insp-001', point: 'P8', thicknessMm: 7.95, angleDeg: 315, notes: 'Região de solda circunferencial', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm1', inspectionId: 'insp-001', point: 'PM-01', thicknessMm: 8.42, angleDeg: 0, notes: 'Ponto frontal - casco', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm2', inspectionId: 'insp-001', point: 'PM-02', thicknessMm: 8.38, angleDeg: 45, notes: 'Quadrante inferior direito', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm3', inspectionId: 'insp-001', point: 'PM-03', thicknessMm: 8.51, angleDeg: 90, notes: 'Ponto lateral direito', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm4', inspectionId: 'insp-001', point: 'PM-04', thicknessMm: 7.89, angleDeg: 135, notes: 'Região de solda longitudinal', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm5', inspectionId: 'insp-001', point: 'PM-05', thicknessMm: 8.45, angleDeg: 180, notes: 'Ponto traseiro - casco', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm6', inspectionId: 'insp-001', point: 'PM-11', thicknessMm: 8.32, angleDeg: 225, notes: 'Tampo superior', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm7', inspectionId: 'insp-001', point: 'PM-12', thicknessMm: 8.55, angleDeg: 270, notes: 'Tampo superior', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm8', inspectionId: 'insp-001', point: 'PM-13', thicknessMm: 7.95, angleDeg: 315, notes: 'Tampo inferior', createdAt: inspectionDate, updatedAt: inspectionDate },
+  { id: 'm9', inspectionId: 'insp-001', point: 'PM-14', thicknessMm: 8.15, angleDeg: 0, notes: 'Tampo inferior', createdAt: inspectionDate, updatedAt: inspectionDate },
 ];
 
 export const MOCK_PHOTOS: ReportPhoto[] = [
