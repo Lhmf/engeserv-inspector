@@ -12,6 +12,7 @@
 export interface EquipmentData {
   id: string;
   tag: string;
+  artNumber?: string;
   type: EquipmentType;
   description?: string;
   manufacturer?: string;

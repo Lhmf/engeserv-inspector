@@ -52,7 +52,7 @@ export async function GET(
       status: report.status,
       inspectionDate: report.inspectionDate,
       expiresAt: report.expiresAt,
-      artNumber: report.artNumber,
+       artNumber: report.artNumber || parseJson(report.equipmentData)?.artNumber || report.inspection.equipment.artNumber,
       inspectorId: report.inspectorId,
       inspectorName: report.inspectorName,
       engineerName: report.engineerName,

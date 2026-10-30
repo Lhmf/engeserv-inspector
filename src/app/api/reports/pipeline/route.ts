@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
                 version: technicalReport.version,
                 type: technicalReport.type,
                 status: technicalReport.status,
-                artNumber: technicalReport.artNumber,
+                artNumber: technicalReport.artNumber || (parseJson(technicalReport.equipmentData)?.artNumber ?? technicalReport.inspection.equipment.artNumber),
                 inspectionDate: technicalReport.inspectionDate,
                 createdAt: technicalReport.createdAt,
                 updatedAt: technicalReport.updatedAt,

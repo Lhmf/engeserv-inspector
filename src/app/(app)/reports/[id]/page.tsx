@@ -829,8 +829,26 @@ export default function ReportPage() {
                   )}
                   {activeSection === "preview" && technicalReportId && (
                     <div className="relative">
-                      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        Prévia demonstrativa do layout oficial. Para liberar o PDF definitivo, conclua a validação técnica no cartão destacado acima.
+                      <div className={cn(
+                        "mb-4 rounded-xl border px-4 py-4 text-sm",
+                        emissionAssessment?.canEmitDefinitive
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                          : "border-amber-200 bg-amber-50 text-amber-900"
+                      )}>
+                        <p className="font-semibold">
+                          {emissionAssessment?.canEmitDefinitive
+                            ? "PDF definitivo liberado"
+                            : emissionAssessment?.technicalValidationApproved
+                              ? "Validação registrada, mas o PDF ainda está bloqueado"
+                              : "Prévia demonstrativa do layout oficial"}
+                        </p>
+                        <p className="mt-1">
+                          {emissionAssessment?.canEmitDefinitive
+                            ? "A validação técnica foi concluída. Use o botão Baixar PDF definitivo no topo desta tela."
+                            : emissionAssessment?.technicalValidationApproved
+                              ? "A aprovação foi registrada, mas ainda existem requisitos de engenharia pendentes. Consulte o cartão Validação técnica acima para ver o motivo exato."
+                              : "Para liberar o PDF definitivo, revise as pendências no cartão Validação técnica e conclua a aprovação como Administrador Master."}
+                        </p>
                       </div>
                       <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100" style={{ height: '800px' }}>
                         <iframe

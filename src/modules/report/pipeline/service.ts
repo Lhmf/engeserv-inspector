@@ -545,6 +545,7 @@ export class InspectionReportPipeline {
         templateId: context.options?.templateId,
         templateVersion: context.options?.templateVersion,
         includeSimulations: context.options?.includeSimulations,
+        artNumber: rawData.equipment.artNumber,
         inspectorId: rawData.inspection.inspectorId,
         inspectorName: rawData.inspection.inspectorName || 'Inspetor', // Nome real do inspetor quando disponível
         engineerId: context.options?.initiatedBy?.id,
@@ -791,6 +792,7 @@ export class InspectionReportPipeline {
                     equipment: {
                                           id: equipment.id,
                                           tag: equipment.tag,
+                                          artNumber: equipment.artNumber ?? undefined,
                                           type: equipment.type as 'CALDEIRA' | 'VASO_DE_PRESSAO' | 'SILO' | 'TANQUE' | 'TUBULACAO' | 'COMPRESSOR' | 'TROCADOR_DE_CALOR' | 'REATOR' | 'OUTRO',
                                           description: equipment.description ?? undefined,
                                           manufacturer: equipment.manufacturer ?? undefined,

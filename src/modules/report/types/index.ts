@@ -90,6 +90,7 @@ export interface ClientInfo {
 export interface EquipmentInfo {
   id: string;
   tag: string;
+  artNumber?: string;
   type: string;
   description?: string;
   manufacturer?: string;

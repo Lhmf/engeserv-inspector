@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 
 const updateEquipmentSchema = z.object({
   tag: z.string().min(1, "TAG é obrigatória.").optional(),
+  artNumber: z.string().trim().max(80).optional().nullable(),
   type: z.enum([
     "CALDEIRA",
     "VASO_DE_PRESSAO",

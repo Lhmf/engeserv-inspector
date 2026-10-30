@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth";
 const createEquipmentSchema = z.object({
   clientId: z.string().cuid("Cliente inválido."),
   tag: z.string().min(1, "TAG é obrigatória."),
+  artNumber: z.string().trim().max(80).optional().nullable(),
   type: z.enum([
     "CALDEIRA",
     "VASO_DE_PRESSAO",

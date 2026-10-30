@@ -110,6 +110,7 @@ model Client {
 model Equipment {
   id         String   @id @default(cuid())
   tag        String // identificacao/TAG do equipamento no cliente
+  artNumber  String?
   type       EquipmentType
   description String?
   manufacturer String?

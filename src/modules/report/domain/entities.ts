@@ -344,6 +344,7 @@ export class TechnicalReportBuilder {
       equipment: {
         id: equipment.id,
         tag: equipment.tag,
+        artNumber: equipment.artNumber,
         type: equipment.type,
         description: equipment.description,
         manufacturer: equipment.manufacturer,

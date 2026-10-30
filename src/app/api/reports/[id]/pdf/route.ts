@@ -179,7 +179,7 @@ function parseTechnicalReport(raw: any): TechnicalReport {
       inspectionDate,
       issuedAt: raw.issuedAt ? new Date(raw.issuedAt) : undefined,
       expiresAt: raw.expiresAt ? new Date(raw.expiresAt) : undefined,
-      artNumber: raw.artNumber,
+       artNumber: raw.artNumber || equipmentData.artNumber || equip.artNumber,
       inspectorId: inspect.inspectorId || '',
       inspectorName: inspector.name || raw.inspectorName || 'Inspetor',
       engineerId: raw.engineerId,

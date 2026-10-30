@@ -9,7 +9,7 @@ export default async function EditEquipmentPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const equipment = await prisma.equipment.findUnique({
     where: { id },
-    select: { id: true, tag: true, designPressureBar: true, originalThicknessMm: true, minThicknessMm: true },
+    select: { id: true, tag: true, artNumber: true, designPressureBar: true, originalThicknessMm: true, minThicknessMm: true },
   });
   if (!equipment) notFound();
   return <EquipmentTechnicalEditor equipment={equipment} />;

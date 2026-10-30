@@ -109,6 +109,7 @@ export default async function EquipamentoDetailPage({
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <DataItem label="TAG" value={equipment.tag} />
+          <DataItem label="ART" value={equipment.artNumber} />
           <DataItem label="Tipo" value={equipment.type.replace(/_/g, " ")} />
           <DataItem label="Fabricante" value={equipment.manufacturer} />
           <DataItem label="Ano Fabricação" value={equipment.manufactureYear?.toString()} />

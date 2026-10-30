@@ -40,6 +40,7 @@ export default function NewEquipmentForm() {
   const router = useRouter();
   const [clientId, setClientId] = useState("");
   const [tag, setTag] = useState("");
+  const [artNumber, setArtNumber] = useState("");
   const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [manufacturer, setManufacturer] = useState("");
@@ -105,6 +106,7 @@ export default function NewEquipmentForm() {
         body: JSON.stringify({
           clientId,
           tag,
+          artNumber: artNumber || null,
           type,
           description: description || null,
           manufacturer: manufacturer || null,
@@ -207,6 +209,19 @@ export default function NewEquipmentForm() {
                 placeholder="Ex: V-101"
                 maxLength={50}
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">ART</label>
+              <input
+                type="text"
+                value={artNumber}
+                onChange={(e) => setArtNumber(e.target.value.toUpperCase())}
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                placeholder="Ex: 2026-0001234567"
+                maxLength={80}
+              />
+              <p className="mt-1 text-xs text-slate-500">Será usada automaticamente nos laudos deste equipamento.</p>
             </div>
 
             <div>
